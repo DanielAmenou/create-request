@@ -1,0 +1,56 @@
+{
+  "name": "create-request",
+  "version": "0.0.1-beta.0",
+  "description": "A modern, chainable wrapper for fetch with automatic retries, timeouts, comprehensive error handling, and first-class TypeScript support",
+  "main": "dist/library/index.js",
+  "module": "dist/library/index.esm.js",
+  "types": "dist/library/index.d.ts",
+  "files": [
+    "dist/library"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "tsc -p tsconfig.test.json && node --test --experimental-test-coverage",
+    "test:coverage": "tsc -p tsconfig.test.json && node --test --experimental-test-coverage dist/tests/test/",
+    "pretest": "tsc -p tsconfig.test.json",
+    "prepublishOnly": "npm run check && npm run build",
+    "publish:beta": "npm version prerelease --preid=beta && git push origin --tags && npm publish --tag beta",
+    "publish:patch": "npm version patch && git push origin --tags && npm publish",
+    "publish:minor": "npm version minor && git push origin --tags && npm publish",
+    "publish:major": "npm version major && git push origin --tags && npm publish",
+    "lint": "eslint 'src/**/*.ts' 'test/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' 'test/**/*.ts' --fix",
+    "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts'",
+    "check": "npm run lint && npm run test"
+  },
+  "keywords": [
+    "fetch",
+    "http",
+    "request",
+    "api",
+    "xhr",
+    "ajax"
+  ],
+  "author": "Daniel Amenou <amenou.daniel@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^22.0.0",
+    "@rollup/plugin-node-resolve": "^13.3.0",
+    "@rollup/plugin-typescript": "^8.3.2",
+    "@types/node": "^18.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-import-resolver-typescript": "^3.6.1",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-prettier": "^5.0.1",
+    "prettier": "^3.1.1",
+    "rollup": "^2.75.5",
+    "rollup-plugin-cleaner": "^1.0.0",
+    "tslib": "^2.4.0",
+    "typescript": "^4.7.3",
+    "undici": "^5.28.5"
+  }
+}
