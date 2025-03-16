@@ -114,8 +114,8 @@ function createMockFn<T = any>(): MockFn<T> {
  */
 export class FetchMock {
   private static originalFetch: typeof fetch;
-  private static mockImplementation = createMockFn<Promise<Response>>().mockImplementation(
-    () => Promise.resolve(createMockResponse())
+  private static mockImplementation = createMockFn<Promise<Response>>().mockImplementation(() =>
+    Promise.resolve(createMockResponse())
   );
 
   // Track active abortable mocks

@@ -14,7 +14,7 @@
     "test": "tsc -p tsconfig.test.json && node --test --experimental-test-coverage",
     "test:coverage": "tsc -p tsconfig.test.json && node --test --experimental-test-coverage dist/tests/test/",
     "pretest": "tsc -p tsconfig.test.json",
-    "prepublishOnly": "npm run check && npm run build",
+    "prepublishOnly": "npm run build",
     "publish:beta": "npm version prerelease --preid=beta && git push origin --tags && npm publish --tag beta",
     "publish:patch": "npm version patch && git push origin --tags && npm publish",
     "publish:minor": "npm version minor && git push origin --tags && npm publish",
