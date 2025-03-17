@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
-import { describe, it, beforeEach } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import { GetRequest } from "../src/requestMethods";
 import { Config } from "../src/utils/Config";
+import { FetchMock } from "./utils/fetchMock";
 
 describe("Config", () => {
   let config: any;
@@ -66,5 +68,44 @@ describe("Config", () => {
     assert.equal(config.getXsrfHeaderName(), "X-XSRF-TOKEN");
     assert.equal(config.isAutoXsrfEnabled(), true);
     assert.equal(config.isAntiCsrfEnabled(), true);
+  });
+});
+
+describe("Config with CSRF", () => {
+  let config: any;
+
+  beforeEach(() => {
+    FetchMock.install();
+    config = Config.getInstance();
+    config.reset();
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+  });
+
+  it("should apply global CSRF configuration to requests", async () => {
+    // Disable anti-CSRF globally
+    config.setEnableAntiCsrf(false);
+
+    // Make a request - it should not have CSRF headers
+    const request = new GetRequest();
+    await request.sendTo("https://api.example.com/test");
+
+    // Check request headers
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], undefined);
+
+    // Now enable CSRF and try again
+    config.setEnableAntiCsrf(true);
+    const request2 = new GetRequest();
+    await request2.sendTo("https://api.example.com/test2");
+
+    // Second request should have the header
+    const [, options2] = FetchMock.mock.calls[1];
+    const headers2 = options2.headers as Record<string, string>;
+    assert.equal(headers2["X-Requested-With"], "XMLHttpRequest");
   });
 });

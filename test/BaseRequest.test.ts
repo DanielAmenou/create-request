@@ -16,11 +16,15 @@ import { FetchMock, wait } from "./utils/fetchMock";
 describe("BaseRequest", () => {
   beforeEach(() => {
     FetchMock.install();
+    // Disable anti-CSRF globally for most tests
+    create.config.setEnableAntiCsrf(false);
   });
 
   afterEach(() => {
     FetchMock.reset();
     FetchMock.restore();
+    // Reset global config after each test
+    create.config.reset();
   });
 
   it("should make a basic GET request", async () => {
@@ -1105,11 +1109,14 @@ describe("Cookie Options Tests", () => {
 describe("CSRF Protection Tests", () => {
   beforeEach(() => {
     FetchMock.install();
+    // Make sure we reset the global config
+    create.config.reset();
   });
 
   afterEach(() => {
     FetchMock.reset();
     FetchMock.restore();
+    create.config.reset();
   });
 
   it("should set CSRF token in headers", async () => {
@@ -1180,6 +1187,51 @@ describe("CSRF Protection Tests", () => {
     const [, options] = FetchMock.mock.calls[0];
     const headers = options.headers as Record<string, string>;
     assert.equal(headers["X-Requested-With"], undefined);
+  });
+
+  it("should override global config with withoutCsrfProtection method", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setEnableAntiCsrf(true); // Enable globally
+    const request = new GetRequest().withoutCsrfProtection(); // Disable locally
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], undefined);
+  });
+
+  it("should honor global config when CSRF is disabled", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setEnableAntiCsrf(false); // Disable globally
+    const request = new GetRequest(); // Don't disable locally
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], undefined);
+  });
+
+  it("should respect individual request CSRF settings over global settings", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setEnableAntiCsrf(false); // Disable globally
+    const request = new GetRequest().withAntiCsrfHeaders(); // Enable locally
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], "XMLHttpRequest");
   });
 });
 
