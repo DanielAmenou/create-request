@@ -7,6 +7,7 @@ import {
   RequestPriority,
   CredentialsPolicy,
 } from "../src/enums";
+import create from "../src/index";
 import { RequestError } from "../src/RequestError";
 import { GetRequest } from "../src/requestMethods";
 import type { CookieOptions } from "../src/types";
@@ -42,7 +43,7 @@ describe("BaseRequest", () => {
   it("should set custom headers", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withHeaders({
+    const request = new GetRequest().withoutCsrfProtection().withHeaders({
       "X-Custom-Header": "test-value",
       Authorization: "Bearer token123",
     });
@@ -273,7 +274,7 @@ describe("BaseRequest", () => {
   it("should set content type", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withContentType("text/plain");
+    const request = new GetRequest().withoutCsrfProtection().withContentType("text/plain");
 
     // Act
     await request.sendTo("https://api.example.com/test");
@@ -288,7 +289,7 @@ describe("BaseRequest", () => {
   it("should set authorization header", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withAuthorization("Bearer token123");
+    const request = new GetRequest().withoutCsrfProtection().withAuthorization("Bearer token123");
 
     // Act
     await request.sendTo("https://api.example.com/test");
@@ -303,7 +304,7 @@ describe("BaseRequest", () => {
   it("should set basic auth header", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withBasicAuth("username", "password");
+    const request = new GetRequest().withoutCsrfProtection().withBasicAuth("username", "password");
 
     // Act
     await request.sendTo("https://api.example.com/test");
@@ -318,7 +319,7 @@ describe("BaseRequest", () => {
   it("should set bearer token", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withBearerToken("token123");
+    const request = new GetRequest().withoutCsrfProtection().withBearerToken("token123");
 
     // Act
     await request.sendTo("https://api.example.com/test");
@@ -640,7 +641,7 @@ describe("BaseRequest", () => {
   it("should set cookies correctly", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest().withoutCsrfProtection().withCookies({
       sessionId: "abc123",
       userId: "user456",
     });
@@ -658,7 +659,7 @@ describe("BaseRequest", () => {
   it("should handle cookies with special characters", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest().withoutCsrfProtection().withCookies({
       "complex key": "value with spaces",
       "special=chars": "!@#$%^&*()",
     });
@@ -679,6 +680,7 @@ describe("BaseRequest", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const request = new GetRequest()
+      .withoutCsrfProtection()
       .withHeaders({ Cookie: "existing=value" })
       .withCookies({ newCookie: "newValue" });
 
@@ -695,7 +697,7 @@ describe("BaseRequest", () => {
   it("should handle cookies with security options", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest().withoutCsrfProtection().withCookies({
       basic: "value",
       complex: {
         value: "test",
@@ -1097,5 +1099,160 @@ describe("Cookie Options Tests", () => {
     assert.ok(cookieHeader.includes("second=two"));
     assert.ok(cookieHeader.includes("third=three"));
     assert.ok(cookieHeader.includes("fourth=four"));
+  });
+});
+
+describe("CSRF Protection Tests", () => {
+  beforeEach(() => {
+    FetchMock.install();
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+  });
+
+  it("should set CSRF token in headers", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCsrfToken("test-token-12345");
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-CSRF-Token"], "test-token-12345");
+  });
+
+  it("should set CSRF token with custom header name", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCsrfToken("test-token-12345", "X-XSRF-TOKEN");
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-XSRF-TOKEN"], "test-token-12345");
+  });
+
+  it("should set anti-CSRF headers", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withAntiCsrfHeaders();
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], "XMLHttpRequest");
+  });
+
+  it("should automatically add anti-CSRF headers by default", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest();
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], "XMLHttpRequest");
+  });
+
+  it("should allow disabling automatic CSRF protection", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withoutCsrfProtection();
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], undefined);
+  });
+});
+
+describe("Global Config CSRF Tests", () => {
+  beforeEach(() => {
+    FetchMock.install();
+    // Reset global config before each test
+    create.config.reset();
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+  });
+
+  it("should use global CSRF token", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setCsrfToken("global-csrf-token");
+    const request = new GetRequest();
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-CSRF-Token"], "global-csrf-token");
+  });
+
+  it("should use custom global CSRF header name", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setCsrfToken("global-csrf-token").setCsrfHeaderName("X-Custom-CSRF");
+    const request = new GetRequest();
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Custom-CSRF"], "global-csrf-token");
+  });
+
+  it("should disable global anti-CSRF headers", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setEnableAntiCsrf(false);
+    const request = new GetRequest();
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], undefined);
+  });
+
+  it("should override global CSRF settings with local settings", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setCsrfToken("global-csrf-token");
+    // Use explicit header name to avoid confusion with automatic headers
+    const request = new GetRequest().withCsrfToken("local-csrf-token", "X-CSRF-Token");
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-CSRF-Token"], "local-csrf-token");
   });
 });

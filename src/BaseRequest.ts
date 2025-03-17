@@ -8,20 +8,25 @@ import {
 import { RequestError } from "./RequestError";
 import { type ResponsePromise, ResponseWrapper } from "./ResponseWrapper";
 import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions } from "./types";
+import { Config } from "./utils/Config";
 import { CookieUtils } from "./utils/CookieUtils";
+import { CsrfUtils } from "./utils/CsrfUtils";
 
 // Base class with common functionality for all request types
 export abstract class BaseRequest {
   protected abstract method: HttpMethod;
-  protected requestOptions: RequestOptions = {};
+  protected requestOptions: RequestOptions = {
+    headers: {},
+  };
   protected abortController?: AbortController;
   protected queryParams: URLSearchParams = new URLSearchParams();
+  protected autoApplyCsrfProtection: boolean = true;
 
   constructor() {}
 
   withHeaders(headers: Record<string, string>): this {
     this.requestOptions.headers = {
-      ...((this.requestOptions.headers as Record<string, string>) || {}),
+      ...(this.requestOptions.headers as Record<string, string>),
       ...headers,
     };
     return this;
@@ -236,12 +241,90 @@ export abstract class BaseRequest {
   }
 
   /**
+   * Sets a CSRF token in the request headers
+   * @param token The CSRF token
+   * @param headerName The name of the header to use (default: X-CSRF-Token)
+   * @returns The instance for chaining
+   */
+  withCsrfToken(token: string, headerName = "X-CSRF-Token"): this {
+    return this.withHeaders({
+      [headerName]: token,
+    });
+  }
+
+  /**
+   * Disables automatic anti-CSRF protection.
+   * By default, X-Requested-With: XMLHttpRequest header is sent with all requests.
+   * @returns The instance for chaining
+   */
+  withoutCsrfProtection(): this {
+    this.autoApplyCsrfProtection = false;
+    return this;
+  }
+
+  /**
+   * Sets common security headers to help prevent CSRF attacks
+   * @returns The instance for chaining
+   */
+  withAntiCsrfHeaders(): this {
+    // No need for the null check here anymore
+    return this.withHeaders({
+      "X-Requested-With": "XMLHttpRequest",
+    });
+  }
+
+  /**
    * Send the request to the specified URL
    * @param url The URL to send the request to
    */
   sendTo(url: string): ResponsePromise {
     // Format the URL with query parameters
     url = this.formatUrlWithQueryParams(url);
+
+    // Apply automatic CSRF protection if enabled
+    if (this.autoApplyCsrfProtection) {
+      const config = Config.getInstance();
+
+      // Apply anti-CSRF headers if enabled
+      if (config.isAntiCsrfEnabled()) {
+        this.withHeaders({
+          "X-Requested-With": "XMLHttpRequest",
+        });
+      }
+
+      // Apply global CSRF token if set
+      const globalToken = config.getCsrfToken();
+      if (globalToken) {
+        // Check if local token exists
+        const headers = this.requestOptions.headers as Record<string, string>;
+        const hasLocalToken = Object.keys(headers).some(
+          key => key === "X-CSRF-Token" || key === config.getCsrfHeaderName()
+        );
+
+        if (!hasLocalToken) {
+          this.withHeaders({
+            [config.getCsrfHeaderName()]: globalToken,
+          });
+        }
+      }
+
+      // check for XSRF token in cookies and send it as a header
+      if (config.isAutoXsrfEnabled() && typeof document !== "undefined") {
+        const xsrfToken = CsrfUtils.getTokenFromCookie(config.getXsrfCookieName());
+        if (xsrfToken && CsrfUtils.isValidToken(xsrfToken)) {
+          const headers = this.requestOptions.headers as Record<string, string>;
+          const hasLocalToken = Object.keys(headers).some(
+            key => key === "X-XSRF-TOKEN" || key === config.getXsrfHeaderName()
+          );
+
+          if (!hasLocalToken) {
+            this.withHeaders({
+              [config.getXsrfHeaderName()]: xsrfToken,
+            });
+          }
+        }
+      }
+    }
 
     // Cast the request options to RequestInit to ensure compatibility
     const fetchOptions: RequestInit = {

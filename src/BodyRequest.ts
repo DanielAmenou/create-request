@@ -1,51 +1,77 @@
 import { BaseRequest } from "./BaseRequest";
+import { BodyType } from "./enums";
 import type { Body } from "./types";
 
-// An extension of BaseRequest for methods that support request bodies
+/**
+ * Base class for requests that can have a body (POST, PUT, PATCH)
+ */
 export abstract class BodyRequest extends BaseRequest {
+  protected body?: Body;
+  private bodyProcessed = false;
+  private bodyType?: BodyType;
+
   /**
-   * Sets the request body with appropriate content type handling
+   * Sets the body of the request
+   * @param body - The request body
    */
   withBody(body: Body): this {
-    if (body === undefined || body === null) {
-      this.requestOptions.body = null;
-      return this;
-    }
+    this.body = body;
+    this.bodyProcessed = false;
 
-    // Handle special body types that don't need transformation
-    if (
-      body instanceof Blob ||
-      body instanceof FormData ||
-      body instanceof URLSearchParams ||
-      body instanceof ArrayBuffer ||
-      body instanceof ReadableStream
-    ) {
-      this.requestOptions.body = body;
-
-      // For FormData, make sure to NOT explicitly set Content-Type
-      // The browser will set it automatically with the correct boundary
-      // If we set it manually, it would be missing the boundary parameter
-      return this;
-    }
-
-    // Handle strings
+    // Set body type and validate
     if (typeof body === "string") {
-      this.requestOptions.body = body;
-      return this;
-    }
+      this.bodyType = BodyType.STRING;
+      this.setContentTypeIfNeeded("text/plain");
+    } else if (
+      body !== null &&
+      typeof body === "object" &&
+      !(
+        body instanceof FormData ||
+        body instanceof Blob ||
+        body instanceof ArrayBuffer ||
+        body instanceof URLSearchParams ||
+        body instanceof ReadableStream
+      )
+    ) {
+      this.bodyType = BodyType.JSON;
+      this.setContentTypeIfNeeded("application/json");
 
-    // For objects and other types, stringify and set JSON content-type
-    try {
-      this.requestOptions.body = JSON.stringify(body);
-      this.requestOptions.headers = {
-        "Content-Type": "application/json",
-        ...((this.requestOptions.headers as Record<string, string>) || {}),
-      };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to stringify request body: ${errorMessage}`);
+      // Validate JSON is stringifiable early
+      try {
+        JSON.stringify(body);
+      } catch (error) {
+        throw new Error(`Failed to stringify request body: ${String(error)}`);
+      }
+    } else {
+      this.bodyType = BodyType.BINARY;
     }
 
     return this;
+  }
+
+  private setContentTypeIfNeeded(contentType: string): void {
+    // Only set if not already set
+    const headers = this.requestOptions.headers as Record<string, string>;
+    if (!Object.keys(headers).some(header => header.toLowerCase() === "content-type")) {
+      this.withContentType(contentType);
+    }
+  }
+
+  /**
+   * Send the request to the specified URL
+   * Overrides the base implementation to add body handling
+   */
+  sendTo(url: string): ReturnType<BaseRequest["sendTo"]> {
+    // Process body only once
+    if (!this.bodyProcessed && this.body !== undefined && !this.requestOptions.body) {
+      if (this.bodyType === BodyType.JSON) {
+        this.requestOptions.body = JSON.stringify(this.body);
+      } else {
+        this.requestOptions.body = this.body;
+      }
+      this.bodyProcessed = true;
+    }
+
+    return super.sendTo(url);
   }
 }

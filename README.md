@@ -383,6 +383,50 @@ try {
 }
 ```
 
+### CSRF Protection
+
+For security, `create-request` automatically adds CSRF protection:
+
+1. The `X-Requested-With: XMLHttpRequest` header is added to all requests
+2. If a cookie named `XSRF-TOKEN` exists, its value is automatically sent in an `X-XSRF-TOKEN` header
+
+#### Global CSRF Configuration
+
+You can configure CSRF protection globally for all requests:
+
+```typescript
+// Set a global CSRF token for all requests
+create.config.setCsrfToken('your-csrf-token');
+
+// Customize header and cookie names
+create.config.setCsrfHeaderName('X-CSRF-Token');
+create.config.setXsrfCookieName('XSRF-TOKEN');
+create.config.setXsrfHeaderName('X-XSRF-TOKEN');
+
+// Disable automatic CSRF protection features
+create.config.setEnableAutoXsrf(false); // Disable reading from cookies
+create.config.setEnableAntiCsrf(false); // Disable X-Requested-With header
+
+// Reset to defaults
+create.config.reset();
+```
+
+#### Per-Request CSRF Settings
+
+Individual requests can override global settings:
+
+```typescript
+// Disable CSRF protection for a specific request
+const request = create.post()
+  .withoutCsrfProtection()
+  .sendTo('https://api.example.com/endpoint');
+
+// Set a specific token for a request (overrides global token)
+const request = create.post()
+  .withCsrfToken("request-specific-token", "X-CSRF-Token")
+  .sendTo('https://api.example.com/endpoint');
+```
+
 ## Advanced Usage
 
 ### Handling File Downloads
