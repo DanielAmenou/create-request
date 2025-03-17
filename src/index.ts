@@ -8,10 +8,11 @@ export {
   RequestMode,
   RedirectMode,
   CacheMode,
+  SameSitePolicy,
 } from "./enums";
 
 // Export types
-export type { RetryCallback, RequestOptions } from "./types";
+export type { RetryCallback, RequestOptions, CookieOptions, CookiesRecord } from "./types";
 
 // Export classes
 export { RequestError } from "./RequestError";

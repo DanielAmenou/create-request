@@ -59,3 +59,12 @@ export enum CacheMode {
   FORCE_CACHE = "force-cache",
   ONLY_IF_CACHED = "only-if-cached",
 }
+
+/**
+ * Enum for cookie SameSite policies
+ */
+export enum SameSitePolicy {
+  LAX = "Lax",
+  NONE = "None",
+  STRICT = "Strict",
+}

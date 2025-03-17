@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import { CredentialsPolicy, RequestMode, RedirectMode, RequestPriority } from "../src/enums";
+import {
+  RequestMode,
+  RedirectMode,
+  SameSitePolicy,
+  RequestPriority,
+  CredentialsPolicy,
+} from "../src/enums";
 import { RequestError } from "../src/RequestError";
 import { GetRequest } from "../src/requestMethods";
+import type { CookieOptions } from "../src/types";
 import { FetchMock, wait } from "./utils/fetchMock";
 
 describe("BaseRequest", () => {
@@ -90,7 +97,7 @@ describe("BaseRequest", () => {
 
     // Assert
     const [url] = FetchMock.mock.calls[0];
-    const parsedUrl = new URL(url);
+    const parsedUrl = new URL(url as string);
     assert.equal(parsedUrl.searchParams.get("existing"), "value");
     assert.equal(parsedUrl.searchParams.get("param1"), "value1");
   });
@@ -683,5 +690,412 @@ describe("BaseRequest", () => {
     assert.deepEqual(options.headers, {
       Cookie: "existing=value; newCookie=newValue",
     });
+  });
+
+  it("should handle cookies with security options", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      basic: "value",
+      complex: {
+        value: "test",
+        secure: true,
+        httpOnly: true,
+        sameSite: SameSitePolicy.STRICT,
+        path: "/",
+        maxAge: 3600,
+      } as CookieOptions,
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("basic=value"));
+    assert.ok(cookieHeader.includes("complex=test"));
+  });
+
+  it("should handle complex cookie options", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookie("session", {
+      value: "abc123",
+      secure: true,
+      httpOnly: true,
+      sameSite: SameSitePolicy.LAX,
+      expires: new Date(Date.now() + 86400000), // 24 hours from now
+      path: "/dashboard",
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("session=abc123"));
+  });
+
+  it("should handle complex cookie options with validation", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookie("session", {
+      value: "abc123",
+      secure: true,
+      httpOnly: true,
+      sameSite: SameSitePolicy.LAX,
+      expires: new Date(Date.now() + 86400000), // 24 hours from now
+      path: "/dashboard",
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("session=abc123"));
+  });
+
+  it("should handle case-insensitive cookie headers", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest()
+      .withHeaders({ cookie: "existing=value" }) // lowercase cookie header
+      .withCookies({ newCookie: "newValue" });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+
+    // The header should be preserved with its original case
+    assert.equal(headers["cookie"], "existing=value; newCookie=newValue");
+    assert.equal(headers["Cookie"], undefined); // Should not duplicate with different case
+  });
+});
+
+describe("Cookie Options Tests", () => {
+  beforeEach(() => {
+    FetchMock.install();
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+  });
+
+  it("should handle basic string cookies", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      simple: "value",
+      another: "anotherValue",
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("simple=value"));
+    assert.ok(cookieHeader.includes("another=anotherValue"));
+  });
+
+  it("should handle cookie with secure flag", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      secureCookie: { value: "secureValue", secure: true },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("secureCookie=secureValue"));
+  });
+
+  it("should handle cookie with httpOnly flag", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      httpOnlyCookie: { value: "httpOnlyValue", httpOnly: true },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("httpOnlyCookie=httpOnlyValue"));
+  });
+
+  it("should handle cookie with SameSite=Strict option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      strictCookie: { value: "strictValue", sameSite: SameSitePolicy.STRICT },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("strictCookie=strictValue"));
+  });
+
+  it("should handle cookie with SameSite=Lax option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      laxCookie: { value: "laxValue", sameSite: SameSitePolicy.LAX },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("laxCookie=laxValue"));
+  });
+
+  it("should handle cookie with SameSite=None option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      noneCookie: { value: "noneValue", sameSite: SameSitePolicy.NONE },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("noneCookie=noneValue"));
+  });
+
+  it("should handle cookie with path option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      pathCookie: { value: "pathValue", path: "/dashboard" },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("pathCookie=pathValue"));
+  });
+
+  it("should handle cookie with domain option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      domainCookie: { value: "domainValue", domain: "example.com" },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("domainCookie=domainValue"));
+  });
+
+  it("should handle cookie with maxAge option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      maxAgeCookie: { value: "maxAgeValue", maxAge: 3600 },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("maxAgeCookie=maxAgeValue"));
+  });
+
+  it("should handle cookie with expires option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const expiryDate = new Date(Date.now() + 86400000); // 24 hours later
+    const request = new GetRequest().withCookies({
+      expiresCookie: { value: "expiresValue", expires: expiryDate },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("expiresCookie=expiresValue"));
+  });
+
+  it("should handle multiple cookies with different options", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      cookie1: "simple",
+      cookie2: { value: "secure", secure: true },
+      cookie3: { value: "httpOnly", httpOnly: true },
+      cookie4: { value: "strict", sameSite: SameSitePolicy.STRICT },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+
+    assert.ok(cookieHeader.includes("cookie1=simple"));
+    assert.ok(cookieHeader.includes("cookie2=secure"));
+    assert.ok(cookieHeader.includes("cookie3=httpOnly"));
+    assert.ok(cookieHeader.includes("cookie4=strict"));
+  });
+
+  it("should handle cookie with all options combined", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const expiryDate = new Date(Date.now() + 86400000); // 24 hours later
+
+    const request = new GetRequest().withCookies({
+      complexCookie: {
+        value: "complexValue",
+        secure: true,
+        httpOnly: true,
+        sameSite: SameSitePolicy.STRICT,
+        path: "/admin",
+        domain: "api.example.com",
+        maxAge: 7200,
+        expires: expiryDate,
+      },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("complexCookie=complexValue"));
+  });
+
+  it("should handle empty cookie values", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      emptyCookie: "",
+      emptyOptionCookie: { value: "" },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("emptyCookie="));
+    assert.ok(cookieHeader.includes("emptyOptionCookie="));
+  });
+
+  it("should handle cookies with special characters", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      "name with spaces": "value with spaces",
+      "name+with+plus": "value+with+plus",
+      "name@symbols!": "value@symbols!",
+      "unicode😀": "unicode😀value",
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+
+    // Instead of checking for specific encodings which can vary, decode and check the actual values
+    const decodedCookieHeader = decodeURIComponent(cookieHeader);
+    assert.ok(decodedCookieHeader.includes("name with spaces=value with spaces"));
+    assert.ok(decodedCookieHeader.includes("name+with+plus=value+with+plus"));
+    assert.ok(decodedCookieHeader.includes("name@symbols!=value@symbols!"));
+    assert.ok(decodedCookieHeader.includes("unicode😀=unicode😀value"));
+  });
+
+  it("should handle very long cookie values", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const longValue = "a".repeat(1000); // 1000 character string
+    const request = new GetRequest().withCookies({
+      longCookie: longValue,
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes(`longCookie=${longValue}`));
+  });
+
+  it("should handle cookies with the withCookie method", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest()
+      .withCookie("session", "abc123")
+      .withCookie("preference", { value: "dark", sameSite: SameSitePolicy.LAX });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("session=abc123"));
+    assert.ok(cookieHeader.includes("preference=dark"));
+  });
+
+  it("should merge multiple cookie calls correctly", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest()
+      .withCookies({ first: "one", second: "two" })
+      .withCookie("third", "three")
+      .withCookies({ fourth: { value: "four", secure: true } });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("first=one"));
+    assert.ok(cookieHeader.includes("second=two"));
+    assert.ok(cookieHeader.includes("third=three"));
+    assert.ok(cookieHeader.includes("fourth=four"));
   });
 });

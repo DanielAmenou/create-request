@@ -7,7 +7,8 @@ import {
 } from "./enums";
 import { RequestError } from "./RequestError";
 import { type ResponsePromise, ResponseWrapper } from "./ResponseWrapper";
-import type { RequestOptions, RetryCallback } from "./types";
+import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions } from "./types";
+import { CookieUtils } from "./utils/CookieUtils";
 
 // Base class with common functionality for all request types
 export abstract class BaseRequest {
@@ -191,32 +192,47 @@ export abstract class BaseRequest {
 
   /**
    * Sets cookies for the request
-   * @param cookies - An object containing cookie name-value pairs
+   * @param cookies Object containing cookie name-value pairs or cookie options
    * @returns The instance for chaining
    */
-  withCookies(cookies: Record<string, string>): this {
+  withCookies(cookies: CookiesRecord): this {
     const cookieEntries = Object.entries(cookies);
 
     if (cookieEntries.length === 0) {
       return this;
     }
 
-    // Format cookies as name=value pairs
-    const cookieString = cookieEntries
-      .map(([name, value]) => `${encodeURIComponent(name)}=${encodeURIComponent(value)}`)
-      .join("; ");
-
     // Get current headers or initialize empty object
     const currentHeaders = (this.requestOptions.headers as Record<string, string>) || {};
 
-    // If there's already a Cookie header, append to it; otherwise create a new one
-    const existingCookies = currentHeaders["Cookie"] || "";
+    // Get the existing cookie header in a case-insensitive way
+    let existingCookies = "";
+    const cookieHeaderName = Object.keys(currentHeaders).find(
+      header => header.toLowerCase() === "cookie"
+    );
+
+    if (cookieHeaderName) existingCookies = currentHeaders[cookieHeaderName];
+
+    const cookieString = CookieUtils.formatRequestCookies(cookies);
+
+    // Combine with existing cookies if present
     const newCookieValue = existingCookies ? `${existingCookies}; ${cookieString}` : cookieString;
 
-    // Set the Cookie header
+    // Set the Cookie header, preserving original case if it exists
+    const headerName = cookieHeaderName || "Cookie";
     return this.withHeaders({
-      Cookie: newCookieValue,
+      [headerName]: newCookieValue,
     });
+  }
+
+  /**
+   * Set a single cookie
+   * @param name Cookie name
+   * @param value Cookie value or options object
+   * @returns The instance for chaining
+   */
+  withCookie(name: string, value: string | CookieOptions): this {
+    return this.withCookies({ [name]: value });
   }
 
   /**

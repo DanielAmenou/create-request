@@ -478,11 +478,46 @@ const response = await create.get()
   })
   .sendTo('https://api.example.com/dashboard');
 
+// Set a single cookie with the withCookie method
+const request = create.get()
+  .withCookie('sessionId', 'abc123')
+  .sendTo('https://api.example.com/dashboard');
+
+// Set a single cookie with options
+const request = create.get()
+  .withCookie('sessionId', {
+    value: 'abc123',
+    path: '/admin',
+    sameSite: SameSitePolicy.STRICT
+  })
+  .sendTo('https://api.example.com/dashboard');
+
 // Combine with other header settings
 const response = await create.get()
   .withCookies({ sessionId: 'abc123' })
   .withBearerToken('your-token-here')
   .sendTo('https://api.example.com/protected-resource');
+```
+
+### Secure Cookie Handling
+
+```typescript
+import { SameSitePolicy } from 'create-request';
+
+// Enhanced security cookies with options
+const secureRequest = create.get()
+  .withCookies({
+    session: {
+      value: 'abc123',
+      secure: true,
+      httpOnly: true,
+      sameSite: SameSitePolicy.STRICT,
+      path: '/',
+      maxAge: 3600 // seconds
+    },
+    preferences: 'darkmode'
+  })
+  .sendTo('https://api.example.com/dashboard');
 ```
 
 ## Environment-Specific Limitations
