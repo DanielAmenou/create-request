@@ -22,7 +22,7 @@ describe("BaseRequest", () => {
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").json();
+    const result = await request.sendTo("https://api.example.com/test").getJson();
 
     // Assert
     assert.deepEqual(result, expectedResponse);
@@ -126,7 +126,7 @@ describe("BaseRequest", () => {
     });
 
     // Act
-    const response = await request.sendTo("https://api.example.com/test").json();
+    const response = await request.sendTo("https://api.example.com/test").getJson();
 
     // Assert
     assert.deepEqual(response, { success: true });
@@ -371,7 +371,7 @@ describe("BaseRequest", () => {
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").text();
+    const result = await request.sendTo("https://api.example.com/test").getText();
 
     // Assert
     assert.equal(result, textContent);
@@ -384,7 +384,7 @@ describe("BaseRequest", () => {
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").blob();
+    const result = await request.sendTo("https://api.example.com/test").getBlob();
 
     // Assert
     assert(result instanceof Blob);
@@ -399,7 +399,7 @@ describe("BaseRequest", () => {
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").arrayBuffer();
+    const result = await request.sendTo("https://api.example.com/test").getArrayBuffer();
 
     // Assert
     assert(result instanceof ArrayBuffer);
@@ -414,7 +414,7 @@ describe("BaseRequest", () => {
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").body();
+    const result = await request.sendTo("https://api.example.com/test").getBody();
 
     // Assert
     assert(result instanceof ReadableStream);
@@ -431,7 +431,7 @@ describe("BaseRequest", () => {
 
     // Act
     const response = await request.sendTo("https://api.example.com/user");
-    const result = await response.json<{ name: string; age: number; isActive: boolean }>();
+    const result = await response.getJson<{ name: string; age: number; isActive: boolean }>();
 
     // Assert
     assert.equal(typeof result, "object");
@@ -484,7 +484,7 @@ describe("BaseRequest", () => {
 
     // Act
     const response = await request.sendTo("https://api.example.com/complex");
-    const result = await response.json<ComplexResponse>();
+    const result = await response.getJson<ComplexResponse>();
 
     // Assert
     assert.equal(result.user.id, 123);
@@ -504,7 +504,7 @@ describe("BaseRequest", () => {
 
     // Act
     const response = await request.sendTo("https://api.example.com/data.csv");
-    const result = await response.text();
+    const result = await response.getText();
 
     // Assert
     assert.equal(typeof result, "string");

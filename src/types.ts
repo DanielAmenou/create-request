@@ -19,7 +19,7 @@ export type Body =
   | ReadableStream;
 
 export type RetryCallback = (options: {
-  retryCount: number;
+  attempt: number;
   error: RequestError;
 }) => void | Promise<void>;
 

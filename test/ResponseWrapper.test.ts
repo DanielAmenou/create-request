@@ -34,7 +34,7 @@ describe("ResponseWrapper", () => {
     const wrapper = new ResponseWrapper(mockResponse);
 
     // Act
-    const result = await wrapper.json();
+    const result = await wrapper.getJson();
 
     // Assert
     assert.deepEqual(result, data);
@@ -49,7 +49,7 @@ describe("ResponseWrapper", () => {
     const wrapper = new ResponseWrapper(mockResponse);
 
     // Act
-    const result = await wrapper.text();
+    const result = await wrapper.getText();
 
     // Assert
     assert.equal(result, textContent);
@@ -64,7 +64,7 @@ describe("ResponseWrapper", () => {
     const wrapper = new ResponseWrapper(mockResponse);
 
     // Act
-    const result = await wrapper.blob();
+    const result = await wrapper.getBlob();
 
     // Assert
     assert(result instanceof Blob);
@@ -81,7 +81,7 @@ describe("ResponseWrapper", () => {
     const wrapper = new ResponseWrapper(mockResponse);
 
     // Act
-    const result = await wrapper.arrayBuffer();
+    const result = await wrapper.getArrayBuffer();
 
     // Assert
     assert(result instanceof ArrayBuffer);
@@ -96,7 +96,7 @@ describe("ResponseWrapper", () => {
     const wrapper = new ResponseWrapper(mockResponse);
 
     // Act
-    const result = wrapper.body();
+    const result = wrapper.getBody();
 
     // Assert
     assert(result instanceof ReadableStream);

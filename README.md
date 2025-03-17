@@ -20,7 +20,7 @@ const users = await create.get()
   .withRetries(3)
   .withBearerToken('your-token')
   .sendTo('https://api.example.com/users')
-  .json<User[]>(); // Fully typed response!
+  .getJson<User[]>();
 ```
 
 ## 🚀 Designed for Developer Happiness
@@ -46,7 +46,6 @@ const users = await create.get()
 - 🚫 **Robust Error Handling** - Detailed error information with custom error class
 - 🔌 **Zero Dependencies** - Built on the native Fetch API with no external baggage
 - 🌐 **Universal** - Works exactly the same in all modern browsers and Node.js
-- 🧠 **Smart Content-Type** - Automatic content type detection for request bodies
 - 🏷️ **Type Safety** - Enums for all string constants to prevent typos
 
 ## Installation
@@ -68,9 +67,8 @@ yarn add create-request
 ```typescript
 create.get()
   .sendTo('https://api.example.com/data')
-  .json()
+  .getJson()
   .then(data => {
-    // Process successful response
     console.log(data);
   })
   .catch(error => {
@@ -97,7 +95,7 @@ interface User {
 // TypeScript knows exactly what you're getting back!
 const users = await create.get()
   .sendTo('https://api.example.com/users')
-  .json<User[]>();
+  .getJson<User[]>();
 
 // No more type casting or guessing - your IDE autocomplete works perfectly
 users.forEach(user => console.log(user.name));
@@ -111,11 +109,11 @@ users.forEach(user => console.log(user.name));
 
 const data = await create.get()
   .withRetries(3)
-  .onRetry(({ retryCount, error }) => {
-    console.log(`Retry ${retryCount} after ${error.message}`);
+  .onRetry(({ attempt, error }) => {
+    console.log(`Retry attempt ${attempt} after ${error.message}`);
   })
   .sendTo('https://api.example.com/flaky-endpoint')
-  .json();
+  .getJson();
 ```
 
 ## Basic Usage
@@ -127,14 +125,14 @@ import create from 'create-request';
 const users = await create.get()
   .withTimeout(5000)
   .sendTo('https://api.example.com/users')
-  .json(); // Parse response directly
+  .getJson();
 
 // POST request with JSON body
 const newUser = await create.post()
   .withBody({ name: 'Daniel Amenou', email: 'daniel@example.com' })
   .withBearerToken('your-token-here')
   .sendTo('https://api.example.com/users')
-  .json();
+  .getJson();
 ```
 
 ## API Reference
@@ -183,8 +181,8 @@ import { RequestPriority, CredentialsPolicy, RequestMode, RedirectMode } from 'c
 
 // Configure retry behavior
 .withRetries(3)
-.onRetry(({ retryCount, error }) => {
-  console.log(`Retry ${retryCount} after error: ${error.message}`);
+.onRetry(({ attempt, error }) => {
+  console.log(`Retry attempt ${attempt} after error: ${error.message}`);
 })
 
 // Use an external abort controller
@@ -281,33 +279,87 @@ The library provides convenient methods for handling responses that can be chain
 // Parse as JSON with type inference
 const jsonData = await create.get()
   .sendTo('https://api.example.com/data')
-  .json<MyDataType>();
+  .getJson<MyDataType>();
 
 // Get as text
 const text = await create.get()
   .sendTo('https://api.example.com/text')
-  .text();
+  .getText();
 
 // Get as blob
 const blob = await create.get()
   .sendTo('https://api.example.com/file')
-  .blob();
+  .getBlob();
 
 // Get as ArrayBuffer
 const buffer = await create.get()
   .sendTo('https://api.example.com/binary')
-  .arrayBuffer();
+  .getArrayBuffer();
 
 // Get as ReadableStream
 const stream = await create.get()
   .sendTo('https://api.example.com/stream')
-  .body();
+  .getBody();
 
 // For more control, you can access the raw response first
 const response = await create.get().sendTo('https://api.example.com/data');
 const status = response.status;
 const headers = response.headers;
-const data = await response.json();
+const data = await response.getJson();
+```
+
+### Streaming Responses
+
+For large responses or real-time data, you can work with streams directly:
+
+```typescript
+// Get the response stream
+const stream = await create.get()
+  .sendTo('https://api.example.com/large-file')
+  .getBody();
+
+if (stream) {
+  const reader = stream.getReader();
+
+  // Process data incrementally as it arrives
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    // 'value' is a Uint8Array chunk of data
+    processChunk(value);
+  }
+}
+```
+
+This approach:
+
+- Avoids loading the entire response into memory
+- Starts processing data as soon as it begins arriving
+- Is ideal for large files, logs, or real-time feeds
+
+#### Processing Stream with Transform Streams (Advanced)
+
+```typescript
+const response = await create.get().sendTo('https://api.example.com/large-dataset');
+const stream = response.getBody();
+
+if (stream) {
+  // Create a transform stream to process each chunk
+  const transformStream = new TransformStream({
+    transform(chunk, controller) {
+      // Process each chunk
+      const processed = processData(chunk);
+      controller.enqueue(processed);
+    }
+  });
+
+  // Pipe the response through the transform stream
+  const processedStream = stream.pipeThrough(transformStream);
+
+  // Consume the processed stream
+  // ...
+}
 ```
 
 ### Error Handling
@@ -318,7 +370,7 @@ The library provides a `RequestError` class with details about failed requests:
 try {
   const data = await create.get()
     .sendTo('https://api.example.com/data')
-    .json();
+    .getJson();
 } catch (error) {
   if (error instanceof RequestError) {
     console.log(error.message);     // Error message
@@ -339,7 +391,7 @@ try {
 const blob = await create.get()
   .withHeaders({ Accept: 'application/pdf' })
   .sendTo('https://api.example.com/reports/123/download')
-  .blob();
+  .getBlob();
 
 const url = window.URL.createObjectURL(blob);
 
@@ -363,7 +415,7 @@ try {
   const data = await create.get()
     .withAbortController(controller)
     .sendTo('https://api.example.com/data')
-    .json();
+    .getJson();
 } catch (error) {
   // Handle the aborted request
 }
@@ -381,13 +433,13 @@ import { RequestPriority } from 'create-request';
 const userProfile = await create.get()
   .withPriority(RequestPriority.HIGH)
   .sendTo('https://api.example.com/user/profile')
-  .json();
+  .getJson();
 
 // Low priority for non-critical resources
 const recommendations = await create.get()
   .withPriority(RequestPriority.LOW)
   .sendTo('https://api.example.com/recommendations')
-  .json();
+  .getJson();
 ```
 
 ### Creating Reusable Request Configurations
@@ -410,7 +462,7 @@ function createAuthenticatedRequest(token) {
 // Later use the configured request
 const users = await createAuthenticatedRequest(myToken)
   .sendTo('https://api.example.com/users')
-  .json();
+  .getJson();
 ```
 
 ### Cookie Management
@@ -489,85 +541,97 @@ This library works with all browsers that support the Fetch API:
 | Learning Curve | Low | Medium | Medium |
 
 ### Why Not Just Use fetch?
-like JSON parsing
-The native Fetch API is powerful but low-level, requiring you to:ing
+
+The native Fetch API is powerful but low-level, requiring you to:
+
 - Write boilerplate for common tasks like JSON parsing
-- Manually implement timeout handlingeps
-- Create your own retry mechanisms- Parse non-2xx responses manually
+- Manually implement timeout handling
+- Create your own retry mechanisms
 - Handle errors across multiple steps
-- Parse non-2xx responses manually`create-request` gives you all these features with a cleaner API that's designed specifically for modern TypeScript applications.
+- Parse non-2xx responses manually
 
-`create-request` gives you all these features with a cleaner API that's designed specifically for modern TypeScript applications.### Why Not axios?
+`create-request` gives you all these features with a cleaner API that's designed specifically for modern TypeScript applications.
 
-### Why Not axios?est` offers:
+### Why Not axios?
 
-While axios is popular, `create-request` offers:er)
-- Smaller bundle size (~85% smaller)n
+While axios is popular, `create-request` offers:
+
+- Smaller bundle size (~85% smaller)
 - More complete TypeScript integration
-- Built-in retries without addons- Modern features like priority hints
-- Modern features like priority hintsainable API
+- Built-in retries without addons
+- Modern features like priority hints
 - A more intuitive, chainable API
 
 ## Real-world Examples
-t for Authentication
+
 ### API Client for Authentication
 
-```typescripta reusable authentication client
+```typescript
 // Create a reusable authentication client
 function createAuthClient(baseUrl) {
-  return {{
+  return {
     login: async (email, password) => {
       return create.post()
-        .withBody({ email, password })eout(3000)
-        .withTimeout(3000)  .sendTo(`${baseUrl}/auth/login`)
-        .sendTo(`${baseUrl}/auth/login`)        .json();
-        .json();
+        .withBody({ email, password })
+        .withTimeout(3000)
+        .sendTo(`${baseUrl}/auth/login`)
+        .getJson();
     },
-en) => {
-    refreshToken: async (refreshToken) => {t()
+    refreshToken: async (refreshToken) => {
       return create.post()
-        .withBody({ refreshToken })ries(2)
-        .withRetries(2)   .sendTo(`${baseUrl}/auth/refresh`)
-        .sendTo(`${baseUrl}/auth/refresh`)    .json();
-        .json();   }
-    }  };
+        .withBody({ refreshToken })
+        .withRetries(2)
+        .sendTo(`${baseUrl}/auth/refresh`)
+        .getJson();
+    }
   };
 }
 
-// Use it in your applicationst authClient = createAuthClient('https://api.example.com');
-const authClient = createAuthClient('https://api.example.com');const { token, user } = await authClient.login('user@example.com', 'password');
+const authClient = createAuthClient('https://api.example.com');
 const { token, user } = await authClient.login('user@example.com', 'password');
 ```
-ad with Progress
+
 ### File Upload with Progress
 
 ```typescript
-// Upload a file with abort capabilityconst uploadFile = async (file, onProgress) => {
-const uploadFile = async (file, onProgress) => {Controller();
+const uploadFile = async (file, onProgress) => {
   const controller = new AbortController();
   const form = new FormData();
-  const form = new FormData();append('file', file);
   form.append('file', file);
 
   try {
     return await create.post()
-      .withBody(form)oller(controller)
-      .withAbortController(controller)or large files
-      .withTimeout(60000) // 1 minute timeout for large filesries(2)
-      .withRetries(2)s://api.example.com/upload')
+      .withBody(form)
+      .withAbortController(controller)
+      .withTimeout(60000) // 1 minute timeout for large files
+      .withRetries(2)
       .sendTo('https://api.example.com/upload')
-      .json();
-  } catch (error) {f (error instanceof RequestError) {
-    if (error instanceof RequestError) {ror(`Upload failed: ${error.message}`);
-      console.error(`Upload failed: ${error.message}`); }
-    }    throw error;
+      .getJson();
+  } catch (error) {
+    if (error instanceof RequestError) {
+      console.error(`Upload failed: ${error.message}`);
+    }
     throw error;
   }
-turn {
-  return {  abort: () => controller.abort()
-    abort: () => controller.abort();
-  };};
+  return {
+    abort: () => controller.abort()
+  };
 };
+```
+
+### Request Retries Made Simple
+
+```typescript
+// Without create-request: Pages of manual retry logic with delay calculations
+// With create-request: One line
+
+const data = await create.get()
+  .withRetries(3)
+  .onRetry(({ attempt, error }) => {
+    console.log(`Retry attempt ${attempt} after ${error.message}`);
+  })
+  .sendTo('https://api.example.com/flaky-endpoint')
+  .getJson();
 ```
 
 ## License

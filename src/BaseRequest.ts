@@ -238,33 +238,27 @@ export abstract class BaseRequest {
       ? this.executeRequest(url, fetchOptions)
       : this.executeWithRetries(url, fetchOptions);
 
-    // Enhance the promise with response methods
-    const responsePromise = basePromise.then(response => response) as ResponsePromise;
+    const responsePromise = basePromise as ResponsePromise;
 
-    // Attach convenience methods to the promise
-    responsePromise.json = async <T = unknown>(): Promise<T> => {
-      const response = await basePromise;
-      return response.json<T>();
+    // Attach convenience methods that begin processing immediately
+    responsePromise.getJson = async <T = unknown>(): Promise<T> => {
+      return basePromise.then(response => response.getJson<T>());
     };
 
-    responsePromise.text = async (): Promise<string> => {
-      const response = await basePromise;
-      return response.text();
+    responsePromise.getText = async (): Promise<string> => {
+      return basePromise.then(response => response.getText());
     };
 
-    responsePromise.blob = async (): Promise<Blob> => {
-      const response = await basePromise;
-      return response.blob();
+    responsePromise.getBlob = async (): Promise<Blob> => {
+      return basePromise.then(response => response.getBlob());
     };
 
-    responsePromise.arrayBuffer = async (): Promise<ArrayBuffer> => {
-      const response = await basePromise;
-      return response.arrayBuffer();
+    responsePromise.getArrayBuffer = async (): Promise<ArrayBuffer> => {
+      return basePromise.then(response => response.getArrayBuffer());
     };
 
-    responsePromise.body = async (): Promise<ReadableStream<Uint8Array> | null> => {
-      const response = await basePromise;
-      return response.body();
+    responsePromise.getBody = async (): Promise<ReadableStream<Uint8Array> | null> => {
+      return basePromise.then(response => response.getBody());
     };
 
     return responsePromise;
@@ -300,7 +294,7 @@ export abstract class BaseRequest {
     url: string,
     fetchOptions: RequestInit
   ): Promise<ResponseWrapper> {
-    let retryCount = 0;
+    let attempt = 0;
     const maxRetries = this.requestOptions.retries || 0;
 
     // eslint-disable-next-line no-constant-condition
@@ -313,14 +307,14 @@ export abstract class BaseRequest {
             ? error
             : RequestError.networkError(url, fetchOptions.method as string, error as Error);
 
-        if (retryCount >= maxRetries || requestError.timeoutError) {
+        if (attempt >= maxRetries || requestError.timeoutError) {
           throw requestError;
         }
 
-        retryCount++;
+        attempt++;
 
         if (this.requestOptions.onRetry) {
-          await this.requestOptions.onRetry({ retryCount, error: requestError });
+          await this.requestOptions.onRetry({ attempt, error: requestError });
         }
       }
     }
