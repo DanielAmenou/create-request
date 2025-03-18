@@ -165,4 +165,90 @@ describe("ResponseWrapper", () => {
       assert(error.message.includes("Unexpected end of JSON input"));
     }
   });
+
+  it("should allow calling getJson() multiple times on the same response", async () => {
+    // Arrange
+    const data = { name: "John", age: 30 };
+    const mockResponse = new Response(JSON.stringify(data), {
+      headers: { "Content-Type": "application/json" },
+    });
+    const wrapper = new ResponseWrapper(mockResponse);
+
+    // Act
+    const result1 = await wrapper.getJson();
+    const result2 = await wrapper.getJson();
+
+    // Assert
+    assert.deepEqual(result1, data);
+    assert.deepEqual(result2, data);
+  });
+
+  it("should allow getting text after JSON", async () => {
+    // Arrange
+    const data = { name: "John", age: 30 };
+    const jsonString = JSON.stringify(data);
+    const mockResponse = new Response(jsonString, {
+      headers: { "Content-Type": "application/json" },
+    });
+    const wrapper = new ResponseWrapper(mockResponse);
+
+    // Act
+    const jsonResult = await wrapper.getJson();
+    const textResult = await wrapper.getText();
+
+    // Assert
+    assert.deepEqual(jsonResult, data);
+    assert.equal(textResult, jsonString);
+  });
+
+  it("should allow getting JSON after text", async () => {
+    // Arrange
+    const data = { name: "John", age: 30 };
+    const jsonString = JSON.stringify(data);
+    const mockResponse = new Response(jsonString, {
+      headers: { "Content-Type": "application/json" },
+    });
+    const wrapper = new ResponseWrapper(mockResponse);
+
+    // Act
+    const textResult = await wrapper.getText();
+    const jsonResult = await wrapper.getJson();
+
+    // Assert
+    assert.equal(textResult, jsonString);
+    assert.deepEqual(jsonResult, data);
+  });
+
+  it("should convert between blob and text formats", async () => {
+    // Arrange
+    const content = "Hello, world!";
+    const mockResponse = new Response(content, {
+      headers: { "Content-Type": "text/plain" },
+    });
+    const wrapper = new ResponseWrapper(mockResponse);
+
+    // Act
+    const blob = await wrapper.getBlob();
+    const text = await wrapper.getText();
+
+    // Assert
+    assert.equal(text, content);
+  });
+
+  it("should throw a descriptive error when body is consumed in incompatible formats", async () => {
+    // Arrange
+    const mockResponse = new Response("Plain text content", {
+      headers: { "Content-Type": "text/plain" },
+    });
+    const wrapper = new ResponseWrapper(mockResponse);
+
+    // Act
+    wrapper.getBody(); // Get the body first - no need to await as it returns synchronously
+
+    // Assert - now try to get JSON which should fail
+    await assert.rejects(
+      () => wrapper.getJson(), // Remove the extra await here
+      /Response body has already been consumed/
+    );
+  });
 });
