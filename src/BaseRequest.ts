@@ -192,14 +192,10 @@ export abstract class BaseRequest {
    */
   private encodeBase64(str: string): string {
     // Browser environment
-    if (typeof btoa === "function") {
-      return btoa(str);
-    }
+    if (typeof btoa === "function") return btoa(str);
 
     // Node.js environment
-    if (typeof Buffer !== "undefined") {
-      return Buffer.from(str).toString("base64");
-    }
+    if (typeof Buffer !== "undefined") return Buffer.from(str).toString("base64");
 
     // Fallback (should never happen in modern environments)
     throw new Error("Base64 encoding is not supported in this environment");

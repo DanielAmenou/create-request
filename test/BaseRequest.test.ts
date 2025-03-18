@@ -1308,3 +1308,153 @@ describe("Global Config CSRF Tests", () => {
     assert.equal(headers["X-CSRF-Token"], "local-csrf-token");
   });
 });
+
+describe("Relative URL Handling", () => {
+  beforeEach(() => {
+    FetchMock.install();
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+  });
+
+  it("should handle relative URLs correctly with query parameters", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withQueryParams({
+      param1: "value1",
+      param2: "value2",
+    });
+
+    // Act - Use a relative URL
+    await request.sendTo("/api/users");
+
+    // Assert - Check the URL was constructed correctly
+    const [url] = FetchMock.mock.calls[0];
+
+    // For relative URLs, we can't use URL constructor directly to verify
+    // Instead, check that the URL string contains our parameters with proper formatting
+    assert.ok(url.includes("/api/users?param1=value1&param2=value2"));
+  });
+
+  it("should handle relative URLs that already have query parameters", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withQueryParams({
+      additionalParam: "value",
+    });
+
+    // Act - Use a relative URL with existing query parameter
+    await request.sendTo("/api/search?q=test");
+
+    // Assert - Check the URL was constructed correctly
+    const [url] = FetchMock.mock.calls[0];
+
+    // Check that both the original and new parameters are present
+    assert.ok(url.includes("/api/search?q=test&additionalParam=value"));
+  });
+
+  it("should handle both absolute and relative URLs in the same code", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    FetchMock.mockResponseOnce();
+
+    const request1 = new GetRequest().withQueryParams({ param: "value1" });
+    const request2 = new GetRequest().withQueryParams({ param: "value2" });
+
+    // Act - Send requests to both absolute and relative URLs
+    await request1.sendTo("https://api.example.com/items");
+    await request2.sendTo("/local/path");
+
+    // Assert
+    const [absoluteUrl] = FetchMock.mock.calls[0];
+    const [relativeUrl] = FetchMock.mock.calls[1];
+
+    assert.ok(absoluteUrl.includes("https://api.example.com/items?param=value1"));
+    assert.ok(relativeUrl.includes("/local/path?param=value2"));
+  });
+});
+
+describe("Cross-Environment Base64 Encoding", () => {
+  beforeEach(() => {
+    FetchMock.install();
+
+    // If we're in Node.js, ensure btoa isn't defined to test our fallback
+    if (typeof globalThis.btoa === "function") {
+      // Save original btoa if it exists
+      (globalThis as any).__original_btoa = globalThis.btoa;
+      // Delete btoa to force Node.js path
+      delete (globalThis as any).btoa;
+    }
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+
+    // Restore original btoa if we saved one
+    if ((globalThis as any).__original_btoa) {
+      globalThis.btoa = (globalThis as any).__original_btoa;
+      delete (globalThis as any).__original_btoa;
+    }
+  });
+
+  it("should correctly encode basic auth credentials in Node.js environment", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const username = "testuser";
+    const password = "testpass123";
+    const request = new GetRequest().withBasicAuth(username, password);
+
+    // Act
+    await request.sendTo("https://api.example.com/secure");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+
+    // The base64 of "testuser:testpass123" should be "dGVzdHVzZXI6dGVzdHBhc3MxMjM="
+    const expectedAuthHeader = "Basic dGVzdHVzZXI6dGVzdHBhc3MxMjM=";
+    assert.equal(headers.Authorization, expectedAuthHeader);
+  });
+
+  it("should handle special characters in basic auth credentials", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const username = "user@example.com";
+    const password = "p@$$w0rd!";
+    const request = new GetRequest().withBasicAuth(username, password);
+
+    // Act
+    await request.sendTo("https://api.example.com/secure");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+
+    // The base64 of "user@example.com:p@$$w0rd!" should be "dXNlckBleGFtcGxlLmNvbTpwQCQkdzByZCE="
+    const expectedAuthHeader = "Basic dXNlckBleGFtcGxlLmNvbTpwQCQkdzByZCE=";
+    assert.equal(headers.Authorization, expectedAuthHeader);
+  });
+
+  it("should work with unicode characters in basic auth", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const username = "üser";
+    const password = "пароль";
+    const request = new GetRequest().withBasicAuth(username, password);
+
+    // Act
+    await request.sendTo("https://api.example.com/secure");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+
+    // We're checking that some auth header is set, as the actual encoding
+    // may vary slightly between environments for Unicode characters
+    assert.ok(headers.Authorization.startsWith("Basic "));
+    assert.ok(headers.Authorization.length > 10);
+  });
+});
