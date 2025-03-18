@@ -431,14 +431,14 @@ export abstract class BaseRequest {
     fetchOptions.signal = fetchOptions.signal || signal;
 
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    let timeoutController: AbortController | undefined;
+    // Flag to track if abort was caused by our timeout
+    let abortedByTimeout = false;
 
     // Handle timeout regardless of whether an external controller is provided
     if (this.requestOptions.timeout) {
       if (this.abortController) {
         // If we have an external controller, create a separate timeout controller
         // that won't interfere with the external one
-        timeoutController = new AbortController();
 
         // Use AbortSignal.timeout if available (modern browsers)
         if (typeof AbortSignal.timeout === "function") {
@@ -447,6 +447,7 @@ export abstract class BaseRequest {
           // Add event listener to propagate the abort to the main controller
           timeoutSignal.addEventListener("abort", () => {
             if (!controller.signal.aborted) {
+              abortedByTimeout = true;
               controller.abort();
             }
           });
@@ -454,12 +455,14 @@ export abstract class BaseRequest {
           // Fallback for browsers without AbortSignal.timeout
           timeoutId = setTimeout(() => {
             if (!controller.signal.aborted) {
+              abortedByTimeout = true;
               controller.abort();
             }
           }, this.requestOptions.timeout);
         }
       } else {
         timeoutId = setTimeout(() => {
+          abortedByTimeout = true;
           controller.abort();
         }, this.requestOptions.timeout);
       }
@@ -471,14 +474,12 @@ export abstract class BaseRequest {
       try {
         response = await fetch(url, fetchOptions);
       } catch (error) {
-        // Check if this is an abort error from our timeout
-        const isTimeoutAbort = error instanceof DOMException && error.name === "AbortError" && (timeoutId !== undefined || timeoutController !== undefined);
-
-        if (isTimeoutAbort) {
+        // Check if this is an abort error that was specifically caused by our timeout
+        if (error instanceof DOMException && error.name === "AbortError" && abortedByTimeout) {
           throw RequestError.timeout(url, fetchOptions.method as string, this.requestOptions.timeout!);
         }
 
-        // Otherwise it's a network error
+        // Otherwise it's either a user-triggered abort or another network error
         throw RequestError.networkError(url, fetchOptions.method as string, error as Error);
       }
 
