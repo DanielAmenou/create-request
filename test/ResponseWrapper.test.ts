@@ -101,4 +101,68 @@ describe("ResponseWrapper", () => {
     // Assert
     assert(result instanceof ReadableStream);
   });
+
+  // Added empty response handling tests
+  it("should handle empty JSON object response", async () => {
+    // Arrange
+    const emptyObject = {};
+    const mockResponse = new Response(JSON.stringify(emptyObject), {
+      headers: { "Content-Type": "application/json" },
+    });
+    const wrapper = new ResponseWrapper(mockResponse);
+
+    // Act
+    const result = await wrapper.getJson();
+
+    // Assert
+    assert.deepEqual(result, {});
+    assert.equal(Object.keys(result).length, 0);
+  });
+
+  it("should handle empty JSON array response", async () => {
+    // Arrange
+    const emptyArray: any[] = [];
+    const mockResponse = new Response(JSON.stringify(emptyArray), {
+      headers: { "Content-Type": "application/json" },
+    });
+    const wrapper = new ResponseWrapper(mockResponse);
+
+    // Act
+    const result = await wrapper.getJson();
+
+    // Assert
+    assert.deepEqual(result, []);
+    assert.equal(result.length, 0);
+  });
+
+  it("should handle null JSON response", async () => {
+    // Arrange
+    const mockResponse = new Response("null", {
+      headers: { "Content-Type": "application/json" },
+    });
+    const wrapper = new ResponseWrapper(mockResponse);
+
+    // Act
+    const result = await wrapper.getJson();
+
+    // Assert
+    assert.strictEqual(result, null);
+  });
+
+  it("should handle completely empty response body with JSON content type", async () => {
+    // Arrange
+    const mockResponse = new Response("", {
+      headers: { "Content-Type": "application/json" },
+    });
+    const wrapper = new ResponseWrapper(mockResponse);
+
+    // Act & Assert
+    try {
+      await wrapper.getJson();
+      assert.fail("Should have thrown an error for empty body with JSON content type");
+    } catch (error) {
+      assert(error instanceof SyntaxError);
+      assert(error.message.includes("Unexpected end of JSON input"));
+    }
+  });
 });

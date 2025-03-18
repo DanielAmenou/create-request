@@ -294,7 +294,7 @@ describe("Response Chaining API", () => {
       // Verify the error response can handle null body
       if (error.response) {
         const textResponse = await error.response.text();
-        assert.equal(textResponse, "");
+        assert.equal(textResponse, "null");
       }
     }
   });

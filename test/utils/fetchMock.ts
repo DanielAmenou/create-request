@@ -38,6 +38,9 @@ export function createMockResponse(init: MockResponseInit = {}): Response {
       // Default to JSON serialization
       responseBody = JSON.stringify(body);
     }
+  } else if (headers["content-type"]?.includes("application/json")) {
+    // Handle null body with JSON content type - explicitly use "null" string
+    responseBody = "null";
   }
 
   return new Response(responseBody, {
