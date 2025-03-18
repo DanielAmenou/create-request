@@ -431,12 +431,38 @@ export abstract class BaseRequest {
     fetchOptions.signal = fetchOptions.signal || signal;
 
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let timeoutController: AbortController | undefined;
 
-    // If we have a timeout and we're using our own controller (not provided externally)
-    if (this.requestOptions.timeout && !this.abortController) {
-      timeoutId = setTimeout(() => {
-        controller.abort();
-      }, this.requestOptions.timeout);
+    // Handle timeout regardless of whether an external controller is provided
+    if (this.requestOptions.timeout) {
+      if (this.abortController) {
+        // If we have an external controller, create a separate timeout controller
+        // that won't interfere with the external one
+        timeoutController = new AbortController();
+
+        // Use AbortSignal.timeout if available (modern browsers)
+        if (typeof AbortSignal.timeout === "function") {
+          const timeoutSignal = AbortSignal.timeout(this.requestOptions.timeout);
+
+          // Add event listener to propagate the abort to the main controller
+          timeoutSignal.addEventListener("abort", () => {
+            if (!controller.signal.aborted) {
+              controller.abort();
+            }
+          });
+        } else {
+          // Fallback for browsers without AbortSignal.timeout
+          timeoutId = setTimeout(() => {
+            if (!controller.signal.aborted) {
+              controller.abort();
+            }
+          }, this.requestOptions.timeout);
+        }
+      } else {
+        timeoutId = setTimeout(() => {
+          controller.abort();
+        }, this.requestOptions.timeout);
+      }
     }
 
     try {
@@ -446,7 +472,9 @@ export abstract class BaseRequest {
         response = await fetch(url, fetchOptions);
       } catch (error) {
         // Check if this is an abort error from our timeout
-        if (error instanceof DOMException && error.name === "AbortError" && timeoutId) {
+        const isTimeoutAbort = error instanceof DOMException && error.name === "AbortError" && (timeoutId !== undefined || timeoutController !== undefined);
+
+        if (isTimeoutAbort) {
           throw RequestError.timeout(url, fetchOptions.method as string, this.requestOptions.timeout!);
         }
 
