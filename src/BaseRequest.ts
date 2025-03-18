@@ -404,16 +404,14 @@ export abstract class BaseRequest {
     let attempt = 0;
     const maxRetries = this.requestOptions.retries || 0;
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    do {
       try {
         return await this.executeRequest(url, fetchOptions);
       } catch (error) {
         const requestError = error instanceof RequestError ? error : RequestError.networkError(url, fetchOptions.method as string, error as Error);
 
-        if (attempt >= maxRetries || requestError.timeoutError) {
-          throw requestError;
-        }
+        // Don't retry on timeout errors or if we've reached the max retries
+        if (attempt >= maxRetries || requestError.timeoutError) throw requestError;
 
         attempt++;
 
@@ -421,7 +419,10 @@ export abstract class BaseRequest {
           await this.requestOptions.onRetry({ attempt, error: requestError });
         }
       }
-    }
+    } while (attempt <= maxRetries);
+
+    // If we somehow get here, we throw an error to avoid undefined behavior
+    throw new RequestError(`Max retries reached (${maxRetries}) but request still failed`, url, fetchOptions.method as string);
   }
 
   private async executeRequest(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {

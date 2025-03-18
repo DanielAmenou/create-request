@@ -1016,6 +1016,33 @@ describe("BaseRequest", () => {
     // The URLs should be functionally equivalent for the query parameters
     assert.equal(parsedUrl1.searchParams.toString(), parsedUrl2.searchParams.toString());
   });
+
+  it("should not enter infinite loop when maximum retries are reached", async () => {
+    // Arrange
+    // Mock all responses to fail with network errors
+    for (let i = 0; i < 10; i++) {
+      FetchMock.mockErrorOnce(new Error(`Network error #${i + 1}`));
+    }
+
+    const request = new GetRequest();
+    const maxRetries = 3; // Set max retries to a reasonable value
+    request.withRetries(maxRetries);
+
+    let retryCount = 0;
+    request.onRetry(() => {
+      retryCount++;
+    });
+
+    // Act & Assert
+    try {
+      await request.sendTo("https://api.example.com/retry-test");
+      assert.fail("Request should have failed after max retries");
+    } catch (error: any) {
+      // Should have exactly 3 retries (original attempt + 3 retries = 4 total attempts)
+      assert.equal(retryCount, maxRetries, "Should have attempted exactly the specified number of retries");
+      assert.equal(FetchMock.mock.calls.length, maxRetries + 1, "Should have called fetch exactly maxRetries + 1 times");
+    }
+  });
 });
 
 describe("Cookie Options Tests", () => {
