@@ -382,7 +382,7 @@ describe("Response Chaining API", () => {
         // Check if we can extract the response data from the error
         if (error.response) {
           try {
-            const errorBody = await error.response.json();
+            const errorBody = (await error.response.json()) as { message: string };
             return errorBody.message;
           } catch {
             return "Error parsing response";

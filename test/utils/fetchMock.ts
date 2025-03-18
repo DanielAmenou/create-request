@@ -74,7 +74,7 @@ type MockFn<T = any> = {
  * Create a simple mock function
  */
 function createMockFn<T = any>(): MockFn<T> {
-  let implementation = (...args: any[]): any => undefined;
+  let implementation = (..._args: any[]): any => undefined;
   const onceImplementations: Array<(...args: any[]) => any> = [];
   const calls: any[][] = [];
 
@@ -82,8 +82,10 @@ function createMockFn<T = any>(): MockFn<T> {
     calls.push(args);
     if (onceImplementations.length > 0) {
       const impl = onceImplementations.shift()!;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return impl(...args);
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return implementation(...args);
   };
 
@@ -100,7 +102,7 @@ function createMockFn<T = any>(): MockFn<T> {
     mockReset: (): void => {
       calls.length = 0;
       onceImplementations.length = 0;
-      implementation = (...args: any[]): any => undefined;
+      implementation = (..._args: any[]): any => undefined;
     },
     mockRestore: (): void => {
       calls.length = 0;

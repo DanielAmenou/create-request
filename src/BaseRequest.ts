@@ -267,7 +267,6 @@ export abstract class BaseRequest {
    * @returns The instance for chaining
    */
   withAntiCsrfHeaders(): this {
-    // No need for the null check here anymore
     return this.withHeaders({
       "X-Requested-With": "XMLHttpRequest",
     });
