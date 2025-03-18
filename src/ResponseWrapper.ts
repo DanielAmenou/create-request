@@ -41,35 +41,46 @@ export class ResponseWrapper {
   /**
    * Parse response as JSON
    */
-  async json<T = unknown>(): Promise<T> {
+  async getJson<T = unknown>(): Promise<T> {
     return this.response.json() as Promise<T>;
   }
 
   /**
    * Get response as text
    */
-  async text(): Promise<string> {
+  async getText(): Promise<string> {
     return this.response.text();
   }
 
   /**
    * Get response as Blob
    */
-  async blob(): Promise<Blob> {
+  async getBlob(): Promise<Blob> {
     return this.response.blob();
   }
 
   /**
    * Get response as ArrayBuffer
    */
-  async arrayBuffer(): Promise<ArrayBuffer> {
+  async getArrayBuffer(): Promise<ArrayBuffer> {
     return this.response.arrayBuffer();
   }
 
   /**
-   * Get response as ReadableStream
+   * Get response as ReadableStream for true streaming consumption.
+   * This allows you to process data incrementally as it arrives.
+   *
+   * @example
+   * const stream = await request.sendTo('https://example.com/large-file').getBody();
+   * const reader = stream.getReader();
+   *
+   * while (true) {
+   *   const { done, value } = await reader.read();
+   *   if (done) break;
+   *   // Process chunk of data in 'value'
+   * }
    */
-  body(): ReadableStream<Uint8Array> | null {
+  getBody(): ReadableStream<Uint8Array> | null {
     return this.response.body;
   }
 }
@@ -78,9 +89,9 @@ export class ResponseWrapper {
  * Type for Promise with response data transformation methods
  */
 export interface ResponsePromise<T = ResponseWrapper> extends Promise<T> {
-  json<R = unknown>(): Promise<R>;
-  text(): Promise<string>;
-  blob(): Promise<Blob>;
-  arrayBuffer(): Promise<ArrayBuffer>;
-  body(): Promise<ReadableStream<Uint8Array> | null>;
+  getJson<R = unknown>(): Promise<R>;
+  getText(): Promise<string>;
+  getBlob(): Promise<Blob>;
+  getArrayBuffer(): Promise<ArrayBuffer>;
+  getBody(): Promise<ReadableStream<Uint8Array> | null>;
 }

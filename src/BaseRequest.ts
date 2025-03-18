@@ -7,20 +7,26 @@ import {
 } from "./enums";
 import { RequestError } from "./RequestError";
 import { type ResponsePromise, ResponseWrapper } from "./ResponseWrapper";
-import type { RequestOptions, RetryCallback } from "./types";
+import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions } from "./types";
+import { Config } from "./utils/Config";
+import { CookieUtils } from "./utils/CookieUtils";
+import { CsrfUtils } from "./utils/CsrfUtils";
 
 // Base class with common functionality for all request types
 export abstract class BaseRequest {
   protected abstract method: HttpMethod;
-  protected requestOptions: RequestOptions = {};
+  protected requestOptions: RequestOptions = {
+    headers: {},
+  };
   protected abortController?: AbortController;
   protected queryParams: URLSearchParams = new URLSearchParams();
+  protected autoApplyCsrfProtection: boolean = true;
 
   constructor() {}
 
   withHeaders(headers: Record<string, string>): this {
     this.requestOptions.headers = {
-      ...((this.requestOptions.headers as Record<string, string>) || {}),
+      ...(this.requestOptions.headers as Record<string, string>),
       ...headers,
     };
     return this;
@@ -191,31 +197,79 @@ export abstract class BaseRequest {
 
   /**
    * Sets cookies for the request
-   * @param cookies - An object containing cookie name-value pairs
+   * @param cookies Object containing cookie name-value pairs or cookie options
    * @returns The instance for chaining
    */
-  withCookies(cookies: Record<string, string>): this {
+  withCookies(cookies: CookiesRecord): this {
     const cookieEntries = Object.entries(cookies);
 
     if (cookieEntries.length === 0) {
       return this;
     }
 
-    // Format cookies as name=value pairs
-    const cookieString = cookieEntries
-      .map(([name, value]) => `${encodeURIComponent(name)}=${encodeURIComponent(value)}`)
-      .join("; ");
-
     // Get current headers or initialize empty object
     const currentHeaders = (this.requestOptions.headers as Record<string, string>) || {};
 
-    // If there's already a Cookie header, append to it; otherwise create a new one
-    const existingCookies = currentHeaders["Cookie"] || "";
+    // Get the existing cookie header in a case-insensitive way
+    let existingCookies = "";
+    const cookieHeaderName = Object.keys(currentHeaders).find(
+      header => header.toLowerCase() === "cookie"
+    );
+
+    if (cookieHeaderName) existingCookies = currentHeaders[cookieHeaderName];
+
+    const cookieString = CookieUtils.formatRequestCookies(cookies);
+
+    // Combine with existing cookies if present
     const newCookieValue = existingCookies ? `${existingCookies}; ${cookieString}` : cookieString;
 
-    // Set the Cookie header
+    // Set the Cookie header, preserving original case if it exists
+    const headerName = cookieHeaderName || "Cookie";
     return this.withHeaders({
-      Cookie: newCookieValue,
+      [headerName]: newCookieValue,
+    });
+  }
+
+  /**
+   * Set a single cookie
+   * @param name Cookie name
+   * @param value Cookie value or options object
+   * @returns The instance for chaining
+   */
+  withCookie(name: string, value: string | CookieOptions): this {
+    return this.withCookies({ [name]: value });
+  }
+
+  /**
+   * Sets a CSRF token in the request headers
+   * @param token The CSRF token
+   * @param headerName The name of the header to use (default: X-CSRF-Token)
+   * @returns The instance for chaining
+   */
+  withCsrfToken(token: string, headerName = "X-CSRF-Token"): this {
+    return this.withHeaders({
+      [headerName]: token,
+    });
+  }
+
+  /**
+   * Disables automatic anti-CSRF protection.
+   * By default, X-Requested-With: XMLHttpRequest header is sent with all requests.
+   * @returns The instance for chaining
+   */
+  withoutCsrfProtection(): this {
+    this.autoApplyCsrfProtection = false;
+    return this;
+  }
+
+  /**
+   * Sets common security headers to help prevent CSRF attacks
+   * @returns The instance for chaining
+   */
+  withAntiCsrfHeaders(): this {
+    // No need for the null check here anymore
+    return this.withHeaders({
+      "X-Requested-With": "XMLHttpRequest",
     });
   }
 
@@ -226,6 +280,51 @@ export abstract class BaseRequest {
   sendTo(url: string): ResponsePromise {
     // Format the URL with query parameters
     url = this.formatUrlWithQueryParams(url);
+
+    // Apply automatic CSRF protection if enabled
+    if (this.autoApplyCsrfProtection) {
+      const config = Config.getInstance();
+
+      // Apply anti-CSRF headers if enabled
+      if (config.isAntiCsrfEnabled()) {
+        this.withHeaders({
+          "X-Requested-With": "XMLHttpRequest",
+        });
+      }
+
+      // Apply global CSRF token if set
+      const globalToken = config.getCsrfToken();
+      if (globalToken) {
+        // Check if local token exists
+        const headers = this.requestOptions.headers as Record<string, string>;
+        const hasLocalToken = Object.keys(headers).some(
+          key => key === "X-CSRF-Token" || key === config.getCsrfHeaderName()
+        );
+
+        if (!hasLocalToken) {
+          this.withHeaders({
+            [config.getCsrfHeaderName()]: globalToken,
+          });
+        }
+      }
+
+      // check for XSRF token in cookies and send it as a header
+      if (config.isAutoXsrfEnabled() && typeof document !== "undefined") {
+        const xsrfToken = CsrfUtils.getTokenFromCookie(config.getXsrfCookieName());
+        if (xsrfToken && CsrfUtils.isValidToken(xsrfToken)) {
+          const headers = this.requestOptions.headers as Record<string, string>;
+          const hasLocalToken = Object.keys(headers).some(
+            key => key === "X-XSRF-TOKEN" || key === config.getXsrfHeaderName()
+          );
+
+          if (!hasLocalToken) {
+            this.withHeaders({
+              [config.getXsrfHeaderName()]: xsrfToken,
+            });
+          }
+        }
+      }
+    }
 
     // Cast the request options to RequestInit to ensure compatibility
     const fetchOptions: RequestInit = {
@@ -238,33 +337,27 @@ export abstract class BaseRequest {
       ? this.executeRequest(url, fetchOptions)
       : this.executeWithRetries(url, fetchOptions);
 
-    // Enhance the promise with response methods
-    const responsePromise = basePromise.then(response => response) as ResponsePromise;
+    const responsePromise = basePromise as ResponsePromise;
 
-    // Attach convenience methods to the promise
-    responsePromise.json = async <T = unknown>(): Promise<T> => {
-      const response = await basePromise;
-      return response.json<T>();
+    // Attach convenience methods that begin processing immediately
+    responsePromise.getJson = async <T = unknown>(): Promise<T> => {
+      return basePromise.then(response => response.getJson<T>());
     };
 
-    responsePromise.text = async (): Promise<string> => {
-      const response = await basePromise;
-      return response.text();
+    responsePromise.getText = async (): Promise<string> => {
+      return basePromise.then(response => response.getText());
     };
 
-    responsePromise.blob = async (): Promise<Blob> => {
-      const response = await basePromise;
-      return response.blob();
+    responsePromise.getBlob = async (): Promise<Blob> => {
+      return basePromise.then(response => response.getBlob());
     };
 
-    responsePromise.arrayBuffer = async (): Promise<ArrayBuffer> => {
-      const response = await basePromise;
-      return response.arrayBuffer();
+    responsePromise.getArrayBuffer = async (): Promise<ArrayBuffer> => {
+      return basePromise.then(response => response.getArrayBuffer());
     };
 
-    responsePromise.body = async (): Promise<ReadableStream<Uint8Array> | null> => {
-      const response = await basePromise;
-      return response.body();
+    responsePromise.getBody = async (): Promise<ReadableStream<Uint8Array> | null> => {
+      return basePromise.then(response => response.getBody());
     };
 
     return responsePromise;
@@ -300,7 +393,7 @@ export abstract class BaseRequest {
     url: string,
     fetchOptions: RequestInit
   ): Promise<ResponseWrapper> {
-    let retryCount = 0;
+    let attempt = 0;
     const maxRetries = this.requestOptions.retries || 0;
 
     // eslint-disable-next-line no-constant-condition
@@ -313,14 +406,14 @@ export abstract class BaseRequest {
             ? error
             : RequestError.networkError(url, fetchOptions.method as string, error as Error);
 
-        if (retryCount >= maxRetries || requestError.timeoutError) {
+        if (attempt >= maxRetries || requestError.timeoutError) {
           throw requestError;
         }
 
-        retryCount++;
+        attempt++;
 
         if (this.requestOptions.onRetry) {
-          await this.requestOptions.onRetry({ retryCount, error: requestError });
+          await this.requestOptions.onRetry({ attempt, error: requestError });
         }
       }
     }

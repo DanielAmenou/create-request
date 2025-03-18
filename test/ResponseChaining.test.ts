@@ -14,69 +14,69 @@ describe("Response Chaining API", () => {
     FetchMock.restore();
   });
 
-  it("should support chained json() call after sendTo", async () => {
+  it("should support chained getJson() call after sendTo", async () => {
     // Arrange
     const expectedData = { name: "John", age: 30 };
     FetchMock.mockResponseOnce({ body: expectedData });
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/user").json();
+    const result = await request.sendTo("https://api.example.com/user").getJson();
 
     // Assert
     assert.deepEqual(result, expectedData);
   });
 
-  it("should support chained text() call after sendTo", async () => {
+  it("should support chained getText() call after sendTo", async () => {
     // Arrange
     const expectedText = "Hello, World!";
     FetchMock.mockResponseOnce({ body: expectedText });
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/text").text();
+    const result = await request.sendTo("https://api.example.com/text").getText();
 
     // Assert
     assert.equal(result, expectedText);
   });
 
-  it("should support chained blob() call after sendTo", async () => {
+  it("should support chained getBlob() call after sendTo", async () => {
     // Arrange
     FetchMock.mockResponseOnce({ body: "Binary data" });
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/file").blob();
+    const result = await request.sendTo("https://api.example.com/file").getBlob();
 
     // Assert
     assert(result instanceof Blob);
   });
 
-  it("should support chained arrayBuffer() call after sendTo", async () => {
+  it("should support chained getArrayBuffer() call after sendTo", async () => {
     // Arrange
     FetchMock.mockResponseOnce({ body: "Binary data" });
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/binary").arrayBuffer();
+    const result = await request.sendTo("https://api.example.com/binary").getArrayBuffer();
 
     // Assert
     assert(result instanceof ArrayBuffer);
   });
 
-  it("should support chained body() call after sendTo", async () => {
+  it("should support chained getBody() call after sendTo", async () => {
     // Arrange
     FetchMock.mockResponseOnce({ body: "Stream content" });
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/stream").body();
+    const result = await request.sendTo("https://api.example.com/stream").getBody();
 
     // Assert
     assert(result instanceof ReadableStream);
   });
 
-  it("should handle types in json() generic parameter", async () => {
+  it("should handle types in getJson() generic parameter", async () => {
     // Arrange
     interface User {
       id: number;
@@ -94,7 +94,7 @@ describe("Response Chaining API", () => {
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/user").json<User>();
+    const result = await request.sendTo("https://api.example.com/user").getJson<User>();
 
     // Assert
     assert.equal(result.id, 123);
@@ -123,7 +123,7 @@ describe("Response Chaining API", () => {
     assert.equal(response.headers.get("Location"), "/resources/123");
 
     // Then chain a method
-    const data = await response.json();
+    const data = await response.getJson();
     assert.deepEqual(data, expectedData);
   });
 
@@ -138,7 +138,7 @@ describe("Response Chaining API", () => {
       .sendTo("https://api.example.com/user")
       .then(response => {
         assert.equal(response.ok, true);
-        return response.json();
+        return response.getJson();
       })
       .then(data => {
         assert.deepEqual(data, expectedData);
@@ -179,7 +179,7 @@ describe("Response Chaining API", () => {
 
     // Assert
     try {
-      await response.json();
+      await response.getJson();
       assert.fail("Should have thrown an error for invalid JSON");
     } catch (error) {
       assert(error instanceof Error);
@@ -250,7 +250,7 @@ describe("Response Chaining API", () => {
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/unicode").json();
+    const result = await request.sendTo("https://api.example.com/unicode").getJson();
 
     // Assert
     assert.deepEqual(result, expectedData);
@@ -270,7 +270,7 @@ describe("Response Chaining API", () => {
 
     // Assert
     assert.equal(response.status, 200);
-    const textContent = await response.text();
+    const textContent = await response.getText();
     assert.equal(textContent, "");
   });
 
@@ -313,7 +313,7 @@ describe("Response Chaining API", () => {
 
     // Assert
     try {
-      await response.json();
+      await response.getJson();
       assert.fail("Should have thrown a SyntaxError for malformed JSON");
     } catch (error) {
       assert(error instanceof SyntaxError);
@@ -347,7 +347,7 @@ describe("Response Chaining API", () => {
       .sendTo("https://api.example.com/users")
       .then(response => {
         responseStatus = response.status;
-        return response.json<UserData>();
+        return response.getJson<UserData>();
       })
       .then(result => {
         data = result;
@@ -410,13 +410,13 @@ describe("Response Chaining API", () => {
     const result = await request
       .sendTo("https://api.example.com/order")
       .then(response => {
-        return response.json();
+        return response.getJson();
       })
       .then(order => {
         // Use order data to make another request
         return new GetRequest()
           .sendTo(`https://api.example.com/user`)
-          .then(response => response.json())
+          .then(response => response.getJson())
           .then(user => {
             // Combine data from both requests
             return {
@@ -451,7 +451,7 @@ describe("Response Chaining API", () => {
     // Act & Assert - First attempt as JSON should fail
     const response1 = await request.sendTo("https://api.example.com/text-only");
     try {
-      await response1.json();
+      await response1.getJson();
       assert.fail("Should have thrown an error when parsing text as JSON");
     } catch (error) {
       assert(error instanceof SyntaxError);
@@ -459,7 +459,7 @@ describe("Response Chaining API", () => {
 
     // Second request - getting it as text should work
     const response2 = await request.sendTo("https://api.example.com/text-only");
-    const textContent = await response2.text();
+    const textContent = await response2.getText();
     assert.equal(textContent, plainTextContent);
   });
 

@@ -1,18 +1,30 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import { CredentialsPolicy, RequestMode, RedirectMode, RequestPriority } from "../src/enums";
+import {
+  RequestMode,
+  RedirectMode,
+  SameSitePolicy,
+  RequestPriority,
+  CredentialsPolicy,
+} from "../src/enums";
+import create from "../src/index";
 import { RequestError } from "../src/RequestError";
 import { GetRequest } from "../src/requestMethods";
+import type { CookieOptions } from "../src/types";
 import { FetchMock, wait } from "./utils/fetchMock";
 
 describe("BaseRequest", () => {
   beforeEach(() => {
     FetchMock.install();
+    // Disable anti-CSRF globally for most tests
+    create.config.setEnableAntiCsrf(false);
   });
 
   afterEach(() => {
     FetchMock.reset();
     FetchMock.restore();
+    // Reset global config after each test
+    create.config.reset();
   });
 
   it("should make a basic GET request", async () => {
@@ -22,7 +34,7 @@ describe("BaseRequest", () => {
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").json();
+    const result = await request.sendTo("https://api.example.com/test").getJson();
 
     // Assert
     assert.deepEqual(result, expectedResponse);
@@ -35,7 +47,7 @@ describe("BaseRequest", () => {
   it("should set custom headers", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withHeaders({
+    const request = new GetRequest().withoutCsrfProtection().withHeaders({
       "X-Custom-Header": "test-value",
       Authorization: "Bearer token123",
     });
@@ -90,7 +102,7 @@ describe("BaseRequest", () => {
 
     // Assert
     const [url] = FetchMock.mock.calls[0];
-    const parsedUrl = new URL(url);
+    const parsedUrl = new URL(url as string);
     assert.equal(parsedUrl.searchParams.get("existing"), "value");
     assert.equal(parsedUrl.searchParams.get("param1"), "value1");
   });
@@ -126,7 +138,7 @@ describe("BaseRequest", () => {
     });
 
     // Act
-    const response = await request.sendTo("https://api.example.com/test").json();
+    const response = await request.sendTo("https://api.example.com/test").getJson();
 
     // Assert
     assert.deepEqual(response, { success: true });
@@ -266,7 +278,7 @@ describe("BaseRequest", () => {
   it("should set content type", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withContentType("text/plain");
+    const request = new GetRequest().withoutCsrfProtection().withContentType("text/plain");
 
     // Act
     await request.sendTo("https://api.example.com/test");
@@ -281,7 +293,7 @@ describe("BaseRequest", () => {
   it("should set authorization header", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withAuthorization("Bearer token123");
+    const request = new GetRequest().withoutCsrfProtection().withAuthorization("Bearer token123");
 
     // Act
     await request.sendTo("https://api.example.com/test");
@@ -296,7 +308,7 @@ describe("BaseRequest", () => {
   it("should set basic auth header", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withBasicAuth("username", "password");
+    const request = new GetRequest().withoutCsrfProtection().withBasicAuth("username", "password");
 
     // Act
     await request.sendTo("https://api.example.com/test");
@@ -311,7 +323,7 @@ describe("BaseRequest", () => {
   it("should set bearer token", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withBearerToken("token123");
+    const request = new GetRequest().withoutCsrfProtection().withBearerToken("token123");
 
     // Act
     await request.sendTo("https://api.example.com/test");
@@ -371,7 +383,7 @@ describe("BaseRequest", () => {
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").text();
+    const result = await request.sendTo("https://api.example.com/test").getText();
 
     // Assert
     assert.equal(result, textContent);
@@ -384,7 +396,7 @@ describe("BaseRequest", () => {
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").blob();
+    const result = await request.sendTo("https://api.example.com/test").getBlob();
 
     // Assert
     assert(result instanceof Blob);
@@ -399,7 +411,7 @@ describe("BaseRequest", () => {
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").arrayBuffer();
+    const result = await request.sendTo("https://api.example.com/test").getArrayBuffer();
 
     // Assert
     assert(result instanceof ArrayBuffer);
@@ -414,7 +426,7 @@ describe("BaseRequest", () => {
     const request = new GetRequest();
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").body();
+    const result = await request.sendTo("https://api.example.com/test").getBody();
 
     // Assert
     assert(result instanceof ReadableStream);
@@ -431,7 +443,7 @@ describe("BaseRequest", () => {
 
     // Act
     const response = await request.sendTo("https://api.example.com/user");
-    const result = await response.json<{ name: string; age: number; isActive: boolean }>();
+    const result = await response.getJson<{ name: string; age: number; isActive: boolean }>();
 
     // Assert
     assert.equal(typeof result, "object");
@@ -484,7 +496,7 @@ describe("BaseRequest", () => {
 
     // Act
     const response = await request.sendTo("https://api.example.com/complex");
-    const result = await response.json<ComplexResponse>();
+    const result = await response.getJson<ComplexResponse>();
 
     // Assert
     assert.equal(result.user.id, 123);
@@ -504,7 +516,7 @@ describe("BaseRequest", () => {
 
     // Act
     const response = await request.sendTo("https://api.example.com/data.csv");
-    const result = await response.text();
+    const result = await response.getText();
 
     // Assert
     assert.equal(typeof result, "string");
@@ -633,7 +645,7 @@ describe("BaseRequest", () => {
   it("should set cookies correctly", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest().withoutCsrfProtection().withCookies({
       sessionId: "abc123",
       userId: "user456",
     });
@@ -651,7 +663,7 @@ describe("BaseRequest", () => {
   it("should handle cookies with special characters", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest().withoutCsrfProtection().withCookies({
       "complex key": "value with spaces",
       "special=chars": "!@#$%^&*()",
     });
@@ -672,6 +684,7 @@ describe("BaseRequest", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const request = new GetRequest()
+      .withoutCsrfProtection()
       .withHeaders({ Cookie: "existing=value" })
       .withCookies({ newCookie: "newValue" });
 
@@ -683,5 +696,615 @@ describe("BaseRequest", () => {
     assert.deepEqual(options.headers, {
       Cookie: "existing=value; newCookie=newValue",
     });
+  });
+
+  it("should handle cookies with security options", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withoutCsrfProtection().withCookies({
+      basic: "value",
+      complex: {
+        value: "test",
+        secure: true,
+        httpOnly: true,
+        sameSite: SameSitePolicy.STRICT,
+        path: "/",
+        maxAge: 3600,
+      } as CookieOptions,
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("basic=value"));
+    assert.ok(cookieHeader.includes("complex=test"));
+  });
+
+  it("should handle complex cookie options", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookie("session", {
+      value: "abc123",
+      secure: true,
+      httpOnly: true,
+      sameSite: SameSitePolicy.LAX,
+      expires: new Date(Date.now() + 86400000), // 24 hours from now
+      path: "/dashboard",
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("session=abc123"));
+  });
+
+  it("should handle complex cookie options with validation", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookie("session", {
+      value: "abc123",
+      secure: true,
+      httpOnly: true,
+      sameSite: SameSitePolicy.LAX,
+      expires: new Date(Date.now() + 86400000), // 24 hours from now
+      path: "/dashboard",
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("session=abc123"));
+  });
+
+  it("should handle case-insensitive cookie headers", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest()
+      .withHeaders({ cookie: "existing=value" }) // lowercase cookie header
+      .withCookies({ newCookie: "newValue" });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+
+    // The header should be preserved with its original case
+    assert.equal(headers["cookie"], "existing=value; newCookie=newValue");
+    assert.equal(headers["Cookie"], undefined); // Should not duplicate with different case
+  });
+});
+
+describe("Cookie Options Tests", () => {
+  beforeEach(() => {
+    FetchMock.install();
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+  });
+
+  it("should handle basic string cookies", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      simple: "value",
+      another: "anotherValue",
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("simple=value"));
+    assert.ok(cookieHeader.includes("another=anotherValue"));
+  });
+
+  it("should handle cookie with secure flag", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      secureCookie: { value: "secureValue", secure: true },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("secureCookie=secureValue"));
+  });
+
+  it("should handle cookie with httpOnly flag", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      httpOnlyCookie: { value: "httpOnlyValue", httpOnly: true },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("httpOnlyCookie=httpOnlyValue"));
+  });
+
+  it("should handle cookie with SameSite=Strict option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      strictCookie: { value: "strictValue", sameSite: SameSitePolicy.STRICT },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("strictCookie=strictValue"));
+  });
+
+  it("should handle cookie with SameSite=Lax option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      laxCookie: { value: "laxValue", sameSite: SameSitePolicy.LAX },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("laxCookie=laxValue"));
+  });
+
+  it("should handle cookie with SameSite=None option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      noneCookie: { value: "noneValue", sameSite: SameSitePolicy.NONE },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("noneCookie=noneValue"));
+  });
+
+  it("should handle cookie with path option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      pathCookie: { value: "pathValue", path: "/dashboard" },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("pathCookie=pathValue"));
+  });
+
+  it("should handle cookie with domain option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      domainCookie: { value: "domainValue", domain: "example.com" },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("domainCookie=domainValue"));
+  });
+
+  it("should handle cookie with maxAge option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      maxAgeCookie: { value: "maxAgeValue", maxAge: 3600 },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("maxAgeCookie=maxAgeValue"));
+  });
+
+  it("should handle cookie with expires option", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const expiryDate = new Date(Date.now() + 86400000); // 24 hours later
+    const request = new GetRequest().withCookies({
+      expiresCookie: { value: "expiresValue", expires: expiryDate },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("expiresCookie=expiresValue"));
+  });
+
+  it("should handle multiple cookies with different options", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      cookie1: "simple",
+      cookie2: { value: "secure", secure: true },
+      cookie3: { value: "httpOnly", httpOnly: true },
+      cookie4: { value: "strict", sameSite: SameSitePolicy.STRICT },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+
+    assert.ok(cookieHeader.includes("cookie1=simple"));
+    assert.ok(cookieHeader.includes("cookie2=secure"));
+    assert.ok(cookieHeader.includes("cookie3=httpOnly"));
+    assert.ok(cookieHeader.includes("cookie4=strict"));
+  });
+
+  it("should handle cookie with all options combined", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const expiryDate = new Date(Date.now() + 86400000); // 24 hours later
+
+    const request = new GetRequest().withCookies({
+      complexCookie: {
+        value: "complexValue",
+        secure: true,
+        httpOnly: true,
+        sameSite: SameSitePolicy.STRICT,
+        path: "/admin",
+        domain: "api.example.com",
+        maxAge: 7200,
+        expires: expiryDate,
+      },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("complexCookie=complexValue"));
+  });
+
+  it("should handle empty cookie values", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      emptyCookie: "",
+      emptyOptionCookie: { value: "" },
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("emptyCookie="));
+    assert.ok(cookieHeader.includes("emptyOptionCookie="));
+  });
+
+  it("should handle cookies with special characters", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookies({
+      "name with spaces": "value with spaces",
+      "name+with+plus": "value+with+plus",
+      "name@symbols!": "value@symbols!",
+      "unicode😀": "unicode😀value",
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+
+    // Instead of checking for specific encodings which can vary, decode and check the actual values
+    const decodedCookieHeader = decodeURIComponent(cookieHeader);
+    assert.ok(decodedCookieHeader.includes("name with spaces=value with spaces"));
+    assert.ok(decodedCookieHeader.includes("name+with+plus=value+with+plus"));
+    assert.ok(decodedCookieHeader.includes("name@symbols!=value@symbols!"));
+    assert.ok(decodedCookieHeader.includes("unicode😀=unicode😀value"));
+  });
+
+  it("should handle very long cookie values", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const longValue = "a".repeat(1000); // 1000 character string
+    const request = new GetRequest().withCookies({
+      longCookie: longValue,
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes(`longCookie=${longValue}`));
+  });
+
+  it("should handle cookies with the withCookie method", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest()
+      .withCookie("session", "abc123")
+      .withCookie("preference", { value: "dark", sameSite: SameSitePolicy.LAX });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("session=abc123"));
+    assert.ok(cookieHeader.includes("preference=dark"));
+  });
+
+  it("should merge multiple cookie calls correctly", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest()
+      .withCookies({ first: "one", second: "two" })
+      .withCookie("third", "three")
+      .withCookies({ fourth: { value: "four", secure: true } });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("first=one"));
+    assert.ok(cookieHeader.includes("second=two"));
+    assert.ok(cookieHeader.includes("third=three"));
+    assert.ok(cookieHeader.includes("fourth=four"));
+  });
+});
+
+describe("CSRF Protection Tests", () => {
+  beforeEach(() => {
+    FetchMock.install();
+    // Make sure we reset the global config
+    create.config.reset();
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+    create.config.reset();
+  });
+
+  it("should set CSRF token in headers", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCsrfToken("test-token-12345");
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-CSRF-Token"], "test-token-12345");
+  });
+
+  it("should set CSRF token with custom header name", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCsrfToken("test-token-12345", "X-XSRF-TOKEN");
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-XSRF-TOKEN"], "test-token-12345");
+  });
+
+  it("should set anti-CSRF headers", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withAntiCsrfHeaders();
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], "XMLHttpRequest");
+  });
+
+  it("should automatically add anti-CSRF headers by default", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest();
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], "XMLHttpRequest");
+  });
+
+  it("should allow disabling automatic CSRF protection", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withoutCsrfProtection();
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], undefined);
+  });
+
+  it("should override global config with withoutCsrfProtection method", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setEnableAntiCsrf(true); // Enable globally
+    const request = new GetRequest().withoutCsrfProtection(); // Disable locally
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], undefined);
+  });
+
+  it("should honor global config when CSRF is disabled", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setEnableAntiCsrf(false); // Disable globally
+    const request = new GetRequest(); // Don't disable locally
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], undefined);
+  });
+
+  it("should respect individual request CSRF settings over global settings", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setEnableAntiCsrf(false); // Disable globally
+    const request = new GetRequest().withAntiCsrfHeaders(); // Enable locally
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], "XMLHttpRequest");
+  });
+});
+
+describe("Global Config CSRF Tests", () => {
+  beforeEach(() => {
+    FetchMock.install();
+    // Reset global config before each test
+    create.config.reset();
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+  });
+
+  it("should use global CSRF token", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setCsrfToken("global-csrf-token");
+    const request = new GetRequest();
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-CSRF-Token"], "global-csrf-token");
+  });
+
+  it("should use custom global CSRF header name", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setCsrfToken("global-csrf-token").setCsrfHeaderName("X-Custom-CSRF");
+    const request = new GetRequest();
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Custom-CSRF"], "global-csrf-token");
+  });
+
+  it("should disable global anti-CSRF headers", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setEnableAntiCsrf(false);
+    const request = new GetRequest();
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Requested-With"], undefined);
+  });
+
+  it("should override global CSRF settings with local settings", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setCsrfToken("global-csrf-token");
+    // Use explicit header name to avoid confusion with automatic headers
+    const request = new GetRequest().withCsrfToken("local-csrf-token", "X-CSRF-Token");
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-CSRF-Token"], "local-csrf-token");
   });
 });

@@ -3,11 +3,11 @@
  */
 export enum HttpMethod {
   GET = "GET",
-  POST = "POST",
   PUT = "PUT",
-  DELETE = "DELETE",
-  PATCH = "PATCH",
+  POST = "POST",
   HEAD = "HEAD",
+  PATCH = "PATCH",
+  DELETE = "DELETE",
   OPTIONS = "OPTIONS",
 }
 
@@ -15,8 +15,8 @@ export enum HttpMethod {
  * Enum for request priorities
  */
 export enum RequestPriority {
-  HIGH = "high",
   LOW = "low",
+  HIGH = "high",
   AUTO = "auto",
 }
 
@@ -24,9 +24,9 @@ export enum RequestPriority {
  * Enum for credentials policies
  */
 export enum CredentialsPolicy {
+  OMIT = "omit",
   INCLUDE = "include",
   SAME_ORIGIN = "same-origin",
-  OMIT = "omit",
 }
 
 /**
@@ -43,8 +43,8 @@ export enum RequestMode {
  * Enum for redirect modes
  */
 export enum RedirectMode {
-  FOLLOW = "follow",
   ERROR = "error",
+  FOLLOW = "follow",
   MANUAL = "manual",
 }
 
@@ -53,9 +53,27 @@ export enum RedirectMode {
  */
 export enum CacheMode {
   DEFAULT = "default",
-  NO_STORE = "no-store",
   RELOAD = "reload",
+  NO_STORE = "no-store",
   NO_CACHE = "no-cache",
   FORCE_CACHE = "force-cache",
   ONLY_IF_CACHED = "only-if-cached",
+}
+
+/**
+ * Enum for cookie SameSite policies
+ */
+export enum SameSitePolicy {
+  LAX = "Lax",
+  NONE = "None",
+  STRICT = "Strict",
+}
+
+/**
+ * Enum for body types
+ */
+export enum BodyType {
+  JSON = "json",
+  STRING = "string",
+  BINARY = "binary",
 }

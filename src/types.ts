@@ -5,6 +5,7 @@ import {
   RequestMode,
   RedirectMode,
   CacheMode,
+  SameSitePolicy,
 } from "./enums";
 import type { RequestError } from "./RequestError";
 
@@ -19,11 +20,33 @@ export type Body =
   | ReadableStream;
 
 export type RetryCallback = (options: {
-  retryCount: number;
+  attempt: number;
   error: RequestError;
 }) => void | Promise<void>;
 
-export { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, CacheMode };
+export interface CookieOptions {
+  value: string;
+  secure?: boolean;
+  httpOnly?: boolean;
+  sameSite?: SameSitePolicy;
+  expires?: Date;
+  path?: string;
+  domain?: string;
+  maxAge?: number; // in seconds
+}
+
+export type CookiesRecord = Record<string, string | CookieOptions>;
+
+export {
+  CacheMode,
+  HttpMethod,
+  RequestMode,
+  RedirectMode,
+  SameSitePolicy,
+  RequestPriority,
+  CredentialsPolicy,
+};
+
 export interface RequestOptions
   extends Omit<
     RequestInit,

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { Blob } from "node:buffer";
 import { describe, it, beforeEach, afterEach } from "node:test";
+import create from "../src/index";
 import { PostRequest } from "../src/requestMethods";
 
 import { FetchMock } from "./utils/fetchMock";
@@ -8,18 +9,22 @@ import { FetchMock } from "./utils/fetchMock";
 describe("BodyRequest", () => {
   beforeEach(() => {
     FetchMock.install();
+    // Disable anti-CSRF globally for these tests
+    create.config.setEnableAntiCsrf(false);
   });
 
   afterEach(() => {
     FetchMock.reset();
     FetchMock.restore();
+    // Reset global config after each test
+    create.config.reset();
   });
 
   it("should properly handle JSON object body", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const data = { name: "John Doe", age: 30, active: true };
-    const request = new PostRequest().withBody(data);
+    const request = new PostRequest().withBody(data);  // No need for withoutCsrfProtection anymore
 
     // Act
     await request.sendTo("https://api.example.com/users");
@@ -35,16 +40,16 @@ describe("BodyRequest", () => {
   it("should handle string body", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new PostRequest().withBody("plain text content");
+    const textContent = "Hello, world!";
+    const request = new PostRequest().withBody(textContent);  // No need for withoutCsrfProtection anymore
 
     // Act
-    await request.sendTo("https://api.example.com/text");
+    await request.sendTo("https://api.example.com/test");
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
-    assert.equal(options.body, "plain text content");
-    // No content-type should be set automatically for plain strings
-    assert.equal(options.headers, undefined);
+    assert.equal(options.body, textContent);
+    assert.deepEqual(options.headers, { "Content-Type": "text/plain" });
   });
 
   it("should handle FormData body", async () => {
@@ -54,7 +59,7 @@ describe("BodyRequest", () => {
     formData.append("name", "John Doe");
     formData.append("age", "30");
 
-    const request = new PostRequest().withBody(formData);
+    const request = new PostRequest().withBody(formData);  // No need for withoutCsrfProtection anymore
 
     // Act
     await request.sendTo("https://api.example.com/form");
@@ -62,15 +67,14 @@ describe("BodyRequest", () => {
     // Assert
     const [, options] = FetchMock.mock.calls[0];
     assert.equal(options.body, formData);
-    // Content-type should not be set for FormData
-    assert.equal(options.headers, undefined);
+    assert.deepEqual(options.headers, {});
   });
 
   it("should handle Blob body", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const blob = new Blob(["Hello, world!"], { type: "text/plain" });
-    const request = new PostRequest().withBody(blob);
+    const request = new PostRequest().withBody(blob);  // No need for withoutCsrfProtection anymore
 
     // Act
     await request.sendTo("https://api.example.com/blob");
@@ -78,8 +82,7 @@ describe("BodyRequest", () => {
     // Assert
     const [, options] = FetchMock.mock.calls[0];
     assert.equal(options.body, blob);
-    // Content-type should not be set for Blob
-    assert.equal(options.headers, undefined);
+    assert.deepEqual(options.headers, {});
   });
 
   it("should handle URLSearchParams body", async () => {
@@ -89,7 +92,7 @@ describe("BodyRequest", () => {
     params.append("name", "John Doe");
     params.append("age", "30");
 
-    const request = new PostRequest().withBody(params);
+    const request = new PostRequest().withBody(params);  // No need for withoutCsrfProtection anymore
 
     // Act
     await request.sendTo("https://api.example.com/params");
@@ -97,15 +100,14 @@ describe("BodyRequest", () => {
     // Assert
     const [, options] = FetchMock.mock.calls[0];
     assert.equal(options.body, params);
-    // Content-type should not be set for URLSearchParams
-    assert.equal(options.headers, undefined);
+    assert.deepEqual(options.headers, {});
   });
 
   it("should handle ArrayBuffer body", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const buffer = new ArrayBuffer(8);
-    const request = new PostRequest().withBody(buffer);
+    const request = new PostRequest().withBody(buffer);  // No need for withoutCsrfProtection anymore
 
     // Act
     await request.sendTo("https://api.example.com/buffer");
@@ -113,14 +115,13 @@ describe("BodyRequest", () => {
     // Assert
     const [, options] = FetchMock.mock.calls[0];
     assert.equal(options.body, buffer);
-    // Content-type should not be set for ArrayBuffer
-    assert.equal(options.headers, undefined);
+    assert.deepEqual(options.headers, {});
   });
 
   it("should handle null body", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new PostRequest().withBody(null);
+    const request = new PostRequest().withBody(null);  // No need for withoutCsrfProtection anymore
 
     // Act
     await request.sendTo("https://api.example.com/empty");
@@ -137,7 +138,7 @@ describe("BodyRequest", () => {
 
     // Act & Assert
     assert.throws(() => {
-      new PostRequest().withBody(circularObj as Body);
+      new PostRequest().withBody(circularObj as Body);  // No need for withoutCsrfProtection anymore
     }, /Failed to stringify request body/);
   });
 
@@ -147,7 +148,7 @@ describe("BodyRequest", () => {
     const data = { name: "John Doe", age: 30 };
     const request = new PostRequest()
       .withHeaders({ "Content-Type": "application/vnd.custom+json" })
-      .withBody(data);
+      .withBody(data);  // No need for withoutCsrfProtection anymore
 
     // Act
     await request.sendTo("https://api.example.com/users");
@@ -169,7 +170,7 @@ describe("BodyRequest", () => {
         "X-Custom-ID": "123",
         Authorization: "Bearer token",
       })
-      .withBody({ test: true });
+      .withBody({ test: true });  // No need for withoutCsrfProtection anymore
 
     // Act
     await request.sendTo("https://api.example.com/test");
