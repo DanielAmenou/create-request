@@ -182,8 +182,27 @@ export abstract class BaseRequest {
    * @returns The instance for chaining
    */
   withBasicAuth(username: string, password: string): this {
-    const credentials = btoa(`${username}:${password}`);
+    const credentials = this.encodeBase64(`${username}:${password}`);
     return this.withAuthorization(`Basic ${credentials}`);
+  }
+
+  /**
+   * Cross-environment base64 encoding
+   * Works in both browser and Node.js environments
+   */
+  private encodeBase64(str: string): string {
+    // Browser environment
+    if (typeof btoa === "function") {
+      return btoa(str);
+    }
+
+    // Node.js environment
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(str).toString("base64");
+    }
+
+    // Fallback (should never happen in modern environments)
+    throw new Error("Base64 encoding is not supported in this environment");
   }
 
   /**
@@ -372,14 +391,22 @@ export abstract class BaseRequest {
       return url;
     }
 
-    const urlObj = new URL(url);
+    try {
+      // Try to use the URL constructor (works for absolute URLs)
+      const urlObj = new URL(url);
 
-    // Merge our query params with any that might be in the URL already
-    this.queryParams.forEach((value, key) => {
-      urlObj.searchParams.append(key, value);
-    });
+      // Merge our query params with any that might be in the URL already
+      this.queryParams.forEach((value, key) => {
+        urlObj.searchParams.append(key, value);
+      });
 
-    return urlObj.toString();
+      return urlObj.toString();
+    } catch (error) {
+      // Handle relative URLs
+      const hasExistingParams = url.includes("?");
+      const separator = hasExistingParams ? "&" : "?";
+      return `${url}${separator}${this.queryParams.toString()}`;
+    }
   }
 
   /**
@@ -424,7 +451,6 @@ export abstract class BaseRequest {
     const { signal } = controller;
 
     // Use the controller signal for the fetch request, but don't overwrite an existing signal
-    // that might have been set in requestOptions if it exists
     fetchOptions.signal = fetchOptions.signal || signal;
 
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -450,6 +476,7 @@ export abstract class BaseRequest {
             this.requestOptions.timeout!
           );
         }
+
         // Otherwise it's a network error
         throw RequestError.networkError(url, fetchOptions.method as string, error as Error);
       }
