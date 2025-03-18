@@ -33,11 +33,16 @@ export abstract class BaseRequest {
   }
 
   withTimeout(timeout: number): this {
+    if (!Number.isFinite(timeout) || timeout <= 0)
+      throw new Error("Timeout must be a positive number");
+
     this.requestOptions.timeout = timeout;
     return this;
   }
 
   withRetries(retries: number): this {
+    if (!Number.isInteger(retries) || retries < 0)
+      throw new Error("Retry count must be a non-negative integer");
     this.requestOptions.retries = retries;
     return this;
   }
