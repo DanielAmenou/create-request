@@ -7,7 +7,6 @@ import type { Body } from "./types";
  */
 export abstract class BodyRequest extends BaseRequest {
   protected body?: Body;
-  private bodyProcessed = false;
   private bodyType?: BodyType;
 
   /**
@@ -16,7 +15,6 @@ export abstract class BodyRequest extends BaseRequest {
    */
   withBody(body: Body): this {
     this.body = body;
-    this.bodyProcessed = false;
 
     // Set body type and validate
     if (typeof body === "string") {
@@ -56,14 +54,16 @@ export abstract class BodyRequest extends BaseRequest {
    * Overrides the base implementation to add body handling
    */
   sendTo(url: string): ReturnType<BaseRequest["sendTo"]> {
-    // Process body only once
-    if (!this.bodyProcessed && this.body !== undefined && !this.requestOptions.body) {
+    if (this.body !== undefined) {
+      // Remove previous body if it exists
+      if (this.requestOptions.body) delete this.requestOptions.body;
+
+      // Process the body based on its type
       if (this.bodyType === BodyType.JSON) {
         this.requestOptions.body = JSON.stringify(this.body);
       } else {
         this.requestOptions.body = this.body;
       }
-      this.bodyProcessed = true;
     }
 
     return super.sendTo(url);
