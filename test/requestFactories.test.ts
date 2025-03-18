@@ -2,15 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { get, post, put, del, patch, head, options } from "../src/requestFactories";
-import {
-  GetRequest,
-  PostRequest,
-  PutRequest,
-  DeleteRequest,
-  PatchRequest,
-  HeadRequest,
-  OptionsRequest,
-} from "../src/requestMethods";
+import { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadRequest, OptionsRequest } from "../src/requestMethods";
 
 describe("Request Factories", () => {
   it("should create a GetRequest instance", () => {

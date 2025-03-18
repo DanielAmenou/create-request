@@ -23,12 +23,7 @@ describe("RequestError", () => {
     const mockResponse = new Response("Not found", { status: 404, statusText: "Not Found" });
 
     // Act
-    const error = new RequestError(
-      "Request failed with status 404",
-      "https://api.example.com",
-      "GET",
-      { status: 404, response: mockResponse }
-    );
+    const error = new RequestError("Request failed with status 404", "https://api.example.com", "GET", { status: 404, response: mockResponse });
 
     // Assert
     assert.equal(error.status, 404);

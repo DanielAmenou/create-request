@@ -1,10 +1,4 @@
-import {
-  type HttpMethod,
-  type RedirectMode,
-  type RequestMode,
-  type RequestPriority,
-  CredentialsPolicy,
-} from "./enums";
+import { type HttpMethod, type RedirectMode, type RequestMode, type RequestPriority, CredentialsPolicy } from "./enums";
 import { RequestError } from "./RequestError";
 import { type ResponsePromise, ResponseWrapper } from "./ResponseWrapper";
 import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions } from "./types";
@@ -33,16 +27,14 @@ export abstract class BaseRequest {
   }
 
   withTimeout(timeout: number): this {
-    if (!Number.isFinite(timeout) || timeout <= 0)
-      throw new Error("Timeout must be a positive number");
+    if (!Number.isFinite(timeout) || timeout <= 0) throw new Error("Timeout must be a positive number");
 
     this.requestOptions.timeout = timeout;
     return this;
   }
 
   withRetries(retries: number): this {
-    if (!Number.isInteger(retries) || retries < 0)
-      throw new Error("Retry count must be a non-negative integer");
+    if (!Number.isInteger(retries) || retries < 0) throw new Error("Retry count must be a non-negative integer");
     this.requestOptions.retries = retries;
     return this;
   }
@@ -117,9 +109,7 @@ export abstract class BaseRequest {
    * @param params - An object containing the query parameters
    * @returns The instance for chaining
    */
-  withQueryParams(
-    params: Record<string, string | string[] | number | boolean | null | undefined>
-  ): this {
+  withQueryParams(params: Record<string, string | string[] | number | boolean | null | undefined>): this {
     Object.entries(params).forEach(([key, value]) => {
       if (value === null || value === undefined) {
         return;
@@ -232,9 +222,7 @@ export abstract class BaseRequest {
 
     // Get the existing cookie header in a case-insensitive way
     let existingCookies = "";
-    const cookieHeaderName = Object.keys(currentHeaders).find(
-      header => header.toLowerCase() === "cookie"
-    );
+    const cookieHeaderName = Object.keys(currentHeaders).find(header => header.toLowerCase() === "cookie");
 
     if (cookieHeaderName) existingCookies = currentHeaders[cookieHeaderName];
 
@@ -316,9 +304,7 @@ export abstract class BaseRequest {
       if (globalToken) {
         // Check if local token exists
         const headers = this.requestOptions.headers as Record<string, string>;
-        const hasLocalToken = Object.keys(headers).some(
-          key => key === "X-CSRF-Token" || key === config.getCsrfHeaderName()
-        );
+        const hasLocalToken = Object.keys(headers).some(key => key === "X-CSRF-Token" || key === config.getCsrfHeaderName());
 
         if (!hasLocalToken) {
           this.withHeaders({
@@ -332,9 +318,7 @@ export abstract class BaseRequest {
         const xsrfToken = CsrfUtils.getTokenFromCookie(config.getXsrfCookieName());
         if (xsrfToken && CsrfUtils.isValidToken(xsrfToken)) {
           const headers = this.requestOptions.headers as Record<string, string>;
-          const hasLocalToken = Object.keys(headers).some(
-            key => key === "X-XSRF-TOKEN" || key === config.getXsrfHeaderName()
-          );
+          const hasLocalToken = Object.keys(headers).some(key => key === "X-XSRF-TOKEN" || key === config.getXsrfHeaderName());
 
           if (!hasLocalToken) {
             this.withHeaders({
@@ -352,9 +336,7 @@ export abstract class BaseRequest {
     };
 
     // Create the base promise
-    const basePromise = !this.requestOptions.retries
-      ? this.executeRequest(url, fetchOptions)
-      : this.executeWithRetries(url, fetchOptions);
+    const basePromise = !this.requestOptions.retries ? this.executeRequest(url, fetchOptions) : this.executeWithRetries(url, fetchOptions);
 
     const responsePromise = basePromise as ResponsePromise;
 
@@ -416,10 +398,7 @@ export abstract class BaseRequest {
    * @param fetchOptions The fetch options to use
    * @returns A wrapped response object
    */
-  private async executeWithRetries(
-    url: string,
-    fetchOptions: RequestInit
-  ): Promise<ResponseWrapper> {
+  private async executeWithRetries(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
     let attempt = 0;
     const maxRetries = this.requestOptions.retries || 0;
 
@@ -428,10 +407,7 @@ export abstract class BaseRequest {
       try {
         return await this.executeRequest(url, fetchOptions);
       } catch (error) {
-        const requestError =
-          error instanceof RequestError
-            ? error
-            : RequestError.networkError(url, fetchOptions.method as string, error as Error);
+        const requestError = error instanceof RequestError ? error : RequestError.networkError(url, fetchOptions.method as string, error as Error);
 
         if (attempt >= maxRetries || requestError.timeoutError) {
           throw requestError;
@@ -471,11 +447,7 @@ export abstract class BaseRequest {
       } catch (error) {
         // Check if this is an abort error from our timeout
         if (error instanceof DOMException && error.name === "AbortError" && timeoutId) {
-          throw RequestError.timeout(
-            url,
-            fetchOptions.method as string,
-            this.requestOptions.timeout!
-          );
+          throw RequestError.timeout(url, fetchOptions.method as string, this.requestOptions.timeout!);
         }
 
         // Otherwise it's a network error

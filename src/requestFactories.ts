@@ -1,12 +1,4 @@
-import {
-  GetRequest,
-  PostRequest,
-  PutRequest,
-  DeleteRequest,
-  PatchRequest,
-  HeadRequest,
-  OptionsRequest,
-} from "./requestMethods";
+import { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadRequest, OptionsRequest } from "./requestMethods";
 
 /**
  * Create a GET request

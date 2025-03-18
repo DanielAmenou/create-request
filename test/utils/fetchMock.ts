@@ -12,12 +12,7 @@ type MockResponseInit = {
  * Creates a mock Response object for testing
  */
 export function createMockResponse(init: MockResponseInit = {}): Response {
-  const {
-    status = 200,
-    statusText = "OK",
-    headers = { "content-type": "application/json" },
-    body = null,
-  } = init;
+  const { status = 200, statusText = "OK", headers = { "content-type": "application/json" }, body = null } = init;
 
   // Create headers object
   const responseHeaders = new Headers();
@@ -116,9 +111,7 @@ function createMockFn<T = any>(): MockFn<T> {
  */
 export class FetchMock {
   private static originalFetch: typeof fetch;
-  private static mockImplementation = createMockFn<Promise<Response>>().mockImplementation(() =>
-    Promise.resolve(createMockResponse())
-  );
+  private static mockImplementation = createMockFn<Promise<Response>>().mockImplementation(() => Promise.resolve(createMockResponse()));
 
   // Track active abortable mocks
   private static abortHandlers = new Map<AbortSignal, () => void>();
@@ -194,9 +187,7 @@ export class FetchMock {
    * Mock a successful response
    */
   static mockResponseOnce(responseInit: MockResponseInit = {}): void {
-    FetchMock.mockImplementation.mockImplementationOnce(() =>
-      Promise.resolve(createMockResponse(responseInit))
-    );
+    FetchMock.mockImplementation.mockImplementationOnce(() => Promise.resolve(createMockResponse(responseInit)));
   }
 
   /**
@@ -210,41 +201,39 @@ export class FetchMock {
    * Mock a response with a delay (for testing timeouts)
    */
   static mockDelayedResponseOnce(delay: number, responseInit: MockResponseInit = {}): void {
-    FetchMock.mockImplementation.mockImplementationOnce(
-      (_input: RequestInfo | URL, init?: RequestInit) => {
-        // Create a promise that resolves with the response after a delay
-        const responsePromise = wait(delay).then(() => createMockResponse(responseInit));
+    FetchMock.mockImplementation.mockImplementationOnce((_input: RequestInfo | URL, init?: RequestInit) => {
+      // Create a promise that resolves with the response after a delay
+      const responsePromise = wait(delay).then(() => createMockResponse(responseInit));
 
-        // If there's a signal, ensure we handle abort events
-        if (init?.signal) {
-          const signal = init.signal; // Store signal in a variable to avoid null checks
+      // If there's a signal, ensure we handle abort events
+      if (init?.signal) {
+        const signal = init.signal; // Store signal in a variable to avoid null checks
 
-          return new Promise<Response>((resolve, reject) => {
-            // Set up handlers for both delay completion and abort events
-            const onAbort = () => {
-              reject(new DOMException("The operation was aborted", "AbortError"));
+        return new Promise<Response>((resolve, reject) => {
+          // Set up handlers for both delay completion and abort events
+          const onAbort = () => {
+            reject(new DOMException("The operation was aborted", "AbortError"));
+            signal.removeEventListener("abort", onAbort);
+          };
+
+          // Listen for abort
+          signal.addEventListener("abort", onAbort);
+
+          // Clean up on completion
+          responsePromise
+            .then(result => {
               signal.removeEventListener("abort", onAbort);
-            };
-
-            // Listen for abort
-            signal.addEventListener("abort", onAbort);
-
-            // Clean up on completion
-            responsePromise
-              .then(result => {
-                signal.removeEventListener("abort", onAbort);
-                resolve(result);
-              })
-              .catch(error => {
-                signal.removeEventListener("abort", onAbort);
-                reject(error);
-              });
-          });
-        }
-
-        return responsePromise;
+              resolve(result);
+            })
+            .catch(error => {
+              signal.removeEventListener("abort", onAbort);
+              reject(error);
+            });
+        });
       }
-    );
+
+      return responsePromise;
+    });
   }
 
   /**

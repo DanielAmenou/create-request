@@ -2,15 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
 
 import { HttpMethod } from "../src/enums";
-import {
-  GetRequest,
-  PostRequest,
-  PutRequest,
-  DeleteRequest,
-  PatchRequest,
-  HeadRequest,
-  OptionsRequest,
-} from "../src/requestMethods";
+import { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadRequest, OptionsRequest } from "../src/requestMethods";
 
 import { FetchMock } from "./utils/fetchMock";
 

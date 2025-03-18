@@ -62,11 +62,9 @@ export class CsrfUtils {
       const hasUpperCase = /[A-Z]/.test(token);
       const hasLowerCase = /[a-z]/.test(token);
       const hasNumbers = /[0-9]/.test(token);
-      const hasSpecials = /[\-_=+/.]/.test(token);
+      const hasSpecials = /[-_=+/.]/.test(token);
 
-      const characterTypesCount = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecials].filter(
-        Boolean
-      ).length;
+      const characterTypesCount = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecials].filter(Boolean).length;
 
       return characterTypesCount >= 2;
     }

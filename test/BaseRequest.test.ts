@@ -1,12 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import {
-  RequestMode,
-  RedirectMode,
-  SameSitePolicy,
-  RequestPriority,
-  CredentialsPolicy,
-} from "../src/enums";
+import { RequestMode, RedirectMode, SameSitePolicy, RequestPriority, CredentialsPolicy } from "../src/enums";
 import create from "../src/index";
 import { RequestError } from "../src/RequestError";
 import { GetRequest } from "../src/requestMethods";
@@ -683,10 +677,7 @@ describe("BaseRequest", () => {
   it("should merge cookies with existing Cookie header", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest()
-      .withoutCsrfProtection()
-      .withHeaders({ Cookie: "existing=value" })
-      .withCookies({ newCookie: "newValue" });
+    const request = new GetRequest().withoutCsrfProtection().withHeaders({ Cookie: "existing=value" }).withCookies({ newCookie: "newValue" });
 
     // Act
     await request.sendTo("https://api.example.com/test");
@@ -1071,9 +1062,7 @@ describe("Cookie Options Tests", () => {
   it("should handle cookies with the withCookie method", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest()
-      .withCookie("session", "abc123")
-      .withCookie("preference", { value: "dark", sameSite: SameSitePolicy.LAX });
+    const request = new GetRequest().withCookie("session", "abc123").withCookie("preference", { value: "dark", sameSite: SameSitePolicy.LAX });
 
     // Act
     await request.sendTo("https://api.example.com/test");

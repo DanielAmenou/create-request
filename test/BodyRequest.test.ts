@@ -156,9 +156,7 @@ describe("BodyRequest", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const data = { name: "John Doe", age: 30 };
-    const request = new PostRequest()
-      .withHeaders({ "Content-Type": "application/vnd.custom+json" })
-      .withBody(data);
+    const request = new PostRequest().withHeaders({ "Content-Type": "application/vnd.custom+json" }).withBody(data);
 
     // Act
     await request.sendTo("https://api.example.com/users");
