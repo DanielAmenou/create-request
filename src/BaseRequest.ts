@@ -208,6 +208,16 @@ export abstract class BaseRequest {
   }
 
   /**
+   * Helper function to check for header presence in a case-insensitive way
+   * @param headers Headers object
+   * @param headerName Header name to check
+   * @returns Boolean indicating if the header exists (case-insensitive)
+   */
+  private hasHeader(headers: Record<string, string>, headerName: string): boolean {
+    return Object.keys(headers).some(key => key.toLowerCase() === headerName.toLowerCase());
+  }
+
+  /**
    * Sets cookies for the request
    * @param cookies Object containing cookie name-value pairs or cookie options
    * @returns The instance for chaining
@@ -222,22 +232,40 @@ export abstract class BaseRequest {
     // Get current headers or initialize empty object
     const currentHeaders = (this.requestOptions.headers as Record<string, string>) || {};
 
-    // Get the existing cookie header in a case-insensitive way
-    let existingCookies = "";
-    const cookieHeaderName = Object.keys(currentHeaders).find(header => header.toLowerCase() === "cookie");
+    // Get all existing cookie headers with different cases
+    const cookieValues: string[] = [];
+    const cookieHeaderKeys: string[] = [];
 
-    if (cookieHeaderName) existingCookies = currentHeaders[cookieHeaderName];
+    Object.keys(currentHeaders).forEach(key => {
+      if (key.toLowerCase() === "cookie") {
+        // Don't add empty cookie values
+        if (currentHeaders[key]) cookieValues.push(currentHeaders[key]);
+        cookieHeaderKeys.push(key);
+      }
+    });
 
+    // Format the new cookies
     const cookieString = CookieUtils.formatRequestCookies(cookies);
 
-    // Combine with existing cookies if present
-    const newCookieValue = existingCookies ? `${existingCookies}; ${cookieString}` : cookieString;
+    // Choose which header name to use - preserve existing case if possible
+    const headerName = cookieHeaderKeys.length > 0 ? cookieHeaderKeys[0] : "Cookie";
 
-    // Set the Cookie header, preserving original case if it exists
-    const headerName = cookieHeaderName || "Cookie";
-    return this.withHeaders({
-      [headerName]: newCookieValue,
+    // Combine all existing cookie values with the new ones
+    const combinedCookieValue = [...cookieValues, cookieString].filter(Boolean).join("; ");
+
+    // Create a new headers object without any cookie headers
+    const newHeaders = { ...currentHeaders };
+    cookieHeaderKeys.forEach(key => {
+      delete newHeaders[key];
     });
+
+    // Set the new combined cookie header
+    this.requestOptions.headers = {
+      ...newHeaders,
+      [headerName]: combinedCookieValue,
+    };
+
+    return this;
   }
 
   /**
@@ -304,13 +332,14 @@ export abstract class BaseRequest {
       // Apply global CSRF token if set
       const globalToken = config.getCsrfToken();
       if (globalToken) {
-        // Check if local token exists
+        // Check if local token exists using case-insensitive comparison
         const headers = this.requestOptions.headers as Record<string, string>;
-        const hasLocalToken = Object.keys(headers).some(key => key === "X-CSRF-Token" || key === config.getCsrfHeaderName());
+        const csrfHeaderName = config.getCsrfHeaderName();
+        const hasLocalToken = this.hasHeader(headers, "X-CSRF-Token") || this.hasHeader(headers, csrfHeaderName);
 
         if (!hasLocalToken) {
           this.withHeaders({
-            [config.getCsrfHeaderName()]: globalToken,
+            [csrfHeaderName]: globalToken,
           });
         }
       }
@@ -320,11 +349,12 @@ export abstract class BaseRequest {
         const xsrfToken = CsrfUtils.getTokenFromCookie(config.getXsrfCookieName());
         if (xsrfToken && CsrfUtils.isValidToken(xsrfToken)) {
           const headers = this.requestOptions.headers as Record<string, string>;
-          const hasLocalToken = Object.keys(headers).some(key => key === "X-XSRF-TOKEN" || key === config.getXsrfHeaderName());
+          const xsrfHeaderName = config.getXsrfHeaderName();
+          const hasLocalToken = this.hasHeader(headers, "X-XSRF-TOKEN") || this.hasHeader(headers, xsrfHeaderName);
 
           if (!hasLocalToken) {
             this.withHeaders({
-              [config.getXsrfHeaderName()]: xsrfToken,
+              [xsrfHeaderName]: xsrfToken,
             });
           }
         }
