@@ -1716,3 +1716,92 @@ describe("Cross-Environment Base64 Encoding", () => {
     assert.ok(headers.Authorization.length > 10);
   });
 });
+
+describe("Header Case Sensitivity", () => {
+  beforeEach(() => {
+    FetchMock.install();
+    // Reset global config before each test
+    create.config.reset();
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+  });
+
+  it("should recognize headers case-insensitively with CSRF token", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    create.config.setCsrfToken("global-token");
+    create.config.setCsrfHeaderName("X-CSRF-Token"); // Default name
+
+    // Set a lowercase version of the header
+    const request = new GetRequest().withHeaders({ "x-csrf-token": "local-token" });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert - Global token should not be applied because local token exists
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+
+    // The original case should be preserved
+    assert.equal(headers["x-csrf-token"], "local-token");
+
+    // And no duplicate header with different case should be added
+    assert.equal(headers["X-CSRF-Token"], undefined);
+  });
+
+  it("should recognize headers case-insensitively with XSRF token", async () => {
+    // Arrange - mock document & cookies for XSRF
+    // This is handled in actual implementation
+
+    FetchMock.mockResponseOnce();
+    create.config.setXsrfHeaderName("X-XSRF-TOKEN");
+
+    // Set a mixed-case version of the header
+    const request = new GetRequest().withHeaders({ "X-xsrf-TOken": "local-token" });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert - The case of the original header should be preserved
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+
+    assert.equal(headers["X-xsrf-TOken"], "local-token");
+    assert.equal(headers["X-XSRF-TOKEN"], undefined);
+  });
+
+  it("should handle multiple cookie headers with different cases", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+
+    // Create a request with multiple cookie headers using different cases
+    const request = new GetRequest();
+
+    // First add headers with different cookie cases
+    request.withHeaders({
+      cookie: "first=value",
+      Cookie: "second=value",
+    });
+
+    // Then add another cookie
+    request.withCookie("third", "value");
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+
+    // Find which cookie header is being used
+    const cookieHeader = headers["cookie"] || headers["Cookie"];
+
+    // Verify all cookie values are included
+    assert.ok(cookieHeader.includes("first=value"), "First cookie value should be present");
+    assert.ok(cookieHeader.includes("second=value"), "Second cookie value should be present");
+    assert.ok(cookieHeader.includes("third=value"), "Third cookie value should be present");
+  });
+});

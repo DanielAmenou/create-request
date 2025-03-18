@@ -239,4 +239,24 @@ describe("BodyRequest", () => {
     assert.equal(options1.body, JSON.stringify({ id: 1, name: "First User" }));
     assert.equal(options2.body, JSON.stringify({ id: 2, name: "Second User" }));
   });
+
+  it("should handle headers case-insensitively in content-type detection", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const data = { name: "Test" };
+
+    // Use a non-standard case for content-type
+    const request = new PostRequest().withHeaders({ "content-TYPE": "application/json" }).withBody(data);
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert - The content-type header should remain as provided
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+
+    assert.equal(headers["content-TYPE"], "application/json");
+    assert.equal(headers["Content-Type"], undefined);
+    assert.equal(options.body, JSON.stringify(data));
+  });
 });
