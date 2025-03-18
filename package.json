@@ -15,7 +15,7 @@
     "test:coverage": "tsc -p tsconfig.test.json && node --test --experimental-test-coverage dist/tests/test/",
     "pretest": "tsc -p tsconfig.test.json",
     "prepublishOnly": "npm run check && npm run build",
-    "publish:beta": "npm version prerelease --preid=beta && git push origin --tags && npm publish --tag beta",
+    "publish:beta": "npm version prerelease --preid=beta && git push origin --tags && npm publish --tag latest",
     "publish:patch": "npm version patch && git push origin --tags && npm publish",
     "publish:minor": "npm version minor && git push origin --tags && npm publish",
     "publish:major": "npm version major && git push origin --tags && npm publish",
@@ -36,7 +36,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DanielAmenou/create-request"
+    "url": "https://github.com/DanielAmenou/create-request.git"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^22.0.0",
