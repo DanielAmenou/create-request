@@ -115,15 +115,15 @@ export class Config {
   }
 
   /**
-   * Reset configuration to defaults
+   * Reset all configuration options to their defaults
    */
   public reset(): Config {
     this.csrfToken = null;
     this.csrfHeaderName = "X-CSRF-Token";
+    this.enableAntiCsrf = true;
     this.xsrfCookieName = "XSRF-TOKEN";
     this.xsrfHeaderName = "X-XSRF-TOKEN";
     this.enableAutoXsrf = true;
-    this.enableAntiCsrf = true;
     return this;
   }
 }

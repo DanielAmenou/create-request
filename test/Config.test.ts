@@ -69,6 +69,28 @@ describe("Config", () => {
     assert.equal(config.isAutoXsrfEnabled(), true);
     assert.equal(config.isAntiCsrfEnabled(), true);
   });
+
+  it("should reset all properties to their default values", () => {
+    // Arrange - Change all config values from defaults
+    const config = Config.getInstance()
+      .setCsrfToken("test-token")
+      .setCsrfHeaderName("X-Custom-CSRF")
+      .setEnableAntiCsrf(false)
+      .setXsrfCookieName("CUSTOM-XSRF-COOKIE")
+      .setXsrfHeaderName("X-Custom-XSRF")
+      .setEnableAutoXsrf(false);
+
+    // Act
+    config.reset();
+
+    // Assert
+    assert.equal(config.getCsrfToken(), null);
+    assert.equal(config.getCsrfHeaderName(), "X-CSRF-Token");
+    assert.equal(config.isAntiCsrfEnabled(), true);
+    assert.equal(config.getXsrfCookieName(), "XSRF-TOKEN");
+    assert.equal(config.getXsrfHeaderName(), "X-XSRF-TOKEN");
+    assert.equal(config.isAutoXsrfEnabled(), true);
+  });
 });
 
 describe("Config with CSRF", () => {
