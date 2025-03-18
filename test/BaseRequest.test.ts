@@ -983,6 +983,39 @@ describe("BaseRequest", () => {
     assert.equal(headers["cookie"], "existing=value; newCookie=newValue");
     assert.equal(headers["Cookie"], undefined); // Should not duplicate with different case
   });
+
+  it("should handle array query parameters consistently with both methods", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    FetchMock.mockResponseOnce();
+
+    // Using withQueryParams (already supported arrays)
+    const request1 = new GetRequest().withQueryParams({
+      tags: ["javascript", "typescript", "react"],
+    });
+
+    // Using withQueryParam with array (new functionality)
+    const request2 = new GetRequest().withQueryParam("tags", ["javascript", "typescript", "react"]);
+
+    // Act
+    await request1.sendTo("https://api.example.com/search1");
+    await request2.sendTo("https://api.example.com/search2");
+
+    // Assert - Both methods should produce identical results
+    const [url1] = FetchMock.mock.calls[0];
+    const [url2] = FetchMock.mock.calls[1];
+
+    const parsedUrl1 = new URL(url1 as string);
+    const parsedUrl2 = new URL(url2 as string);
+
+    // Both should have 3 values for the "tags" parameter
+    assert.deepEqual(parsedUrl1.searchParams.getAll("tags"), ["javascript", "typescript", "react"]);
+
+    assert.deepEqual(parsedUrl2.searchParams.getAll("tags"), ["javascript", "typescript", "react"]);
+
+    // The URLs should be functionally equivalent for the query parameters
+    assert.equal(parsedUrl1.searchParams.toString(), parsedUrl2.searchParams.toString());
+  });
 });
 
 describe("Cookie Options Tests", () => {

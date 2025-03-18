@@ -128,13 +128,15 @@ export abstract class BaseRequest {
   /**
    * Adds a single query parameter
    * @param key - The parameter name
-   * @param value - The parameter value
+   * @param value - The parameter value, can be a single value or array of values
    * @returns The instance for chaining
    */
-  withQueryParam(key: string, value: string | number | boolean | null | undefined): this {
-    if (value !== null && value !== undefined) {
-      this.queryParams.append(key, String(value));
-    }
+  withQueryParam(key: string, value: string | string[] | number | boolean | null | undefined): this {
+    if (value === null || value === undefined) return this;
+
+    if (Array.isArray(value)) value.forEach(v => this.queryParams.append(key, String(v)));
+    else this.queryParams.append(key, String(value));
+
     return this;
   }
 
