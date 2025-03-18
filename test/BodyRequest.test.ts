@@ -67,7 +67,17 @@ describe("BodyRequest", () => {
     // Assert
     const [, options] = FetchMock.mock.calls[0];
     assert.equal(options.body, formData);
+
+    // For FormData, we should not set Content-Type header explicitly
+    // as the browser will set it to 'multipart/form-data' with boundary
     assert.deepEqual(options.headers, {});
+
+    // Verify Content-Type is not being manually set
+    assert.equal(options.headers["Content-Type"], undefined);
+
+    // Check if the request correctly passed FormData without modification
+    const mockFetchCall = FetchMock.mock.calls[0];
+    assert.equal(mockFetchCall[1].body, formData);
   });
 
   it("should handle Blob body", async () => {
