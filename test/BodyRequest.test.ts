@@ -191,4 +191,52 @@ describe("BodyRequest", () => {
       Authorization: "Bearer token",
     });
   });
+
+  it("should reprocess body when reusing request instance", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    FetchMock.mockResponseOnce();
+
+    const data = { name: "Test User", action: "create" };
+    const request = new PostRequest().withBody(data);
+
+    // Act - Send first request
+    await request.sendTo("https://api.example.com/users");
+
+    // Send second request with same instance
+    await request.sendTo("https://api.example.com/users");
+
+    // Assert - Both requests should have the body
+    assert.equal(FetchMock.mock.calls.length, 2);
+
+    const [, options1] = FetchMock.mock.calls[0];
+    const [, options2] = FetchMock.mock.calls[1];
+
+    assert.equal(options1.body, JSON.stringify(data));
+    assert.equal(options2.body, JSON.stringify(data));
+  });
+
+  it("should allow changing body between requests", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    FetchMock.mockResponseOnce();
+
+    const request = new PostRequest().withBody({ id: 1, name: "First User" });
+
+    // Act - Send first request
+    await request.sendTo("https://api.example.com/users");
+
+    // Change body and send second request
+    request.withBody({ id: 2, name: "Second User" });
+    await request.sendTo("https://api.example.com/users");
+
+    // Assert
+    assert.equal(FetchMock.mock.calls.length, 2);
+
+    const [, options1] = FetchMock.mock.calls[0];
+    const [, options2] = FetchMock.mock.calls[1];
+
+    assert.equal(options1.body, JSON.stringify({ id: 1, name: "First User" }));
+    assert.equal(options2.body, JSON.stringify({ id: 2, name: "Second User" }));
+  });
 });

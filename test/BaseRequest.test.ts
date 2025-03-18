@@ -774,6 +774,215 @@ describe("BaseRequest", () => {
     assert.equal(headers["cookie"], "existing=value; newCookie=newValue");
     assert.equal(headers["Cookie"], undefined); // Should not duplicate with different case
   });
+
+  it("should respect timeout with external AbortController", async () => {
+    // Arrange - set a timeout that's shorter than the response delay
+    const timeout = 50;
+    const responseDelay = 200; // Longer than timeout
+    const controller = new AbortController();
+
+    FetchMock.mockDelayedResponseOnce(responseDelay);
+    const request = new GetRequest().withTimeout(timeout).withAbortController(controller);
+
+    // Act & Assert - the request should timeout and throw
+    try {
+      await request.sendTo("https://api.example.com/test");
+      assert.fail("Expected request to timeout but it succeeded");
+    } catch (error) {
+      assert(error instanceof RequestError);
+      assert(error.timeoutError, "Error should be marked as a timeout error");
+      assert.equal(error.url, "https://api.example.com/test");
+      assert.equal(error.method, "GET");
+    }
+  });
+
+  it("should distinguish between timeout and user abort", async () => {
+    // Arrange
+    const responseDelay = 500; // Long delay
+    const controller = new AbortController();
+
+    FetchMock.mockDelayedResponseOnce(responseDelay);
+    const request = new GetRequest().withAbortController(controller);
+
+    // Act - start the request then abort it manually
+    const requestPromise = request.sendTo("https://api.example.com/test");
+
+    // Wait a bit then abort the request manually
+    await wait(10);
+    controller.abort();
+
+    // Assert - should be a regular abort, not a timeout error
+    try {
+      await requestPromise;
+      assert.fail("Expected request to be aborted but it succeeded");
+    } catch (error) {
+      // Error should not be marked as a timeout
+      assert(!(error instanceof RequestError && error.timeoutError), "User-initiated abort should not be reported as timeout");
+    }
+  });
+
+  it("should respect provided fetch options", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce({ body: {} });
+    const request = new GetRequest();
+
+    // Act
+    // Using enum values for proper type checking
+    request.withCredentials(CredentialsPolicy.SAME_ORIGIN);
+    request.withMode(RequestMode.CORS);
+    request.withRedirect(RedirectMode.ERROR);
+    request.withReferrer("https://example.com/referrer");
+    request.withKeepAlive(true);
+
+    await request.sendTo("https://api.example.com/options");
+
+    // Assert - Adjust assertions to match actual capabilities
+    const lastOptions = FetchMock.mock.calls[0][1]; // Access options directly from the mock calls
+    assert.equal(lastOptions.credentials, "same-origin");
+    assert.equal(lastOptions.mode, "cors");
+    assert.equal(lastOptions.redirect, "error");
+    assert.equal(lastOptions.referrer, "https://example.com/referrer");
+    assert.equal(lastOptions.keepalive, true);
+  });
+
+  it("should set cookies correctly", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withoutCsrfProtection().withCookies({
+      sessionId: "abc123",
+      userId: "user456",
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    assert.deepEqual(options.headers, {
+      Cookie: "sessionId=abc123; userId=user456",
+    });
+  });
+
+  it("should handle cookies with special characters", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withoutCsrfProtection().withCookies({
+      "complex key": "value with spaces",
+      "special=chars": "!@#$%^&*()",
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+
+    // Verify that the values are properly encoded
+    assert.ok(cookieHeader.includes("complex%20key=value%20with%20spaces"));
+    assert.ok(cookieHeader.includes("special%3Dchars="));
+  });
+
+  it("should merge cookies with existing Cookie header", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withoutCsrfProtection().withHeaders({ Cookie: "existing=value" }).withCookies({ newCookie: "newValue" });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    assert.deepEqual(options.headers, {
+      Cookie: "existing=value; newCookie=newValue",
+    });
+  });
+
+  it("should handle cookies with security options", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withoutCsrfProtection().withCookies({
+      basic: "value",
+      complex: {
+        value: "test",
+        secure: true,
+        httpOnly: true,
+        sameSite: SameSitePolicy.STRICT,
+        path: "/",
+        maxAge: 3600,
+      } as CookieOptions,
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("basic=value"));
+    assert.ok(cookieHeader.includes("complex=test"));
+  });
+
+  it("should handle complex cookie options", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookie("session", {
+      value: "abc123",
+      secure: true,
+      httpOnly: true,
+      sameSite: SameSitePolicy.LAX,
+      expires: new Date(Date.now() + 86400000), // 24 hours from now
+      path: "/dashboard",
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("session=abc123"));
+  });
+
+  it("should handle complex cookie options with validation", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest().withCookie("session", {
+      value: "abc123",
+      secure: true,
+      httpOnly: true,
+      sameSite: SameSitePolicy.LAX,
+      expires: new Date(Date.now() + 86400000), // 24 hours from now
+      path: "/dashboard",
+    });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const cookieHeader = (options.headers as Record<string, string>)["Cookie"];
+    assert.ok(cookieHeader.includes("session=abc123"));
+  });
+
+  it("should handle case-insensitive cookie headers", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest()
+      .withHeaders({ cookie: "existing=value" }) // lowercase cookie header
+      .withCookies({ newCookie: "newValue" });
+
+    // Act
+    await request.sendTo("https://api.example.com/test");
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+
+    // The header should be preserved with its original case
+    assert.equal(headers["cookie"], "existing=value; newCookie=newValue");
+    assert.equal(headers["Cookie"], undefined); // Should not duplicate with different case
+  });
 });
 
 describe("Cookie Options Tests", () => {
