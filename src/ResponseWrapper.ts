@@ -6,7 +6,7 @@ export class ResponseWrapper {
 
   // Add cache properties for each response type - fix the 'any' type issues
   private textCache: string | undefined;
-  private jsonCache: unknown | undefined;
+  private jsonCache: unknown;
   private blobCache: Blob | undefined;
   private arrayBufferCache: ArrayBuffer | undefined;
   private bodyUsed = false;
