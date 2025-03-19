@@ -228,7 +228,6 @@ describe("ResponseWrapper", () => {
     const wrapper = new ResponseWrapper(mockResponse);
 
     // Act
-    const blob = await wrapper.getBlob();
     const text = await wrapper.getText();
 
     // Assert
