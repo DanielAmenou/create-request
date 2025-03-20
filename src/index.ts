@@ -15,6 +15,12 @@ export { CookieUtils } from "./utils/CookieUtils";
 // Export request classes
 export { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadRequest, OptionsRequest } from "./requestMethods";
 
+// Re-export cache utilities
+export { createMemoryStorage, createLocalStorageStorage, createSessionStorageStorage } from "./utils/CacheStorage";
+export { CacheManager } from "./utils/CacheManager";
+export type { CacheOptions } from "./types/cache";
+export type { StorageProvider } from "./utils/StorageProvider";
+
 // Create the main API object with configuration
 const create = {
   get,

@@ -2,6 +2,8 @@ import { type HttpMethod, type RedirectMode, type RequestMode, type RequestPrior
 import { RequestError } from "./RequestError";
 import { type ResponsePromise, ResponseWrapper } from "./ResponseWrapper";
 import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions } from "./types";
+import type { CacheOptions } from "./types/cache";
+import { CacheManager } from "./utils/CacheManager";
 import { Config } from "./utils/Config";
 import { CookieUtils } from "./utils/CookieUtils";
 import { CsrfUtils } from "./utils/CsrfUtils";
@@ -15,6 +17,8 @@ export abstract class BaseRequest {
   protected abortController?: AbortController;
   protected queryParams: URLSearchParams = new URLSearchParams();
   protected autoApplyCsrfProtection: boolean = true;
+  protected cacheManager?: CacheManager;
+  protected cacheEnabled = false;
 
   constructor() {}
 
@@ -311,6 +315,17 @@ export abstract class BaseRequest {
   }
 
   /**
+   * Enables caching for the request with the specified options
+   * @param options The cache configuration options
+   * @returns The instance for chaining
+   */
+  withCache(options: CacheOptions = {}): this {
+    this.cacheEnabled = true;
+    this.cacheManager = new CacheManager(options);
+    return this;
+  }
+
+  /**
    * Send the request to the specified URL
    * @param url The URL to send the request to
    */
@@ -367,8 +382,16 @@ export abstract class BaseRequest {
       method: this.method,
     };
 
-    // Create the base promise
-    const basePromise = !this.requestOptions.retries ? this.executeRequest(url, fetchOptions) : this.executeWithRetries(url, fetchOptions);
+    // Create the base promise - handle caching if enabled
+    let basePromise: Promise<ResponseWrapper>;
+
+    if (this.cacheEnabled && this.cacheManager) {
+      const cacheKey = this.cacheManager.generateKey(url, this.method, this.requestOptions.headers as Record<string, string>, this.requestOptions.body);
+
+      basePromise = this.executeWithCache(url, fetchOptions, cacheKey);
+    } else {
+      basePromise = !this.requestOptions.retries ? this.executeRequest(url, fetchOptions) : this.executeWithRetries(url, fetchOptions);
+    }
 
     const responsePromise = basePromise as ResponsePromise;
 
@@ -527,5 +550,53 @@ export abstract class BaseRequest {
         clearTimeout(timeoutId);
       }
     }
+  }
+
+  /**
+   * Executes a request using cache when possible
+   * @param url The formatted URL to send the request to
+   * @param fetchOptions The fetch options to use
+   * @param cacheKey The cache key for this request
+   */
+  private async executeWithCache(url: string, fetchOptions: RequestInit, cacheKey: string): Promise<ResponseWrapper> {
+    // Try to get from cache first
+    if (this.cacheManager) {
+      const cachedEntry = await this.cacheManager.get(cacheKey);
+
+      if (cachedEntry) {
+        // Create a synthetic Response object from cached data
+        const cachedResponse = new Response(JSON.stringify(cachedEntry.value), {
+          status: 200,
+          headers: new Headers(cachedEntry.headers || {}),
+        });
+        return new ResponseWrapper(cachedResponse);
+      }
+    }
+
+    // Not in cache, make the actual request
+    const response = await (!this.requestOptions.retries ? this.executeRequest(url, fetchOptions) : this.executeWithRetries(url, fetchOptions));
+
+    // Cache the successful response if caching is enabled
+    // Only cache successful responses
+    if (response.ok && this.cacheManager) {
+      // Clone the response so we don't consume it
+      try {
+        const responseData = await response.getJson();
+
+        // Extract headers to store in cache
+        const headers: Record<string, string> = {};
+        response.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+
+        // Store in cache
+        await this.cacheManager.set(cacheKey, responseData, headers);
+      } catch (error) {
+        // Failed to cache, but we can still return the response
+        console.warn("Failed to cache response:", error);
+      }
+    }
+
+    return response;
   }
 }
