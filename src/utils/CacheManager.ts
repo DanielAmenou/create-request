@@ -74,7 +74,7 @@ export class CacheManager {
     if (!value) return null;
 
     try {
-      const entry: CacheEntry = JSON.parse(value);
+      const entry: CacheEntry = JSON.parse(value) as CacheEntry;
 
       // Check if the entry has expired
       if (entry.expiry && entry.expiry < Date.now()) {
@@ -93,7 +93,7 @@ export class CacheManager {
   /**
    * Set a value in cache
    */
-  async set(key: string, value: any, headers?: Record<string, string>): Promise<void> {
+  async set(key: string, value: unknown, headers?: Record<string, string>): Promise<void> {
     const now = Date.now();
     const ttl = this.options.ttl;
 
@@ -111,21 +111,22 @@ export class CacheManager {
       const maxBytes = parseSize(this.options.maxSize);
       const entrySize = new TextEncoder().encode(serialized).length;
 
+      // If a single entry exceeds the max size, reject it without clearing the cache
       if (entrySize > maxBytes) {
         console.warn(`Cache entry size (${entrySize} bytes) exceeds maximum cache size (${maxBytes} bytes)`);
         return;
       }
 
-      this.totalSize += entrySize;
-
-      // Enforce max size if we're over the limit
-      if (this.totalSize > maxBytes) {
+      // Only clear if adding this entry would exceed the total limit
+      if (this.totalSize + entrySize > maxBytes) {
         // Simple strategy: clear everything
         // A more sophisticated strategy would remove oldest entries first
         await Promise.resolve(this.storage.clear());
-        this.totalSize = entrySize;
-        this.entryCount = 1;
+        this.totalSize = 0;
+        this.entryCount = 0;
       }
+
+      this.totalSize += entrySize;
     }
 
     // Check max entries constraint
