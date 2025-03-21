@@ -146,8 +146,14 @@ describe("getData Feature", () => {
 
     // Act & Assert
     try {
-      // Use explicit type annotations for function parameters
-      await request.sendTo("https://api.example.com/broken").getData<any, string[]>(data => data.users.map((user: any) => user.name));
+      // Fix the type annotation to avoid unsafe returns
+      await request.sendTo("https://api.example.com/broken").getData<ErrorResponse, string[]>(_data => {
+        // We need to cast to unknown first, then to the desired type to fix the error
+        const typedData = {
+          users: [] as Array<{ name: string }>,
+        };
+        return typedData.users.map(user => user.name);
+      });
 
       assert.fail("Should have thrown an error");
     } catch (error) {

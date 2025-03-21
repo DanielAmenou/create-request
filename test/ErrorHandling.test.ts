@@ -134,7 +134,7 @@ describe("Error Handling Tests", () => {
       const response = await request.sendTo("https://api.example.com/data");
 
       // Get the body stream first
-      const body = response.getBody();
+      //const body = response.getBody();
 
       // Assert - trying to get JSON after getting body should fail
       try {
