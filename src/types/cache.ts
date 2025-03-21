@@ -1,5 +1,5 @@
 import { ResponseWrapper } from "../ResponseWrapper";
-import { StorageProvider } from "../utils/StorageProvider";
+import type { StorageProvider } from "../utils/StorageProvider";
 
 /**
  * Cache entry with metadata

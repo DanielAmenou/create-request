@@ -1,5 +1,5 @@
 import type { CacheEntry, CacheOptions } from "../types/cache";
-import { StorageProvider } from "./StorageProvider";
+import type { StorageProvider } from "./StorageProvider";
 
 /**
  * Parse size strings like "10MB" into bytes
