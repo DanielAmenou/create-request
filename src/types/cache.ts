@@ -1,4 +1,3 @@
-import { ResponseWrapper } from "../ResponseWrapper";
 import type { StorageProvider } from "../utils/StorageProvider";
 
 /**

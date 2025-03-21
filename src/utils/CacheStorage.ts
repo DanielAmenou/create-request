@@ -72,7 +72,7 @@ export function createLocalStorageStorage(): StorageProvider {
       } catch (e) {
         // Handle quota exceeded errors
         console.warn("Cache storage quota exceeded, clearing cache");
-        this.clear();
+        void this.clear();
         try {
           localStorage.setItem(key, value);
         } catch (e) {
@@ -115,7 +115,7 @@ export function createSessionStorageStorage(): StorageProvider {
       } catch (e) {
         // Handle quota exceeded errors
         console.warn("Cache storage quota exceeded, clearing cache");
-        this.clear();
+        void this.clear();
         try {
           sessionStorage.setItem(key, value);
         } catch (e) {
@@ -269,7 +269,7 @@ export class CacheManager {
     if (!value) return null;
 
     try {
-      const entry: CacheEntry = JSON.parse(value);
+      const entry = JSON.parse(value) as CacheEntry;
 
       // Check if the entry has expired
       if (entry.expiry && entry.expiry < Date.now()) {
@@ -288,7 +288,7 @@ export class CacheManager {
   /**
    * Set a value in cache
    */
-  async set(key: string, value: any, headers?: Record<string, string>): Promise<void> {
+  async set(key: string, value: unknown, headers?: Record<string, string>): Promise<void> {
     const now = Date.now();
     const ttl = this.options.ttl;
 

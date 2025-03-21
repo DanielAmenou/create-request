@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
 import create from "../src/index";
 import { CacheManager } from "../src/utils/CacheManager";
-import { createMemoryStorage, createLocalStorageStorage } from "../src/utils/CacheStorage";
+import { createMemoryStorage } from "../src/utils/CacheStorage";
 import type { StorageProvider } from "../src/utils/StorageProvider";
 import { FetchMock } from "./utils/fetchMock";
 

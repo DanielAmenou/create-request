@@ -19,7 +19,7 @@ export class CacheManager {
   /**
    * Generate a cache key based on request details
    */
-  generateKey(url: string, method: string, headers?: Record<string, string>, body?: any): string {
+  generateKey(url: string, method: string, headers?: Record<string, string>, body?: unknown): string {
     // Use custom key generator if provided
     if (this.options.keyGenerator) {
       const customKey = this.options.keyGenerator(url, method, headers, body);
