@@ -757,7 +757,7 @@ describe("Complex Cache Key Tests", () => {
     assert.equal(keyWithUndefined, "GET:https://api.example.com/test");
 
     // Test with null headers
-    const keyWithNullHeaders = cacheManager.generateKey("https://api.example.com/test", "GET", null as any);
+    const keyWithNullHeaders = cacheManager.generateKey("https://api.example.com/test", "GET", undefined);
     assert.equal(keyWithNullHeaders, "GET:https://api.example.com/test");
   });
 });
