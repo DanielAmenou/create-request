@@ -79,6 +79,16 @@ export abstract class BaseRequest {
   }
 
   /**
+   * Sets the referrer policy for the request
+   * @param policy - The referrer policy to use
+   * @returns The instance for chaining
+   */
+  withReferrerPolicy(policy: ReferrerPolicy): this {
+    this.requestOptions.referrerPolicy = policy;
+    return this;
+  }
+
+  /**
    * Sets the redirect policy for the request
    * @param redirect - Can be 'follow', 'error', or 'manual'
    * @returns The instance for chaining

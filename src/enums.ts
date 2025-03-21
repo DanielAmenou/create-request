@@ -77,3 +77,17 @@ export enum BodyType {
   STRING = "string",
   BINARY = "binary",
 }
+
+/**
+ * Referrer policies for fetch requests
+ */
+export enum ReferrerPolicy {
+  ORIGIN = "origin",
+  UNSAFE_URL = "unsafe-url",
+  SAME_ORIGIN = "same-origin",
+  NO_REFERRER = "no-referrer",
+  STRICT_ORIGIN = "strict-origin",
+  ORIGIN_WHEN_CROSS_ORIGIN = "origin-when-cross-origin",
+  NO_REFERRER_WHEN_DOWNGRADE = "no-referrer-when-downgrade",
+  STRICT_ORIGIN_WHEN_CROSS_ORIGIN = "strict-origin-when-cross-origin",
+}
