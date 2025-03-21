@@ -8,28 +8,58 @@
 
 ## Core Features
 
-- ⛓️ **Chainable API** - Build and execute requests with a fluent interface
 - ⏱️ **Timeout Support** - Set timeouts for any request
-- 🔁 **Automatic Retries** - Retry failed requests with customizable settings
-- 🔐 **Auth Helpers** - Simple methods for common authentication patterns
-- 📦 **Typed Responses** - Full TypeScript support for response data
+- 🚀 **Performance** - Tiny bundle size with zero dependencies
 - 🚧 **Error Handling** - Detailed error info with custom error class
+- 🔐 **Auth Helpers** - Simple methods for common authentication patterns
+- ⛓️ **Chainable API** - Build and execute requests with a fluent interface
+- 📉 **Reduced Boilerplate** - Write 60% less code for common API operations
+- 🔁 **Automatic Retries** - Retry failed requests with customizable settings
+- 🛡️ **Type Safety** - Full TypeScript support with intelligent type inference
 - 📝 **Response Caching** - Flexible caching system with multiple storage options
 
 ## Why create-request?
 
-**You've probably been here before:** writing boilerplate fetch code, handling retries manually, struggling with timeouts, or wrestling with TypeScript types for your API responses. `create-request` solves all of that with an elegant API that separates request building from execution:
+**API interactions often require repetitive code patterns** - handling HTTP status checks, parsing responses, managing errors, and dealing with TypeScript types. `create-request` provides a clean, efficient solution with an elegant API that separates request building from execution:
 
 ```typescript
-// Create a request
-const usersRequest = create.get()
-  .withTimeout(5000)
-  .withRetries(3)
-  .withBearerToken('your-token');
+// Before: Regular fetch
+async function createUser(userData) {
+  try {
+    const response = await fetch('https://api.example.com/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + btoa('username:password')
+      },
+      body: JSON.stringify(userData)
+    });
 
-// Execute the request
-const users = await usersRequest.sendTo('https://api.example.com/users')
-  .getJson<User[]>();
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Fetch error:', error);
+    throw error;
+  }
+}
+
+// After: With create-request
+import create from 'create-request';
+
+function createUser(userData) {
+  return create.post()
+    .withBasicAuth('username', 'password')
+    .withBody(userData)
+    .sendTo('https://api.example.com/users')
+    .getData<User>()
+    .catch(error => {
+      console.error('Fetch error:', error);
+      throw error;
+    });
+}
 ```
 
 ## Installation
@@ -42,77 +72,6 @@ Or with yarn:
 
 ```bash
 yarn add create-request
-```
-
-## 🔄 Fetch API Comparison
-
-### Fetch API
-
-```typescript
-// Basic GET request with fetch
-try {
-  const response = await fetch('https://api.example.com/users');
-  if (!response.ok) {
-    throw new Error(`HTTP error ${response.status}`);
-  }
-  const users = await response.json();
-  console.log(users);
-} catch (error) {
-  console.error('Error fetching users:', error);
-}
-
-// POST request with fetch
-try {
-  const response = await fetch('https://api.example.com/users', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer token123'
-    },
-    body: JSON.stringify({ name: 'John Doe', email: 'john@example.com' })
-  });
-  if (!response.ok) {
-    throw new Error(`HTTP error ${response.status}`);
-  }
-  const result = await response.json();
-  console.log(result);
-} catch (error) {
-  console.error('Error creating user:', error);
-}
-```
-
-### create-request API
-
-```typescript
-// Basic GET request with create-request
-try {
-  const users = await create.get().sendTo('https://api.example.com/users').getJson();
-  console.log(users);
-} catch (error) {
-  console.error('Error fetching users:', error.message);
-}
-
-// Extract specific data with the selector API
-try {
-  const activeUsers = await create.get()
-    .sendTo('https://api.example.com/users')
-    .getData(data => data.users.filter(user => user.active));
-  console.log(activeUsers);
-} catch (error) {
-  console.error('Error fetching active users:', error.message);
-}
-
-// POST request with create-request
-const createUserRequest = create.post()
-  .withBody({ name: 'John Doe', email: 'john@example.com' })
-  .withBearerToken('token123');
-
-try {
-  const result = await createUserRequest.sendTo('https://api.example.com/users').getJson();
-  console.log(result);
-} catch (error) {
-  console.error('Error creating user:', error.message);
-}
 ```
 
 ## Basic Usage
@@ -134,30 +93,78 @@ const optionsRequest = create.options();
 
 ### Request Configuration
 
+The library provides a comprehensive set of configuration methods that can be chained together to customize your requests:
+
 ```typescript
-import { RequestPriority, CredentialsPolicy } from 'create-request';
+import create, { RequestPriority, CredentialsPolicy, RequestMode, CachePolicy, RedirectMode, ReferrerPolicy } from 'create-request';
 
 // Configure request options
 const request = create.get()
-  // Headers
-  .withHeaders({ 'X-API-Key': 'abc123' })
+  // Basic headers
+  .withHeaders({ 'X-API-Key': 'abc123', 'Accept-Language': 'en-US' })
+  .withHeader('Custom-Header', 'value') // Add a single header
 
-  // Timeout and retries
-  .withTimeout(5000)
-  .withRetries(3)
-  .onRetry(({ attempt, error }) => {
-    console.log(`Attempt ${attempt} failed: ${error.message}`);
+  // Timeout settings
+  .withTimeout(5000) // Request will abort after 5 seconds
+
+  // Automatic retry configuration
+  .withRetries(3) // Retry up to 3 times on failure
+  .withRetryDelay(1000) // Wait 1 second between retries
+  .withExponentialBackoff(true) // Use exponential backoff (increases wait time between retries)
+  .onRetry(({ attempt, error, delay }) => {
+    console.log(`Attempt ${attempt} failed: ${error.message}. Retrying in ${delay}ms`);
   })
 
-  // Authentication
-  .withBearerToken('your-token')
+  // Authentication methods
+  .withBearerToken('your-token') // Adds Authorization: Bearer your-token
+  .withBasicAuth('username', 'password') // HTTP Basic Authentication
 
-  // Query parameters
-  .withQueryParams({ search: 'term', page: 1 })
+  // URL parameters
+  .withQueryParams({ search: 'term', page: 1, limit: 20 })
+  .withQueryParam('filter', 'active') // Add a single query parameter
 
-  // Advanced options
-  .withCredentials(CredentialsPolicy.INCLUDE)
-  .withPriority(RequestPriority.HIGH);
+  // Request body configuration (for POST/PUT/PATCH)
+  .withContentType('application/json') // Set specific content type
+
+  // Fetch API options
+  .withCredentials(CredentialsPolicy.INCLUDE) // Includes cookies with cross-origin requests
+  .withMode(RequestMode.CORS) // Controls CORS behavior
+  .withCache(CachePolicy.NO_STORE) // Controls how request interacts with browser cache
+  .withRedirect(RedirectMode.FOLLOW) // Controls redirect behavior (follow, error, manual)
+  .withReferrer('https://example.com') // Sets request referrer
+  .withReferrerPolicy(ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE) // Controls referrer policy
+  .withPriority(RequestPriority.HIGH) // Sets request priority
+```
+
+Each configuration method returns the request object, allowing for a fluent interface where methods can be chained together. You can configure only what you need for a specific request:
+
+```typescript
+// Simple example with just what's needed
+const searchUsers = create.get()
+  .withBearerToken(userToken)
+  .withQueryParams({ q: searchTerm, limit: 20 })
+  .withTimeout(3000);
+
+// Now execute the request
+const users = await searchUsers.sendTo('https://api.example.com/users').getData();
+```
+
+You can also create reusable base requests with common settings:
+
+```typescript
+// Create base authenticated request
+const apiBase = create.get()
+  .withHeaders({
+    'X-API-Version': '1.2',
+    'Accept-Language': 'en-US'
+  })
+  .withBearerToken(authToken)
+  .withTimeout(5000)
+  .withRetries(2);
+
+// Use the base request for different endpoints
+const users = await apiBase.sendTo('https://api.example.com/users').getData();
+const products = await apiBase.sendTo('https://api.example.com/products').getData();
 ```
 
 ### Request Bodies (POST/PUT/PATCH)
@@ -405,15 +412,6 @@ const request = create.get()
     storage: createMemoryStorage(),
     keyGenerator: (url, method, headers) => {
       // Include user ID from authorization header in the cache key
-      const authHeader = headers?.['Authorization'] || '';
-      const userId = extractUserIdFromToken(authHeader);
-      return `${method}:${url}:${userId}`;
-    }
-  });
-
-// Simple custom storage provider example
-const customStorage: StorageProvider = {
-  get(key: string): string | null {
     // Get from your custom storage
     return localStorage.getItem(`my-app:${key}`);
   },
@@ -507,23 +505,53 @@ With custom storage providers, you can integrate with any storage system, such a
 
 ## CSRF Protection
 
+Cross-Site Request Forgery (CSRF) is a type of security vulnerability where unauthorized commands are executed on behalf of an authenticated user. `create-request` provides built-in protection mechanisms to help prevent CSRF attacks.
+
+### How CSRF Protection Works
+
+The library employs multiple strategies to protect against CSRF attacks:
+
+1. **Automatic X-Requested-With Header**: By default, all requests include the `X-Requested-With: XMLHttpRequest` header, which helps servers identify legitimate AJAX requests.
+
+2. **CSRF Token Support**: The library can automatically include CSRF tokens in request headers, which servers can validate to ensure the request came from your application.
+
+3. **XSRF Cookie Reading**: For frameworks that use the double-submit cookie pattern (like Laravel, Rails, or Django), the library can automatically read XSRF tokens from cookies and include them in request headers.
+
 ### Global CSRF Configuration
+
+You can configure CSRF settings globally for all requests:
 
 ```typescript
 // Configure CSRF settings for all requests
 create.config.setCsrfToken('your-csrf-token');
-create.config.setCsrfHeaderName('X-CSRF-Token');
-create.config.setXsrfCookieName('XSRF-TOKEN');
+create.config.setCsrfHeaderName('X-CSRF-Token'); // Default header name
+create.config.setXsrfCookieName('XSRF-TOKEN'); // Default cookie name
+create.config.enableAntiCsrf(true); // Enable/disable X-Requested-With header
+create.config.enableAutoXsrf(true); // Enable/disable automatic cookie-to-header token
 ```
 
 ### Per-Request CSRF Settings
 
+You can also configure CSRF protection on individual requests:
+
 ```typescript
 // Configure CSRF for a specific request
 const request = create.post()
-  .withCsrfToken('request-specific-token')
-  .withoutCsrfProtection(); // Disable automatic CSRF protection
+  .withCsrfToken('request-specific-token') // Set a specific token
+  .withAntiCsrfHeaders() // Explicitly add X-Requested-With header
+  .withoutCsrfProtection(); // Or disable all automatic CSRF protection
 ```
+
+### Integrating with Backend Frameworks
+
+Most modern frameworks support CSRF protection out of the box. The library works seamlessly with:
+
+- **Laravel**: Automatically reads XSRF-TOKEN cookie and sends X-XSRF-TOKEN header
+- **Rails**: Works with the Rails CSRF token system
+- **Django**: Compatible with Django's CSRF middleware
+- **Express.js + csurf**: Works with the csurf middleware token pattern
+
+When your server sends a CSRF token in a cookie or response header, `create-request` can automatically extract and include it in subsequent requests.
 
 ## Browser Support
 
