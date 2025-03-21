@@ -210,36 +210,33 @@ try {
 ### Caching Requests
 
 ```typescript
-import create, { createLocalStorageStorage } from 'create-request';
+import create, { createMemoryStorage, createLocalStorageStorage, createSessionStorageStorage } from 'create-request';
 
-// Simple in-memory caching (default storage provider)
-const request = create.get()
-  .withCache()
-  .sendTo('https://api.example.com/data');
-
-// Cache with localStorage
+// Simple in-memory caching
 const request = create.get()
   .withCache({
-    storage: localStorage,
-    ttl: 60000, // 1 minute in milliseconds
-    maxEntries: 100
+    storage: createMemoryStorage(),
+    ttl: 60000 // 1 minute in milliseconds
   })
   .sendTo('https://api.example.com/data');
 
-// Cache with detailed configuration
+// Using localStorage storage
 const request = create.get()
   .withCache({
     storage: createLocalStorageStorage(),
     ttl: 5 * 60 * 1000, // 5 minutes
     maxSize: '1MB',
-    varyByHeaders: ['x-api-version'],
     keyPrefix: 'user-data'
   })
   .sendTo('https://api.example.com/users');
 
-// With sessionStorage
+// Using sessionStorage for per-session caching
 const request = create.get()
-  .withCache({ storage: sessionStorage })
+  .withCache({
+    storage: createSessionStorageStorage(),
+    maxEntries: 50,
+    varyByHeaders: ['x-api-version']
+  })
   .sendTo('https://api.example.com/data');
 ```
 
@@ -319,17 +316,10 @@ request.sendTo('https://api.example.com/data')
 ```typescript
 import create, { createMemoryStorage, StorageProvider } from 'create-request';
 
-// Using a Map instance for storage
-const cacheMap = new Map();
-const request = create.get()
-  .withCache({
-    storage: cacheMap,
-    ttl: 300000 // 5 minutes
-  });
-
 // Custom key generation
 const request = create.get()
   .withCache({
+    storage: createMemoryStorage(),
     keyGenerator: (url, method, headers) => {
       // Include user ID from authorization header in the cache key
       const authHeader = headers?.['Authorization'] || '';
@@ -425,6 +415,7 @@ const request = create.get()
 ```
 
 With custom storage providers, you can integrate with any storage system, such as:
+
 - Custom browser storage solutions
 - Memory caches with expiration policies
 - Session-based storage mechanisms
