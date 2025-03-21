@@ -192,6 +192,13 @@ export abstract class BaseRequest {
    * Works in both browser and Node.js environments
    */
   private encodeBase64(str: string): string {
+    // Modern approach using TextEncoder (available in both modern browsers and Node.js)
+    if (typeof TextEncoder !== "undefined" && typeof btoa === "function") {
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(str);
+      return btoa(String.fromCharCode.apply(null, [...new Uint8Array(bytes)]));
+    }
+
     // Browser environment
     if (typeof btoa === "function") return btoa(str);
 
