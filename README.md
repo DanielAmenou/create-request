@@ -229,7 +229,7 @@ const request = create.get()
 // Cache with detailed configuration
 const request = create.get()
   .withCache({
-    storage: createLocalStorageStorage('api-cache:'),
+    storage: createLocalStorageStorage(),
     ttl: 5 * 60 * 1000, // 5 minutes
     maxSize: '1MB',
     varyByHeaders: ['x-api-version'],
@@ -317,7 +317,7 @@ request.sendTo('https://api.example.com/data')
 ### Advanced Caching
 
 ```typescript
-import create, { createMemoryStorage } from 'create-request';
+import create, { createMemoryStorage, StorageProvider } from 'create-request';
 
 // Using a Map instance for storage
 const cacheMap = new Map();
@@ -338,167 +338,98 @@ const request = create.get()
     }
   });
 
-// Custom storage provider
-const customStorage = {
-  async get(key) {
-    // Your custom logic
-    return await myCustomStore.retrieve(key);
+// Simple custom storage provider example
+const customStorage: StorageProvider = {
+  get(key: string): string | null {
+    // Get from your custom storage
+    return localStorage.getItem(`my-app:${key}`);
   },
-  async set(key, value) {
-    await myCustomStore.store(key, value);
+  set(key: string, value: string): void {
+    // Set in your custom storage
+    localStorage.setItem(`my-app:${key}`, value);
   },
-  async has(key) {
-    return await myCustomStore.exists(key);
+  has(key: string): boolean {
+    // Check if exists in your custom storage
+    return localStorage.getItem(`my-app:${key}`) !== null;
   },
-  async delete(key) {
-    await myCustomStore.remove(key);
+  delete(key: string): void {
+    // Remove from your custom storage
+    localStorage.removeItem(`my-app:${key}`);
   },
-  async clear() {
-    await myCustomStore.clearAll();
+  clear(): void {
+    // Clear all items from your namespace
+    Object.keys(localStorage)
+      .filter(key => key.startsWith('my-app:'))
+      .forEach(key => localStorage.removeItem(key));
   }
 };
 
 const request = create.get()
   .withCache({ storage: customStorage })
   .sendTo('https://api.example.com/data');
-
-// Using IndexedDB (example with a hypothetical adapter)
-const request = create.get()
-  .withCache({
-    storage: createIndexedDbStorage({
-      dbName: 'apiCache',
-      storeName: 'responses'
-    })
-  })
-  .sendTo('https://api.example.com/data');
 ```
 
 ### Implementing Custom Storage Providers
 
-You can create your own storage provider by implementing the `StorageProvider` interface. Here's a complete example with IndexedDB:
+You can create your own storage provider by implementing the `StorageProvider` interface:
 
 ```typescript
 import { StorageProvider } from 'create-request';
 
-// Create an IndexedDB storage provider
-export function createIndexedDbStorage(options: {
-  dbName: string;
-  storeName?: string;
-  version?: number;
-}): StorageProvider {
-  const dbName = options.dbName;
-  const storeName = options.storeName || 'cache';
-  const version = options.version || 1;
-
-  let dbPromise: Promise<IDBDatabase>;
-
-  // Initialize the database
-  const initDb = (): Promise<IDBDatabase> => {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(dbName, version);
-
-      request.onerror = (event) => {
-        reject(new Error('Failed to open IndexedDB'));
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(storeName)) {
-          db.createObjectStore(storeName);
-        }
-      };
-
-      request.onsuccess = (event) => {
-        resolve(request.result);
-      };
-    });
-  };
-
-  // Get the database instance
-  const getDb = (): Promise<IDBDatabase> => {
-    if (!dbPromise) {
-      dbPromise = initDb();
-    }
-    return dbPromise;
-  };
-
-  // Use transaction to perform operations
-  const withStore = async <T>(mode: IDBTransactionMode, callback: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> => {
-    const db = await getDb();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(storeName, mode);
-      const store = transaction.objectStore(storeName);
-
-      const request = callback(store);
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  };
-
+// Create a simple custom storage provider
+export function createNamespacedStorage(namespace: string): StorageProvider {
   return {
-    async get(key: string): Promise<string | null> {
+    get(key: string): string | null {
+      return localStorage.getItem(`${namespace}:${key}`);
+    },
+
+    set(key: string, value: string): void {
       try {
-        const value = await withStore('readonly', store => store.get(key));
-        return value || null;
-      } catch (error) {
-        console.error('IndexedDB get error:', error);
-        return null;
+        localStorage.setItem(`${namespace}:${key}`, value);
+      } catch (e) {
+        // Handle quota exceeded errors
+        console.warn("Storage quota exceeded, clearing cache");
+        this.clear();
+        try {
+          localStorage.setItem(`${namespace}:${key}`, value);
+        } catch (e) {
+          console.error("Failed to set cache item even after clearing cache");
+        }
       }
     },
 
-    async set(key: string, value: string): Promise<void> {
-      try {
-        await withStore('readwrite', store => store.put(value, key));
-      } catch (error) {
-        console.error('IndexedDB set error:', error);
-      }
+    has(key: string): boolean {
+      return localStorage.getItem(`${namespace}:${key}`) !== null;
     },
 
-    async has(key: string): Promise<boolean> {
-      try {
-        const value = await withStore('readonly', store => store.get(key));
-        return value !== undefined;
-      } catch (error) {
-        console.error('IndexedDB has error:', error);
-        return false;
-      }
+    delete(key: string): void {
+      localStorage.removeItem(`${namespace}:${key}`);
     },
 
-    async delete(key: string): Promise<void> {
-      try {
-        await withStore('readwrite', store => store.delete(key));
-      } catch (error) {
-        console.error('IndexedDB delete error:', error);
-      }
-    },
-
-    async clear(): Promise<void> {
-      try {
-        await withStore('readwrite', store => store.clear());
-      } catch (error) {
-        console.error('IndexedDB clear error:', error);
-      }
+    clear(): void {
+      // Only clear items in our namespace
+      Object.keys(localStorage)
+        .filter(key => key.startsWith(`${namespace}:`))
+        .forEach(key => localStorage.removeItem(key));
     }
   };
 }
 
-// Using the custom IndexedDB storage
+// Usage:
 const request = create.get()
   .withCache({
-    storage: createIndexedDbStorage({ dbName: 'api-cache' }),
+    storage: createNamespacedStorage('api-cache'),
     ttl: 24 * 60 * 60 * 1000 // 24 hours
   })
   .sendTo('https://api.example.com/data');
 ```
 
 With custom storage providers, you can integrate with any storage system, such as:
-- WebSQL
-- Firebase
-- LevelDB (Node.js)
-- Redis (through a server API)
-- Custom browser extensions storage
-- Secure storage solutions
+- Custom browser storage solutions
+- Memory caches with expiration policies
+- Session-based storage mechanisms
+- Encrypted storage providers
+- Third-party storage libraries
 
 ## CSRF Protection
 
