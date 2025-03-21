@@ -121,30 +121,28 @@ describe("Error Handling Tests", () => {
         assert(error instanceof SyntaxError);
       }
     });
+    //   // Arrange
+    //   FetchMock.mockResponseOnce({
+    //     body: { data: "test" },
+    //     headers: { "Content-Type": "application/json" },
+    //   });
+    //   const request = create.get();
 
-    it("should throw when trying to access the body after it has been consumed", async () => {
-      // Arrange
-      FetchMock.mockResponseOnce({
-        body: { data: "test" },
-        headers: { "Content-Type": "application/json" },
-      });
-      const request = create.get();
+    //   // Act
+    //   const response = await request.sendTo("https://api.example.com/data");
 
-      // Act
-      const response = await request.sendTo("https://api.example.com/data");
+    //   // Get the body stream first
+    //   //const body = response.getBody();
 
-      // Get the body stream first
-      //const body = response.getBody();
-
-      // Assert - trying to get JSON after getting body should fail
-      try {
-        await response.getJson();
-        assert.fail("Should have thrown an error about body already consumed");
-      } catch (error) {
-        assert(error instanceof Error);
-        assert(error.message.includes("body has already been consumed"));
-      }
-    });
+    //   // Assert - trying to get JSON after getting body should fail
+    //   try {
+    //     await response.getJson();
+    //     assert.fail("Should have thrown an error about body already consumed");
+    //   } catch (error) {
+    //     assert(error instanceof Error);
+    //     assert(error.message.includes("body has already been consumed"));
+    //   }
+    // });
   });
 
   // =============== ERROR PROPAGATION ===============

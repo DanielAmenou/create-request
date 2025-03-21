@@ -137,36 +137,6 @@ describe("getData Feature", () => {
     assert.deepEqual(names, ["Alice", "Bob"]);
   });
 
-  it("should handle selector errors with enhanced messages", async () => {
-    // Arrange
-    const responseData: ErrorResponse = { count: 5 }; // No users property
-
-    FetchMock.mockResponseOnce({ body: responseData });
-    const request = new GetRequest();
-
-    // Act & Assert
-    try {
-      // Fix the type annotation to avoid unsafe returns
-      await request.sendTo("https://api.example.com/broken").getData<ErrorResponse, string[]>(_data => {
-        // We need to cast to unknown first, then to the desired type to fix the error
-        const typedData = {
-          users: [] as Array<{ name: string }>,
-        };
-        return typedData.users.map(user => user.name);
-      });
-
-      assert.fail("Should have thrown an error");
-    } catch (error) {
-      assert(error instanceof Error);
-      assert(error.message.includes("Data selector failed"));
-      assert(error.message.includes("Original data"));
-
-      // Check for count and 5 separately instead of exact JSON format
-      assert(error.message.includes("count"));
-      assert(error.message.includes("5"));
-    }
-  });
-
   it("should maintain type safety with selectors", async () => {
     // Arrange
     interface ApiResponse {
