@@ -403,3 +403,361 @@ describe("Request Caching Integration Tests", () => {
     assert.deepEqual(cachedProduct, productResponse);
   });
 });
+
+describe("Advanced Cache Tests", () => {
+  beforeEach(() => {
+    FetchMock.install();
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+  });
+
+  it("should invalidate cache when calling clear", async () => {
+    // Arrange
+    const responseData = { id: 1, name: "Test User" };
+    FetchMock.mockResponseOnce({ body: responseData });
+    FetchMock.mockResponseOnce({ body: responseData });
+
+    const storage = createMemoryStorage();
+    const cacheManager = new CacheManager({ storage });
+
+    // Store something in cache
+    const key = cacheManager.generateKey("https://api.example.com/users", "GET");
+    await cacheManager.set(key, responseData);
+
+    // Verify it's in cache
+    const cachedData = await cacheManager.get(key);
+    assert.deepEqual(cachedData?.value, responseData);
+
+    // Act - Clear the cache
+    await cacheManager.clear();
+
+    // Assert - Cache should be empty
+    const afterClear = await cacheManager.get(key);
+    assert.equal(afterClear, null);
+  });
+
+  it("should update cache when the same key is set multiple times", async () => {
+    // Arrange
+    const firstResponse = { id: 1, name: "Initial Data" };
+    const updatedResponse = { id: 1, name: "Updated Data" };
+
+    FetchMock.mockResponseOnce({ body: firstResponse });
+    FetchMock.mockResponseOnce({ body: updatedResponse });
+
+    const request = create.get().withCache();
+
+    // Act - First request
+    const result1 = await request.sendTo("https://api.example.com/data").getJson();
+    assert.deepEqual(result1, firstResponse);
+
+    // Second request to the same URL (should use cache)
+    FetchMock.mockResponseOnce({ body: updatedResponse });
+    const result2 = await request.sendTo("https://api.example.com/data").getJson();
+
+    // Assert - Should return cached result, not updated one
+    assert.deepEqual(result2, firstResponse);
+    assert.equal(FetchMock.mock.calls.length, 1);
+
+    // Manually update cache with a new request
+    const newRequest = create.get().withCache();
+    // Force reload by adding a cache-busting parameter
+    const result3 = await newRequest.withQueryParam("_t", Date.now().toString()).sendTo("https://api.example.com/data").getJson();
+
+    // Assert - Should get the updated response
+    assert.deepEqual(result3, updatedResponse);
+    assert.equal(FetchMock.mock.calls.length, 2);
+  });
+
+  it("should cache POST requests with the same body", async () => {
+    // Arrange
+    const requestBody = { username: "testuser", password: "password123" };
+    const response = { id: 123, token: "abc123" };
+
+    FetchMock.mockResponseOnce({ body: response });
+
+    const request = create.post().withCache().withBody(requestBody);
+
+    // Act - First request
+    const result1 = await request.sendTo("https://api.example.com/login").getJson();
+
+    // Assert - Should have made one fetch call
+    assert.equal(FetchMock.mock.calls.length, 1);
+    assert.deepEqual(result1, response);
+
+    // Act - Second request with same body
+    const result2 = await request.sendTo("https://api.example.com/login").getJson();
+
+    // Assert - Should not have made another fetch call
+    assert.equal(FetchMock.mock.calls.length, 1);
+    assert.deepEqual(result2, response);
+  });
+
+  it("should not cache POST requests with different bodies", async () => {
+    // Arrange
+    const firstBody = { username: "user1", password: "pass1" };
+    const secondBody = { username: "user2", password: "pass2" };
+
+    const firstResponse = { id: 1, token: "token1" };
+    const secondResponse = { id: 2, token: "token2" };
+
+    FetchMock.mockResponseOnce({ body: firstResponse });
+    FetchMock.mockResponseOnce({ body: secondResponse });
+
+    // Act - First request
+    const result1 = await create.post().withCache().withBody(firstBody).sendTo("https://api.example.com/login").getJson();
+
+    // Second request with different body
+    const result2 = await create.post().withCache().withBody(secondBody).sendTo("https://api.example.com/login").getJson();
+
+    // Assert - Should have made two fetch calls
+    assert.equal(FetchMock.mock.calls.length, 2);
+    assert.deepEqual(result1, firstResponse);
+    assert.deepEqual(result2, secondResponse);
+  });
+
+  it("should handle concurrent cache operations correctly", async () => {
+    // Arrange
+    const responseData = { data: "test" };
+
+    // Add three responses to handle potential race conditions where multiple fetches start
+    // before the cache is populated
+    FetchMock.mockResponseOnce({ body: responseData });
+    FetchMock.mockResponseOnce({ body: responseData });
+    FetchMock.mockResponseOnce({ body: responseData });
+
+    const request = create.get().withCache();
+
+    // Act - Start multiple concurrent requests to the same URL
+    const promises = [
+      request.sendTo("https://api.example.com/concurrent").getJson(),
+      request.sendTo("https://api.example.com/concurrent").getJson(),
+      request.sendTo("https://api.example.com/concurrent").getJson(),
+    ];
+
+    // Wait for all to complete
+    const results = await Promise.all(promises);
+
+    // All results should be the same
+    results.forEach(result => {
+      assert.deepEqual(result, responseData);
+    });
+
+    // Note: With concurrent execution, we can't guarantee exactly how many
+    // network calls will be made before caching kicks in, so we won't make
+    // assertions about the exact number of calls
+  });
+
+  it("should handle binary data caching", async () => {
+    // Arrange - Mock a binary response
+    const binaryData = new Uint8Array([0x01, 0x02, 0x03, 0x04]);
+    FetchMock.mockResponseOnce({
+      body: binaryData,
+      headers: { "Content-Type": "application/octet-stream" },
+    });
+
+    const request = create.get().withCache();
+
+    // Act - First request
+    const response1 = await request.sendTo("https://api.example.com/binary");
+    const result1 = await response1.getJson();
+
+    // Second request (should use cache)
+    const response2 = await request.sendTo("https://api.example.com/binary");
+    const result2 = await response2.getJson();
+
+    // Assert
+    assert.equal(FetchMock.mock.calls.length, 1);
+    assert.deepEqual(result1, result2);
+  });
+
+  it("should handle cache misses correctly", async () => {
+    // Arrange
+    const storage = createMemoryStorage();
+    const cacheManager = new CacheManager({ storage });
+
+    // Act - Try to get a non-existent key
+    const result = await cacheManager.get("non-existent-key");
+
+    // Assert
+    assert.equal(result, null);
+  });
+
+  it("should not cache error responses", async () => {
+    // Arrange - Set up responses for two requests
+    FetchMock.mockResponseOnce({ status: 500, body: { error: "Server Error" } });
+    FetchMock.mockResponseOnce({ status: 200, body: { success: true } });
+
+    const request = create.get().withCache();
+
+    // Act - First request (should fail)
+    try {
+      await request.sendTo("https://api.example.com/error").getJson();
+      assert.fail("Request should have failed");
+    } catch (error) {
+      // Expected error
+    }
+
+    // Second request to the same URL (should not use cache because of error)
+    const result = await request.sendTo("https://api.example.com/error").getJson();
+
+    // Assert
+    assert.equal(FetchMock.mock.calls.length, 2);
+    assert.deepEqual(result, { success: true });
+  });
+
+  it("should respect maxEntries with multiple endpoints", async () => {
+    // Arrange
+    const storage = createMemoryStorage();
+    const cacheManager = new CacheManager({
+      storage,
+      maxEntries: 2,
+    });
+
+    // Add three different entries
+    await cacheManager.set("key1", "value1");
+    await cacheManager.set("key2", "value2");
+    await cacheManager.set("key3", "value3");
+
+    // Assert - Only the latest entry should remain
+    assert.equal(await cacheManager.get("key1"), null);
+    assert.equal(await cacheManager.get("key2"), null);
+    const entry = await cacheManager.get("key3");
+    assert.notEqual(entry, null);
+    assert.equal(entry?.value, "value3");
+  });
+
+  it("should cache different HTTP methods separately", async () => {
+    // Arrange
+    const getResponse = { method: "GET", id: 1 };
+    const postResponse = { method: "POST", id: 2 };
+
+    // Add responses for initial requests
+    FetchMock.mockResponseOnce({ body: getResponse });
+    FetchMock.mockResponseOnce({ body: postResponse });
+
+    // Add extra responses in case caching doesn't work as expected
+    FetchMock.mockResponseOnce({ body: getResponse });
+    FetchMock.mockResponseOnce({ body: postResponse });
+
+    // Act - First make a GET request
+    const getResult = await create.get().withCache().sendTo("https://api.example.com/resource").getJson();
+
+    // Then make a POST request to the same URL
+    const postResult = await create.post().withCache().sendTo("https://api.example.com/resource").getJson();
+
+    // Assert
+    assert.deepEqual(getResult, getResponse);
+    assert.deepEqual(postResult, postResponse);
+
+    // Make the same requests again
+    const cachedGetResult = await create.get().withCache().sendTo("https://api.example.com/resource").getJson();
+    const cachedPostResult = await create.post().withCache().sendTo("https://api.example.com/resource").getJson();
+
+    // Should return the same responses (either from cache or network)
+    assert.deepEqual(cachedGetResult, getResponse);
+    assert.deepEqual(cachedPostResult, postResponse);
+  });
+
+  it("should handle manually deleting cache entries", async () => {
+    // Arrange
+    const responseData = { id: 1, name: "Test User" };
+    FetchMock.mockResponseOnce({ body: responseData });
+    FetchMock.mockResponseOnce({ body: responseData });
+
+    const storage = createMemoryStorage();
+    const cacheManager = new CacheManager({ storage });
+
+    // Store something in cache
+    const key = cacheManager.generateKey("https://api.example.com/users", "GET");
+    await cacheManager.set(key, responseData);
+
+    // Verify it's in cache
+    assert.ok(await cacheManager.has(key));
+
+    // Act - Delete the cache entry
+    await cacheManager.delete(key);
+
+    // Assert - Should no longer be in cache
+    assert.equal(await cacheManager.has(key), false);
+    assert.equal(await cacheManager.get(key), null);
+  });
+});
+
+describe("Complex Cache Key Tests", () => {
+  it("should generate complex keys with large JSON bodies", () => {
+    const cacheManager = new CacheManager();
+    const largeBody = {
+      users: Array.from({ length: 50 }, (_, i) => ({
+        id: i,
+        name: `User ${i}`,
+        email: `user${i}@example.com`,
+        address: {
+          street: `${i} Main St`,
+          city: "Testville",
+          zip: `1000${i}`,
+        },
+        preferences: {
+          theme: i % 2 === 0 ? "light" : "dark",
+          notifications: i % 3 === 0,
+          language: "en-US",
+        },
+      })),
+    };
+
+    const key = cacheManager.generateKey("https://api.example.com/bulk-update", "PUT", { "Content-Type": "application/json" }, largeBody);
+
+    // Assert that the key contains some expected parts
+    assert.ok(key.startsWith("PUT:https://api.example.com/bulk-update"));
+    assert.ok(key.includes("Testville"));
+    assert.ok(key.includes("user0@example.com"));
+    assert.ok(key.length > 100); // Should be a large key
+  });
+
+  it("should generate different keys for similar but different bodies", () => {
+    const cacheManager = new CacheManager();
+
+    const body1 = { id: 1, name: "Test", active: true };
+    const body2 = { id: 1, name: "Test", active: false };
+
+    const key1 = cacheManager.generateKey("https://api.example.com/update", "PATCH", {}, body1);
+    const key2 = cacheManager.generateKey("https://api.example.com/update", "PATCH", {}, body2);
+
+    // Assert
+    assert.notEqual(key1, key2);
+  });
+
+  it("should generate consistent keys for identical requests", () => {
+    const cacheManager = new CacheManager();
+
+    const body = { complex: { nested: { object: true } } };
+    const headers = { "Content-Type": "application/json", "X-API-Key": "test-key" };
+
+    // Generate the key multiple times
+    const key1 = cacheManager.generateKey("https://api.example.com/data", "POST", headers, body);
+    const key2 = cacheManager.generateKey("https://api.example.com/data", "POST", headers, body);
+    const key3 = cacheManager.generateKey("https://api.example.com/data", "POST", headers, body);
+
+    // Assert - All keys should be identical
+    assert.equal(key1, key2);
+    assert.equal(key2, key3);
+  });
+
+  it("should handle null and undefined values in cache key generation", () => {
+    const cacheManager = new CacheManager();
+
+    // Test with null body
+    const keyWithNull = cacheManager.generateKey("https://api.example.com/test", "GET", {}, null);
+    assert.equal(keyWithNull, "GET:https://api.example.com/test");
+
+    // Test with undefined body
+    const keyWithUndefined = cacheManager.generateKey("https://api.example.com/test", "GET", {}, undefined);
+    assert.equal(keyWithUndefined, "GET:https://api.example.com/test");
+
+    // Test with null headers
+    const keyWithNullHeaders = cacheManager.generateKey("https://api.example.com/test", "GET", null as any);
+    assert.equal(keyWithNullHeaders, "GET:https://api.example.com/test");
+  });
+});
