@@ -96,7 +96,7 @@ const optionsRequest = create.options();
 The library provides a comprehensive set of configuration methods that can be chained together to customize your requests:
 
 ```typescript
-import create, { RequestPriority, CredentialsPolicy, RequestMode, CachePolicy, RedirectMode, ReferrerPolicy } from 'create-request';
+import create, { RequestPriority, CredentialsPolicy, RequestMode, CacheMode, RedirectMode, ReferrerPolicy } from 'create-request';
 
 // Configure request options
 const request = create.get()
@@ -109,10 +109,8 @@ const request = create.get()
 
   // Automatic retry configuration
   .withRetries(3) // Retry up to 3 times on failure
-  .withRetryDelay(1000) // Wait 1 second between retries
-  .withExponentialBackoff(true) // Use exponential backoff (increases wait time between retries)
-  .onRetry(({ attempt, error, delay }) => {
-    console.log(`Attempt ${attempt} failed: ${error.message}. Retrying in ${delay}ms`);
+  .onRetry(({ attempt, error }) => {
+    console.log(`Attempt ${attempt} failed: ${error.message}. Retrying...`);
   })
 
   // Authentication methods
@@ -129,7 +127,6 @@ const request = create.get()
   // Fetch API options
   .withCredentials(CredentialsPolicy.INCLUDE) // Includes cookies with cross-origin requests
   .withMode(RequestMode.CORS) // Controls CORS behavior
-  .withCache(CachePolicy.NO_STORE) // Controls how request interacts with browser cache
   .withRedirect(RedirectMode.FOLLOW) // Controls redirect behavior (follow, error, manual)
   .withReferrer('https://example.com') // Sets request referrer
   .withReferrerPolicy(ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE) // Controls referrer policy
@@ -247,9 +244,7 @@ try {
     .getData(data => data.results.items); // Will fail if structure is different
 } catch (error) {
   console.error(error);
-  // Error message includes the original response data:
-  // "Data selector failed: Cannot read properties of undefined (reading 'items').
-  // Original data: { "status": "error", "message": "Invalid request" }"
+  // Error message includes the original response data
 }
 ```
 
@@ -412,31 +407,12 @@ const request = create.get()
     storage: createMemoryStorage(),
     keyGenerator: (url, method, headers) => {
       // Include user ID from authorization header in the cache key
-    // Get from your custom storage
-    return localStorage.getItem(`my-app:${key}`);
-  },
-  set(key: string, value: string): void {
-    // Set in your custom storage
-    localStorage.setItem(`my-app:${key}`, value);
-  },
-  has(key: string): boolean {
-    // Check if exists in your custom storage
-    return localStorage.getItem(`my-app:${key}`) !== null;
-  },
-  delete(key: string): void {
-    // Remove from your custom storage
-    localStorage.removeItem(`my-app:${key}`);
-  },
-  clear(): void {
-    // Clear all items from your namespace
-    Object.keys(localStorage)
-      .filter(key => key.startsWith('my-app:'))
-      .forEach(key => localStorage.removeItem(key));
-  }
-};
-
-const request = create.get()
-  .withCache({ storage: customStorage })
+      const authHeader = headers?.['Authorization'] || '';
+      const userMatch = authHeader.match(/User-(\d+)/);
+      const userId = userMatch ? userMatch[1] : 'anonymous';
+      return `${method}:${userId}:${url}`;
+    }
+  })
   .sendTo('https://api.example.com/data');
 ```
 
@@ -526,8 +502,8 @@ You can configure CSRF settings globally for all requests:
 create.config.setCsrfToken('your-csrf-token');
 create.config.setCsrfHeaderName('X-CSRF-Token'); // Default header name
 create.config.setXsrfCookieName('XSRF-TOKEN'); // Default cookie name
-create.config.enableAntiCsrf(true); // Enable/disable X-Requested-With header
-create.config.enableAutoXsrf(true); // Enable/disable automatic cookie-to-header token
+create.config.setEnableAntiCsrf(true); // Enable/disable X-Requested-With header
+create.config.setEnableAutoXsrf(true); // Enable/disable automatic cookie-to-header token
 ```
 
 ### Per-Request CSRF Settings
