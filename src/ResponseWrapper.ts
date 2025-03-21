@@ -154,4 +154,5 @@ export interface ResponsePromise<T = ResponseWrapper> extends Promise<T> {
   getBlob(): Promise<Blob>;
   getArrayBuffer(): Promise<ArrayBuffer>;
   getBody(): Promise<ReadableStream<Uint8Array> | null>;
+  getData<T = unknown, R = T>(selector?: (data: T) => R): Promise<T | R>;
 }

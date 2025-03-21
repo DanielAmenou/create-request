@@ -1,0 +1,192 @@
+import assert from "node:assert/strict";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import { GetRequest } from "../src/requestMethods";
+import { FetchMock } from "./utils/fetchMock";
+
+describe("getData Feature", () => {
+  beforeEach(() => {
+    FetchMock.install();
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+  });
+
+  // Define interfaces for test data structures
+  interface UsersResponse {
+    users: Array<{
+      id: number;
+      name: string;
+      role: string;
+    }>;
+    pagination: {
+      total: number;
+      page: number;
+    };
+  }
+
+  interface NestedResponse {
+    data: {
+      results: {
+        items: Array<{
+          id: number;
+          value: string;
+        }>;
+      };
+    };
+    meta: {
+      processed: boolean;
+    };
+  }
+
+  interface SimpleUsersResponse {
+    users: Array<{
+      id: number;
+      name: string;
+      role: string;
+    }>;
+  }
+
+  interface ErrorResponse {
+    count: number;
+  }
+
+  it("should get full JSON data without a selector", async () => {
+    // Arrange
+    const responseData: UsersResponse = {
+      users: [
+        { id: 1, name: "Alice", role: "admin" },
+        { id: 2, name: "Bob", role: "user" },
+      ],
+      pagination: { total: 2, page: 1 },
+    };
+
+    FetchMock.mockResponseOnce({ body: responseData });
+    const request = new GetRequest();
+
+    // Act
+    const result = await request.sendTo("https://api.example.com/users").getData<UsersResponse>();
+
+    // Assert
+    assert.deepEqual(result, responseData);
+  });
+
+  it("should extract data using a selector", async () => {
+    // Arrange
+    const responseData: UsersResponse = {
+      users: [
+        { id: 1, name: "Alice", role: "admin" },
+        { id: 2, name: "Bob", role: "user" },
+      ],
+      pagination: { total: 2, page: 1 },
+    };
+
+    FetchMock.mockResponseOnce({ body: responseData });
+    const request = new GetRequest();
+
+    // Act - specify both input and output types for getData
+    type UserArray = Array<{ id: number; name: string; role: string }>;
+    const users = await request.sendTo("https://api.example.com/users").getData<UsersResponse, UserArray>(data => data.users);
+
+    // Assert
+    assert.deepEqual(users, responseData.users);
+  });
+
+  it("should extract nested data using a selector", async () => {
+    // Arrange
+    const responseData: NestedResponse = {
+      data: {
+        results: {
+          items: [
+            { id: 1, value: "first" },
+            { id: 2, value: "second" },
+          ],
+        },
+      },
+      meta: { processed: true },
+    };
+
+    FetchMock.mockResponseOnce({ body: responseData });
+    const request = new GetRequest();
+
+    // Act - specify both input and output types
+    type ItemArray = Array<{ id: number; value: string }>;
+    const items = await request.sendTo("https://api.example.com/nested").getData<NestedResponse, ItemArray>(data => data.data.results.items);
+
+    // Assert
+    assert.deepEqual(items, responseData.data.results.items);
+  });
+
+  it("should support transformation in selectors", async () => {
+    // Arrange
+    const responseData: SimpleUsersResponse = {
+      users: [
+        { id: 1, name: "Alice", role: "admin" },
+        { id: 2, name: "Bob", role: "user" },
+      ],
+    };
+
+    FetchMock.mockResponseOnce({ body: responseData });
+    const request = new GetRequest();
+
+    // Act - extract only names with proper typing
+    const names = await request.sendTo("https://api.example.com/users").getData<SimpleUsersResponse, string[]>(data => data.users.map(user => user.name));
+
+    // Assert
+    assert.deepEqual(names, ["Alice", "Bob"]);
+  });
+
+  it("should handle selector errors with enhanced messages", async () => {
+    // Arrange
+    const responseData: ErrorResponse = { count: 5 }; // No users property
+
+    FetchMock.mockResponseOnce({ body: responseData });
+    const request = new GetRequest();
+
+    // Act & Assert
+    try {
+      // Use explicit type annotations for function parameters
+      await request.sendTo("https://api.example.com/broken").getData<any, string[]>(data => data.users.map((user: any) => user.name));
+
+      assert.fail("Should have thrown an error");
+    } catch (error) {
+      assert(error instanceof Error);
+      assert(error.message.includes("Data selector failed"));
+      assert(error.message.includes("Original data"));
+
+      // Check for count and 5 separately instead of exact JSON format
+      assert(error.message.includes("count"));
+      assert(error.message.includes("5"));
+    }
+  });
+
+  it("should maintain type safety with selectors", async () => {
+    // Arrange
+    interface ApiResponse {
+      users: Array<{
+        id: number;
+        name: string;
+        email: string;
+      }>;
+      total: number;
+    }
+
+    const responseData: ApiResponse = {
+      users: [
+        { id: 1, name: "Alice", email: "alice@example.com" },
+        { id: 2, name: "Bob", email: "bob@example.com" },
+      ],
+      total: 2,
+    };
+
+    FetchMock.mockResponseOnce({ body: responseData });
+    const request = new GetRequest();
+
+    // Act - with type annotations
+    const result = await request.sendTo("https://api.example.com/users").getData<ApiResponse, string[]>(data => data.users.map(u => u.email));
+
+    // Assert
+    assert.deepEqual(result, ["alice@example.com", "bob@example.com"]);
+  });
+});

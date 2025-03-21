@@ -423,6 +423,28 @@ export abstract class BaseRequest {
       return basePromise.then(response => response.getBody());
     };
 
+    responsePromise.getData = async <T = unknown, R = T>(selector?: (data: T) => R): Promise<T | R> => {
+      try {
+        const data = await basePromise.then(response => response.getJson<T>());
+
+        // If no selector is provided, return the raw JSON data
+        if (!selector) return data;
+
+        // Apply the selector if provided
+        return selector(data);
+      } catch (error) {
+        if (error instanceof Error) {
+          // If selector fails, enhance the error with the original data
+          const enhancedError = new Error(
+            `Data selector failed: ${error.message}. Original data: ${JSON.stringify(await basePromise.then(response => response.getJson()), null, 2)}`
+          );
+          enhancedError.stack = error.stack;
+          throw enhancedError;
+        }
+        throw error;
+      }
+    };
+
     return responsePromise;
   }
 

@@ -92,6 +92,16 @@ try {
   console.error('Error fetching users:', error.message);
 }
 
+// Extract specific data with the selector API
+try {
+  const activeUsers = await create.get()
+    .sendTo('https://api.example.com/users')
+    .getData(data => data.users.filter(user => user.active));
+  console.log(activeUsers);
+} catch (error) {
+  console.error('Error fetching active users:', error.message);
+}
+
 // POST request with create-request
 const createUserRequest = create.post()
   .withBody({ name: 'John Doe', email: 'john@example.com' })
@@ -182,6 +192,58 @@ const textData = await request.sendTo('https://api.example.com/endpoint').getTex
 const blobData = await request.sendTo('https://api.example.com/endpoint').getBlob();
 const bodyStream = await request.sendTo('https://api.example.com/endpoint').getBody();
 const arrayBuffer = await request.sendTo('https://api.example.com/endpoint').getArrayBuffer();
+
+// Using the data selector API to extract specific data
+const userData = await request.sendTo('https://api.example.com/users')
+  .getData(data => data.results.users);
+
+// Using the data selector without a selector function just returns the full JSON response
+const fullData = await request.sendTo('https://api.example.com/data').getData();
+```
+
+### Data Selection
+
+The `getData` method provides a powerful way to extract and transform specific data from API responses:
+
+```typescript
+// Extract specific properties from nested structures
+const posts = await request
+  .sendTo('https://api.example.com/feed')
+  .getData(data => data.feed.posts);
+
+// Transform data in the selector function
+const usernames = await request
+  .sendTo('https://api.example.com/users')
+  .getData(data => data.users.map(user => user.username));
+
+// Apply filtering in the selector
+const activeUsers = await request
+  .sendTo('https://api.example.com/users')
+  .getData(data => data.users.filter(user => user.isActive));
+
+// Combine data from complex nested structures
+const combinedData = await request
+  .sendTo('https://api.example.com/dashboard')
+  .getData(data => ({
+    userCount: data.stats.users.total,
+    recentPosts: data.content.recent.slice(0, 5),
+    notifications: data.user.notifications.unread
+  }));
+```
+
+When a selector fails, the error message will contain the original response data to help diagnose the issue:
+
+```typescript
+try {
+  const result = await request
+    .sendTo('https://api.example.com/data')
+    .getData(data => data.results.items); // Will fail if structure is different
+} catch (error) {
+  console.error(error);
+  // Error message includes the original response data:
+  // "Data selector failed: Cannot read properties of undefined (reading 'items').
+  // Original data: { "status": "error", "message": "Invalid request" }"
+}
 ```
 
 ### Error Handling
@@ -285,12 +347,33 @@ interface User {
   email: string;
 }
 
-const userRequest = create.get();
-const user = await userRequest.sendTo('https://api.example.com/user/123')
-  .getJson<User>();
+interface ApiResponse {
+  users: User[];
+  pagination: {
+    total: number;
+    page: number;
+  }
+}
 
-// TypeScript knows the type
-console.log(user.name);
+const userRequest = create.get();
+
+// Type the full response
+const response = await userRequest
+  .sendTo('https://api.example.com/users')
+  .getJson<ApiResponse>();
+
+// Or use getData with type parameters
+const users = await userRequest
+  .sendTo('https://api.example.com/users')
+  .getData<ApiResponse, User[]>(data => data.users);
+
+// Or just get the full typed response
+const fullData = await userRequest
+  .sendTo('https://api.example.com/users')
+  .getData<ApiResponse>();
+
+// TypeScript knows the types
+console.log(users[0].name);
 ```
 
 ### Promise Chaining
