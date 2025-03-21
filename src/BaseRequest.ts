@@ -30,6 +30,10 @@ export abstract class BaseRequest {
     return this;
   }
 
+  withHeader(key: string, value: string): this {
+    return this.withHeaders({ [key]: value });
+  }
+
   withTimeout(timeout: number): this {
     if (!Number.isFinite(timeout) || timeout <= 0) throw new Error("Timeout must be a positive number");
 
