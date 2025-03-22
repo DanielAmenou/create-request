@@ -8,15 +8,18 @@
 
 ## Core Features
 
-- ⏱️ **Timeout Support** - Set timeouts for any request
 - 🚀 **Performance** - Tiny bundle size with zero dependencies
 - 🚧 **Error Handling** - Detailed error info with custom error class
-- 🔐 **Auth Helpers** - Simple methods for common authentication patterns
 - ⛓️ **Chainable API** - Build and execute requests with a fluent interface
-- 📉 **Reduced Boilerplate** - Write 60% less code for common API operations
-- 🔁 **Automatic Retries** - Retry failed requests with customizable settings
+- ⏱️ **Timeout Support** - Set timeouts for requests with automatic aborts
 - 🛡️ **Type Safety** - Full TypeScript support with intelligent type inference
+- 🔐 **Auth Helpers** - Simple methods for common authentication patterns
+- 🔍 **Data Selection** - Extract and transform specific data from responses
+- 🔁 **Automatic Retries** - Retry failed requests with customizable settings
+- 📉 **Reduced Boilerplate** - Write 60% less code for common API operations
+- 🔒 **CSRF Protection** - Built-in safeguards against cross-site request forgery
 - 📝 **Response Caching** - Flexible caching system with multiple storage options
+- 🛑 **Request Cancellation** - Abort requests on demand with AbortController integration
 
 ## Why create-request?
 
