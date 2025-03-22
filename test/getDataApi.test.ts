@@ -48,10 +48,6 @@ describe("getData Feature", () => {
     }>;
   }
 
-  interface ErrorResponse {
-    count: number;
-  }
-
   it("should get full JSON data without a selector", async () => {
     // Arrange
     const responseData: UsersResponse = {
