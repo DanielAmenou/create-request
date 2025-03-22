@@ -21,7 +21,20 @@ export { CacheManager } from "./utils/CacheManager";
 export type { CacheOptions } from "./types/cache";
 export type { StorageProvider } from "./utils/StorageProvider";
 
-// Create the main API object with configuration
+/**
+ * Main API object for creating HTTP requests
+ * Provides factory methods for all HTTP methods and access to global configuration.
+ *
+ * @example
+ * // Making a GET request
+ * const users = await create.get()
+ *   .withQueryParams({ limit: 10 })
+ *   .sendTo('/api/users')
+ *   .getJson();
+ *
+ * // Configure global settings
+ * create.config.setCsrfToken('token123');
+ */
 const create = {
   get,
   post,

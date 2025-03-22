@@ -15,7 +15,13 @@ export class Config {
   private constructor() {}
 
   /**
-   * Get the singleton instance
+   * Get the singleton instance of the Config class
+   *
+   * @returns The global configuration instance
+   *
+   * @example
+   * const config = Config.getInstance();
+   * config.setCsrfToken('token123');
    */
   public static getInstance(): Config {
     if (!Config.instance) {
@@ -26,6 +32,12 @@ export class Config {
 
   /**
    * Set a global CSRF token to be used for all requests
+   *
+   * @param token - The CSRF token value
+   * @returns The config instance for chaining
+   *
+   * @example
+   * Config.getInstance().setCsrfToken('myToken123');
    */
   public setCsrfToken(token: string): Config {
     this.csrfToken = token;
@@ -33,14 +45,22 @@ export class Config {
   }
 
   /**
-   * Get the global CSRF token
+   * Get the global CSRF token that will be automatically applied to requests
+   *
+   * @returns The current CSRF token or null if not set
    */
   public getCsrfToken(): string | null {
     return this.csrfToken;
   }
 
   /**
-   * Set the CSRF header name (default is X-CSRF-Token)
+   * Set the CSRF header name used when sending the token
+   *
+   * @param name - The header name to use
+   * @returns The config instance for chaining
+   *
+   * @example
+   * Config.getInstance().setCsrfHeaderName('X-My-CSRF-Token');
    */
   public setCsrfHeaderName(name: string): Config {
     this.csrfHeaderName = name;
@@ -48,14 +68,22 @@ export class Config {
   }
 
   /**
-   * Get the CSRF header name
+   * Get the configured CSRF header name
+   *
+   * @returns The current CSRF header name
    */
   public getCsrfHeaderName(): string {
     return this.csrfHeaderName;
   }
 
   /**
-   * Set the XSRF cookie name to look for (default is XSRF-TOKEN)
+   * Set the XSRF cookie name to look for when extracting tokens from cookies
+   *
+   * @param name - The cookie name to look for
+   * @returns The config instance for chaining
+   *
+   * @example
+   * Config.getInstance().setXsrfCookieName('MY-XSRF-COOKIE');
    */
   public setXsrfCookieName(name: string): Config {
     this.xsrfCookieName = name;
@@ -63,14 +91,19 @@ export class Config {
   }
 
   /**
-   * Get the XSRF cookie name
+   * Get the configured XSRF cookie name
+   *
+   * @returns The current XSRF cookie name
    */
   public getXsrfCookieName(): string {
     return this.xsrfCookieName;
   }
 
   /**
-   * Set the XSRF header name to send the token in (default is X-XSRF-TOKEN)
+   * Set the XSRF header name for sending tokens extracted from cookies
+   *
+   * @param name - The header name to use
+   * @returns The config instance for chaining
    */
   public setXsrfHeaderName(name: string): Config {
     this.xsrfHeaderName = name;
@@ -78,14 +111,24 @@ export class Config {
   }
 
   /**
-   * Get the XSRF header name
+   * Get the configured XSRF header name
+   *
+   * @returns The current XSRF header name
    */
   public getXsrfHeaderName(): string {
     return this.xsrfHeaderName;
   }
 
   /**
-   * Enable or disable automatic XSRF token extraction from cookies
+   * Enable or disable automatic extraction of XSRF tokens from cookies
+   * When enabled, the library will look for XSRF tokens in cookies and
+   * automatically add them to request headers.
+   *
+   * @param enable - Whether to enable this feature
+   * @returns The config instance for chaining
+   *
+   * @example
+   * Config.getInstance().setEnableAutoXsrf(false); // Disable XSRF extraction
    */
   public setEnableAutoXsrf(enable: boolean): Config {
     this.enableAutoXsrf = enable;
@@ -93,7 +136,9 @@ export class Config {
   }
 
   /**
-   * Check if automatic XSRF is enabled
+   * Check if automatic XSRF token extraction is enabled
+   *
+   * @returns True if automatic XSRF is enabled
    */
   public isAutoXsrfEnabled(): boolean {
     return this.enableAutoXsrf;
@@ -101,6 +146,10 @@ export class Config {
 
   /**
    * Enable or disable automatic addition of anti-CSRF headers
+   * When enabled, X-Requested-With: XMLHttpRequest will be added to all requests.
+   *
+   * @param enable - Whether to enable this feature
+   * @returns The config instance for chaining
    */
   public setEnableAntiCsrf(enable: boolean): Config {
     this.enableAntiCsrf = enable;
@@ -108,14 +157,21 @@ export class Config {
   }
 
   /**
-   * Check if anti-CSRF is enabled
+   * Check if anti-CSRF protection is enabled
+   *
+   * @returns True if anti-CSRF protection is enabled
    */
   public isAntiCsrfEnabled(): boolean {
     return this.enableAntiCsrf;
   }
 
   /**
-   * Reset all configuration options to their defaults
+   * Reset all configuration options to their default values
+   *
+   * @returns The config instance for chaining
+   *
+   * @example
+   * Config.getInstance().reset();
    */
   public reset(): Config {
     this.csrfToken = null;

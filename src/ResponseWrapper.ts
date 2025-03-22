@@ -1,5 +1,6 @@
 /**
  * Wrapper for HTTP responses with methods to transform the response data
+ * Provides caching and conversion between different response formats.
  */
 export class ResponseWrapper {
   private readonly response: Response;
@@ -36,7 +37,17 @@ export class ResponseWrapper {
     return this.response;
   }
 
-  // Response body methods with caching
+  /**
+   * Parse the response body as JSON
+   * Caches the result for subsequent calls.
+   *
+   * @returns The parsed JSON data
+   * @throws Error if the response has already been consumed in a different format
+   *
+   * @example
+   * const data = await response.getJson();
+   * console.log(data.items);
+   */
   async getJson<T = unknown>(): Promise<T> {
     if (this.jsonCache !== undefined) {
       return this.jsonCache as T;
@@ -61,6 +72,17 @@ export class ResponseWrapper {
     return this.jsonCache as T;
   }
 
+  /**
+   * Get the response body as text
+   * Caches the result for subsequent calls. Attempts to convert from JSON or Blob
+   * if the body has already been consumed in those formats.
+   *
+   * @returns The response text
+   * @throws Error if the response has already been consumed in an incompatible format
+   *
+   * @example
+   * const text = await response.getText();
+   */
   async getText(): Promise<string> {
     if (this.textCache !== undefined) {
       return this.textCache;
@@ -87,6 +109,18 @@ export class ResponseWrapper {
     return this.textCache;
   }
 
+  /**
+   * Get the response body as a Blob
+   * Caches the result for subsequent calls. Attempts to convert from text
+   * if the body has already been consumed as text.
+   *
+   * @returns The response as a Blob
+   * @throws Error if the response has already been consumed in an incompatible format
+   *
+   * @example
+   * const blob = await response.getBlob();
+   * const url = URL.createObjectURL(blob);
+   */
   async getBlob(): Promise<Blob> {
     if (this.blobCache !== undefined) {
       return this.blobCache;
@@ -106,6 +140,17 @@ export class ResponseWrapper {
     return this.blobCache;
   }
 
+  /**
+   * Get the response body as an ArrayBuffer
+   * Caches the result for subsequent calls. Attempts to convert from text or Blob
+   * if the body has already been consumed in those formats.
+   *
+   * @returns The response as an ArrayBuffer
+   * @throws Error if the response has already been consumed in an incompatible format
+   *
+   * @example
+   * const buffer = await response.getArrayBuffer();
+   */
   async getArrayBuffer(): Promise<ArrayBuffer> {
     if (this.arrayBufferCache !== undefined) {
       return this.arrayBufferCache;
@@ -135,6 +180,20 @@ export class ResponseWrapper {
     return this.arrayBufferCache;
   }
 
+  /**
+   * Get the raw response body as a ReadableStream
+   * This method consumes the body and should only be called once.
+   *
+   * @returns The response body as a ReadableStream or null
+   * @throws Error if the response body has already been consumed
+   *
+   * @example
+   * const stream = response.getBody();
+   * if (stream) {
+   *   const reader = stream.getReader();
+   *   // Process the stream
+   * }
+   */
   getBody(): ReadableStream<Uint8Array> | null {
     if (this.bodyUsed) {
       throw new Error("Response body has already been consumed");

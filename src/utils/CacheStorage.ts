@@ -3,7 +3,14 @@ import type { StorageProvider } from "./StorageProvider";
 
 /**
  * Parse size strings like "10MB" into bytes
- * @param size Size as number or string with units
+ * Supports KB, MB, and GB units. If no unit is specified, assumes bytes.
+ *
+ * @param size - Size as number (bytes) or string with units (e.g., "5MB")
+ * @returns Size in bytes
+ *
+ * @example
+ * parseSize("10MB") // returns 10485760
+ * parseSize(1024) // returns 1024
  */
 export function parseSize(size: string | number): number {
   if (typeof size === "number") return size;
@@ -28,6 +35,13 @@ export function parseSize(size: string | number): number {
 
 /**
  * Create a memory storage provider using Map
+ * This provider stores data in memory and is cleared when the application restarts.
+ *
+ * @returns A storage provider using an in-memory Map
+ *
+ * @example
+ * const storage = createMemoryStorage();
+ * storage.set("key", "value");
  */
 export function createMemoryStorage(): StorageProvider {
   const store = new Map<string, string>();
@@ -57,6 +71,14 @@ export function createMemoryStorage(): StorageProvider {
 
 /**
  * Create a localStorage-based storage provider
+ * This provider persists data between browser sessions.
+ *
+ * @returns A storage provider using localStorage
+ * @throws Console warnings if localStorage is not available or storage quota is exceeded
+ *
+ * @example
+ * const storage = createLocalStorageStorage();
+ * storage.set("key", "value");
  */
 export function createLocalStorageStorage(): StorageProvider {
   return {
@@ -100,6 +122,14 @@ export function createLocalStorageStorage(): StorageProvider {
 
 /**
  * Create a sessionStorage-based storage provider
+ * This provider persists data only for the current browser session.
+ *
+ * @returns A storage provider using sessionStorage
+ * @throws Console warnings if sessionStorage is not available or storage quota is exceeded
+ *
+ * @example
+ * const storage = createSessionStorageStorage();
+ * storage.set("key", "value");
  */
 export function createSessionStorageStorage(): StorageProvider {
   return {
@@ -142,7 +172,15 @@ export function createSessionStorageStorage(): StorageProvider {
 }
 
 /**
- * Create a storage provider from a cache options object
+ * Create a storage provider from cache options
+ * Selects the appropriate storage implementation based on the provided options.
+ * Falls back to memory storage if no suitable storage is found.
+ *
+ * @param options - Cache configuration options
+ * @returns A storage provider based on the options
+ *
+ * @example
+ * const storage = createStorageProvider({ storage: localStorage });
  */
 export function createStorageProvider(options?: CacheOptions): StorageProvider {
   const { storage } = options || {};

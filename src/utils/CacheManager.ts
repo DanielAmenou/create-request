@@ -4,6 +4,7 @@ import type { StorageProvider } from "./StorageProvider";
 
 /**
  * Cache manager that handles storage operations
+ * Provides methods for storing, retrieving, and managing cached API responses.
  */
 export class CacheManager {
   private storage: StorageProvider;
@@ -18,6 +19,16 @@ export class CacheManager {
 
   /**
    * Generate a cache key based on request details
+   * Keys can vary based on URL, method, headers, and request body.
+   *
+   * @param url - The request URL
+   * @param method - The HTTP method
+   * @param headers - Request headers that might affect caching
+   * @param body - Request body for non-GET requests
+   * @returns A unique cache key string
+   *
+   * @example
+   * const key = cacheManager.generateKey("/api/users", "GET", { "Accept": "application/json" });
    */
   generateKey(url: string, method: string, headers?: Record<string, string>, body?: unknown): string {
     // Use custom key generator if provided
@@ -67,7 +78,14 @@ export class CacheManager {
   }
 
   /**
-   * Get a value from cache
+   * Get a cached value by key
+   * Checks if the entry exists and isn't expired before returning it.
+   *
+   * @param key - The cache key to retrieve
+   * @returns The cached entry or null if not found or expired
+   *
+   * @example
+   * const entry = await cacheManager.get("GET:/api/users");
    */
   async get(key: string): Promise<CacheEntry | null> {
     const value = await Promise.resolve(this.storage.get(key));
@@ -91,7 +109,16 @@ export class CacheManager {
   }
 
   /**
-   * Set a value in cache
+   * Store a value in the cache
+   * Enforces size and entry count limits if configured.
+   *
+   * @param key - The cache key
+   * @param value - The value to cache
+   * @param headers - Response headers to store with the cached value
+   * @returns Promise that resolves when caching is complete
+   *
+   * @example
+   * await cacheManager.set("GET:/api/users", userData, { "Content-Type": "application/json" });
    */
   async set(key: string, value: unknown, headers?: Record<string, string>): Promise<void> {
     const now = Date.now();
@@ -147,13 +174,27 @@ export class CacheManager {
 
   /**
    * Check if a key exists in the cache
+   *
+   * @param key - The cache key to check
+   * @returns Promise that resolves to true if the key exists, false otherwise
+   *
+   * @example
+   * if (await cacheManager.has("GET:/api/users")) {
+   *   // Use cached value
+   * }
    */
   async has(key: string): Promise<boolean> {
     return Promise.resolve(this.storage.has(key));
   }
 
   /**
-   * Delete a key from the cache
+   * Delete a specific key from the cache
+   *
+   * @param key - The cache key to delete
+   * @returns Promise that resolves when deletion is complete
+   *
+   * @example
+   * await cacheManager.delete("GET:/api/users");
    */
   async delete(key: string): Promise<void> {
     return Promise.resolve(this.storage.delete(key));
@@ -161,6 +202,12 @@ export class CacheManager {
 
   /**
    * Clear the entire cache
+   * Resets internal counters for entry count and size.
+   *
+   * @returns Promise that resolves when the cache is cleared
+   *
+   * @example
+   * await cacheManager.clear();
    */
   async clear(): Promise<void> {
     this.entryCount = 0;

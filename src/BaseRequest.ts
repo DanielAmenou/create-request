@@ -8,7 +8,10 @@ import { Config } from "./utils/Config";
 import { CookieUtils } from "./utils/CookieUtils";
 import { CsrfUtils } from "./utils/CsrfUtils";
 
-// Base class with common functionality for all request types
+/**
+ * Base class with common functionality for all request types
+ * Provides the core request building and execution capabilities.
+ */
 export abstract class BaseRequest {
   protected abstract method: HttpMethod;
   protected requestOptions: RequestOptions = {
@@ -22,6 +25,18 @@ export abstract class BaseRequest {
 
   constructor() {}
 
+  /**
+   * Add multiple HTTP headers to the request
+   *
+   * @param headers - Key-value pairs of header names and values
+   * @returns The request instance for chaining
+   *
+   * @example
+   * request.withHeaders({
+   *   'Accept': 'application/json',
+   *   'X-Custom-Header': 'value'
+   * });
+   */
   withHeaders(headers: Record<string, string>): this {
     this.requestOptions.headers = {
       ...(this.requestOptions.headers as Record<string, string>),
@@ -30,10 +45,31 @@ export abstract class BaseRequest {
     return this;
   }
 
+  /**
+   * Add a single HTTP header to the request
+   *
+   * @param key - The header name
+   * @param value - The header value
+   * @returns The request instance for chaining
+   *
+   * @example
+   * request.withHeader('Accept', 'application/json');
+   */
   withHeader(key: string, value: string): this {
     return this.withHeaders({ [key]: value });
   }
 
+  /**
+   * Set a timeout for the request
+   * If the request takes longer than the specified timeout, it will be aborted.
+   *
+   * @param timeout - The timeout in milliseconds
+   * @returns The request instance for chaining
+   * @throws Error if timeout is not a positive number
+   *
+   * @example
+   * request.withTimeout(5000); // 5 seconds timeout
+   */
   withTimeout(timeout: number): this {
     if (!Number.isFinite(timeout) || timeout <= 0) throw new Error("Timeout must be a positive number");
 
@@ -41,12 +77,35 @@ export abstract class BaseRequest {
     return this;
   }
 
+  /**
+   * Configure automatic retry behavior for failed requests
+   *
+   * @param retries - Number of retry attempts before failing
+   * @returns The request instance for chaining
+   * @throws Error if retries is not a non-negative integer
+   *
+   * @example
+   * request.withRetries(3); // Retry up to 3 times
+   */
   withRetries(retries: number): this {
     if (!Number.isInteger(retries) || retries < 0) throw new Error("Retry count must be a non-negative integer");
     this.requestOptions.retries = retries;
     return this;
   }
 
+  /**
+   * Set a callback to be invoked before each retry attempt
+   * Useful for implementing backoff strategies or logging retry attempts.
+   *
+   * @param callback - Function to call before retrying
+   * @returns The request instance for chaining
+   *
+   * @example
+   * request.onRetry(({ attempt, error }) => {
+   *   console.log(`Retry attempt ${attempt} after error: ${error.message}`);
+   *   return new Promise(resolve => setTimeout(resolve, attempt * 1000));
+   * });
+   */
   onRetry(callback: RetryCallback): this {
     this.requestOptions.onRetry = callback;
     return this;
@@ -336,9 +395,18 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Enables caching for the request with the specified options
-   * @param options The cache configuration options
-   * @returns The instance for chaining
+   * Configure request caching behavior
+   * When enabled, responses will be cached and reused for subsequent identical requests.
+   *
+   * @param options - Cache configuration options
+   * @returns The request instance for chaining
+   *
+   * @example
+   * request.withCache({
+   *   ttl: 60000, // Cache for 1 minute
+   *   maxEntries: 100,
+   *   storage: localStorage
+   * });
    */
   withCache(options: CacheOptions = {}): this {
     this.cacheEnabled = true;
@@ -348,7 +416,14 @@ export abstract class BaseRequest {
 
   /**
    * Send the request to the specified URL
-   * @param url The URL to send the request to
+   * This is the final method in the chain that executes the request.
+   *
+   * @param url - The URL to send the request to
+   * @returns A promise with additional methods for processing the response
+   *
+   * @example
+   * const response = await request.sendTo('/api/users');
+   * const data = await response.getJson();
    */
   sendTo(url: string): ResponsePromise {
     // Format the URL with query parameters
