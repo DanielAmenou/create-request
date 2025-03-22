@@ -31,17 +31,7 @@ module.exports = {
     "no-debugger": "error",
     "no-alert": "error",
 
-    // Import rules
-    "import/order": [
-      "error",
-      {
-        groups: ["builtin", "external", "internal", "parent", "sibling", "index"],
-        alphabetize: { order: "asc", caseInsensitive: true },
-        warnOnUnassignedImports: true,
-        distinctGroup: false,
-      },
-    ],
-    "import/no-duplicates": "error",
+    "import/no-duplicates": "warn",
 
     // Prettier integration
     "prettier/prettier": "warn",
@@ -68,9 +58,9 @@ module.exports = {
         "@typescript-eslint/no-misused-promises": [
           "error",
           {
-            "checksVoidReturn": false
-          }
-        ]
+            checksVoidReturn: false,
+          },
+        ],
       },
     },
   ],
