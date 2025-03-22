@@ -1,6 +1,7 @@
 import type { CacheEntry, CacheOptions } from "../types/cache";
-import { createStorageProvider, parseSize } from "./CacheStorage";
+import { createStorageProvider } from "./CacheStorage";
 import type { StorageProvider } from "./StorageProvider";
+import { parseSize } from "./sizeUtils";
 
 /**
  * Cache manager that handles storage operations

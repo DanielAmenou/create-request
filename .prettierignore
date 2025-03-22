@@ -1,6 +1,3 @@
 node_modules
-dist
-test-dist
 coverage
-*.json
-*.md
+dist

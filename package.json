@@ -9,20 +9,22 @@
     "dist/library"
   ],
   "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c -w",
-    "test": "tsc -p tsconfig.test.json && node --test --experimental-test-coverage",
-    "test:coverage": "tsc -p tsconfig.test.json && node --test --experimental-test-coverage dist/tests/test/",
+    "dev": "cross-env BUILD_ENV=development rollup -c rollup.config.js -w",
+    "build": "cross-env BUILD_ENV=production rollup -c rollup.config.js",
+    "analyze": "cross-env ANALYZE=true BUILD_ENV=production rollup -c rollup.config.js",
+    "lint": "eslint 'src/**/*.{js,ts,json}' 'test/**/*.{js,ts,json}'",
+    "lint:fix": "eslint \"**/*.ts\" --ignore-path .eslintignore --fix",
+    "format": "prettier --write \"**/*.{ts,js,json}\"",
+    "check": "concurrently \"npm run lint\" \"npm run test\" \"npx size-limit\"",
     "pretest": "tsc -p tsconfig.test.json",
-    "prepublishOnly": "npm run check && npm run build",
-    "publish:beta": "npm run check && npm version prerelease --preid=beta && git push origin --tags && npm publish --tag latest",
+    "test": "node --test",
+    "test:coverage": "npm run test -- --experimental-test-coverage",
+    "preversion": "npm run check",
+    "prepublishOnly": "npm run build",
+    "publish:beta": "npm version prerelease --preid=beta && git push origin --tags && npm publish --tag latest",
     "disabled:publish:patch": "npm version patch && git push origin --tags && npm publish",
     "disabled:publish:minor": "npm version minor && git push origin --tags && npm publish",
-    "disabled:publish:major": "npm version major && git push origin --tags && npm publish",
-    "lint": "eslint 'src/**/*.ts' 'test/**/*.ts'",
-    "lint:fix": "eslint 'src/**/*.ts' 'test/**/*.ts' --fix",
-    "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts'",
-    "check": "npm run lint && npm run test"
+    "disabled:publish:major": "npm version major && git push origin --tags && npm publish"
   },
   "keywords": [
     "fetch",
@@ -38,21 +40,41 @@
     "type": "git",
     "url": "https://github.com/DanielAmenou/create-request.git"
   },
+  "sideEffects": false,
+  "size-limit": [
+    {
+      "path": "dist/library/index.esm.js",
+      "limit": "6 KB",
+      "gzip": true
+    },
+    {
+      "path": "dist/library/index.js",
+      "limit": "6 KB",
+      "gzip": true
+    }
+  ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^22.0.0",
     "@rollup/plugin-node-resolve": "^13.3.0",
+    "@rollup/plugin-terser": "^0.4.3",
     "@rollup/plugin-typescript": "^8.3.2",
+    "@size-limit/preset-small-lib": "^8.2.6",
     "@types/node": "^18.0.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-typescript": "^3.6.1",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-prettier": "^5.0.1",
+    "eslint-plugin-jsonc": "^2.11.0",
     "prettier": "^3.1.1",
     "rollup": "^2.75.5",
     "rollup-plugin-cleaner": "^1.0.0",
+    "rollup-plugin-visualizer": "^5.9.2",
+    "size-limit": "^8.2.6",
     "tslib": "^2.4.0",
     "typescript": "^4.7.3",
     "undici": "^5.28.5"
