@@ -522,15 +522,16 @@ export abstract class BaseRequest {
         // Apply the selector if provided
         return selector(data);
       } catch (error) {
-        if (error instanceof Error) {
-          // If selector fails, enhance the error with the original data
-          const enhancedError = new Error(
-            `Data selector failed: ${error.message}. Original data: ${JSON.stringify(await basePromise.then(response => response.getJson()), null, 2)}`
-          );
+        // Always enhance the error with the original data
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const enhancedError = new Error(`Data selector failed: ${errorMessage}. Original data: ${JSON.stringify(await basePromise.then(response => response.getJson()), null, 2)}`);
+
+        // Preserve the stack trace if available
+        if (error instanceof Error && error.stack) {
           enhancedError.stack = error.stack;
-          throw enhancedError;
         }
-        throw error;
+
+        throw enhancedError;
       }
     };
 
