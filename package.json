@@ -16,6 +16,7 @@
     "lint:fix": "eslint \"**/*.ts\" --ignore-path .eslintignore --fix",
     "format": "prettier --write \"**/*.{ts,js,json}\"",
     "check": "concurrently \"npm run lint\" \"npm run test\" \"npx size-limit\"",
+    "check:size": "npx size-limit",
     "pretest": "tsc -p tsconfig.test.json",
     "test": "node --test",
     "test:coverage": "npm run test -- --experimental-test-coverage",
