@@ -3,6 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/create-request.svg)](https://www.npmjs.com/package/create-request)
 [![License](https://img.shields.io/npm/l/create-request.svg)](https://github.com/DanielAmenou/create-request/blob/main/LICENSE)
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/create-request)](https://bundlephobia.com/package/create-request)
+[![TypeScript](https://img.shields.io/badge/TypeScript-4.7%2B-blue)](https://www.typescriptlang.org/)
 
 `create-request` is a modern TypeScript library that transforms how you make API calls. Built as an elegant wrapper around the native Fetch API, it provides a chainable, fluent interface that dramatically reduces boilerplate while adding powerful features like automatic retries, timeout handling, and comprehensive error management.
 
@@ -13,7 +14,9 @@
 - [Installation](#installation)
 - [Basic Usage](#basic-usage)
 - [Advanced Usage](#advanced-usage)
+- [TypeScript Support](#typescript-support)
 - [CSRF Protection](#csrf-protection)
+- [Performance Considerations](#performance-considerations)
 - [Browser Support](#browser-support)
 - [License](#license)
 
@@ -36,8 +39,9 @@
 
 **API interactions often require repetitive code patterns** - handling HTTP status checks, parsing responses, managing errors, and dealing with TypeScript types. `create-request` provides a clean, efficient solution with an elegant API that separates request building from execution:
 
+### With Regular Fetch
+
 ```typescript
-// Before: Regular fetch
 async function createUser(userData) {
   try {
     const response = await fetch("https://api.example.com/users", {
@@ -59,17 +63,20 @@ async function createUser(userData) {
     throw error;
   }
 }
+```
 
-// After: With create-request
+### With create-request
+
+```typescript
 import create from "create-request";
 
 function createUser(userData) {
   return create
     .post()
     .withBasicAuth("username", "password")
-    .withBody(userData)
+    .withBody(userData) // Content-Type automatically set to application/json
     .sendTo("https://api.example.com/users")
-    .getData<User>()
+    .getData<User>() // Type-safe response handling
     .catch(error => {
       console.error("Fetch error:", error);
       throw error;
@@ -80,13 +87,14 @@ function createUser(userData) {
 ## Installation
 
 ```bash
+# npm
 npm install create-request
-```
 
-Or with yarn:
-
-```bash
+# yarn
 yarn add create-request
+
+# pnpm
+pnpm add create-request
 ```
 
 ## Basic Usage
@@ -97,13 +105,13 @@ yarn add create-request
 import create from "create-request";
 
 // Create different request types
-const getRequest = create.get();
-const postRequest = create.post();
-const putRequest = create.put();
-const headRequest = create.head();
-const deleteRequest = create.del();
-const patchRequest = create.patch();
-const optionsRequest = create.options();
+const getRequest = create.get(); // GET
+const putRequest = create.put(); // PUT
+const postRequest = create.post(); // POST
+const patchRequest = create.patch(); // PATCH
+const deleteRequest = create.del(); // DELETE
+const headRequest = create.head(); // HEAD
+const optionsRequest = create.options(); // OPTIONS
 ```
 
 ### Request Configuration
@@ -111,7 +119,7 @@ const optionsRequest = create.options();
 The library provides a comprehensive set of configuration methods that can be chained together to customize your requests:
 
 ```typescript
-import create, { RequestPriority, CredentialsPolicy, RequestMode, CacheMode, RedirectMode, ReferrerPolicy } from "create-request";
+import create, { RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, ReferrerPolicy } from "create-request";
 
 // Configure request options
 const request = create
@@ -127,6 +135,8 @@ const request = create
   .withRetries(3) // Retry up to 3 times on failure
   .onRetry(({ attempt, error }) => {
     console.log(`Attempt ${attempt} failed: ${error.message}. Retrying...`);
+    // You can implement backoff strategy here
+    return new Promise(resolve => setTimeout(resolve, attempt * 1000));
   })
 
   // Authentication methods
@@ -181,10 +191,10 @@ const products = await apiBase.sendTo("https://api.example.com/products").getDat
 ### Request Bodies (POST/PUT/PATCH)
 
 ```typescript
-// JSON body
+// JSON body (Content-Type automatically set to application/json)
 const jsonRequest = create.post().withBody({ name: "John", age: 30 });
 
-// String body
+// String body (Content-Type automatically set to text/plain)
 const textRequest = create.post().withBody("Plain text content");
 
 // Form data
@@ -193,6 +203,13 @@ formData.append("name", "John");
 formData.append("file", fileBlob);
 
 const formRequest = create.post().withBody(formData);
+
+// URLSearchParams (typically used for application/x-www-form-urlencoded)
+const params = new URLSearchParams();
+params.append("username", "john");
+params.append("password", "secret");
+
+const formUrlEncodedRequest = create.post().withBody(params);
 ```
 
 ### Executing Requests
@@ -213,39 +230,6 @@ const userData = await request.sendTo("https://api.example.com/users").getData(d
 
 // Using the data selector without a selector function just returns the full JSON response
 const fullData = await request.sendTo("https://api.example.com/data").getData();
-```
-
-### Data Selection
-
-The `getData` method provides a powerful way to extract and transform specific data from API responses:
-
-```typescript
-// Extract specific properties from nested structures
-const posts = await request.sendTo("https://api.example.com/feed").getData(data => data.feed.posts);
-
-// Transform data in the selector function
-const usernames = await request.sendTo("https://api.example.com/users").getData(data => data.users.map(user => user.username));
-
-// Apply filtering in the selector
-const activeUsers = await request.sendTo("https://api.example.com/users").getData(data => data.users.filter(user => user.isActive));
-
-// Combine data from complex nested structures
-const combinedData = await request.sendTo("https://api.example.com/dashboard").getData(data => ({
-  userCount: data.stats.users.total,
-  recentPosts: data.content.recent.slice(0, 5),
-  notifications: data.user.notifications.unread,
-}));
-```
-
-When a selector fails, the error message will contain the original response data to help diagnose the issue:
-
-```typescript
-try {
-  const result = await request.sendTo("https://api.example.com/data").getData(data => data.results.items); // Will fail if structure is different
-} catch (error) {
-  console.error(error);
-  // Error message includes the original response data
-}
 ```
 
 ### Error Handling
@@ -318,6 +302,26 @@ const authRequest = create.get().withBearerToken("token123").withTimeout(5000).w
 // Reuse for different endpoints
 const users = await authRequest.sendTo("https://api.example.com/users").getJson();
 const products = await authRequest.sendTo("https://api.example.com/products").getJson();
+
+// You can also create application-wide base requests
+const apiBase = () =>
+  create
+    .get()
+    .withHeaders({
+      "X-API-Version": "1.2",
+      "Accept-Language": "en-US",
+    })
+    .withBearerToken(getAuthToken()) // Get fresh token each time
+    .withTimeout(5000);
+
+// Use throughout your application
+function getUsers() {
+  return apiBase().sendTo("https://api.example.com/users").getData();
+}
+
+function getProducts() {
+  return apiBase().sendTo("https://api.example.com/products").getData();
+}
 ```
 
 ### Request Cancellation
@@ -333,81 +337,48 @@ setTimeout(() => controller.abort(), 2000);
 try {
   const data = await request.sendTo("https://api.example.com/slow-endpoint").getJson();
 } catch (error) {
-  // Check if request was cancelled
-  console.log("Request was cancelled:", error.name === "AbortError");
+  if (error.name === "AbortError") {
+    console.log("Request was cancelled by user");
+  } else if (error.timeoutError) {
+    console.log("Request timed out");
+  } else {
+    console.log("Other error:", error.message);
+  }
 }
 ```
 
-### Working with Typed Responses
+### Data Selection
+
+The `getData` method provides a powerful way to extract and transform specific data from API responses:
 
 ```typescript
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
+// Extract specific properties from nested structures
+const posts = await request.sendTo("https://api.example.com/feed").getData(data => data.feed.posts);
 
-interface ApiResponse {
-  users: User[];
-  pagination: {
-    total: number;
-    page: number;
-  };
-}
+// Transform data in the selector function
+const usernames = await request.sendTo("https://api.example.com/users").getData(data => data.users.map(user => user.username));
 
-const userRequest = create.get();
+// Apply filtering in the selector
+const activeUsers = await request.sendTo("https://api.example.com/users").getData(data => data.users.filter(user => user.isActive));
 
-// Type the full response
-const response = await userRequest.sendTo("https://api.example.com/users").getJson<ApiResponse>();
-
-// Or use getData with type parameters
-const users = await userRequest.sendTo("https://api.example.com/users").getData<ApiResponse, User[]>(data => data.users);
-
-// Or just get the full typed response
-const fullData = await userRequest.sendTo("https://api.example.com/users").getData<ApiResponse>();
-
-// TypeScript knows the types
-console.log(users[0].name);
+// Combine data from complex nested structures
+const combinedData = await request.sendTo("https://api.example.com/dashboard").getData(data => ({
+  userCount: data.stats.users.total,
+  recentPosts: data.content.recent.slice(0, 5),
+  notifications: data.user.notifications.unread,
+}));
 ```
 
-### Promise Chaining
+When a selector fails, the error message will contain the original response data to help diagnose the issue:
 
 ```typescript
-const request = create.get();
-
-request
-  .sendTo("https://api.example.com/data")
-  .then(response => {
-    console.log("Status:", response.status);
-    return response.getJson();
-  })
-  .then(data => {
-    console.log("Data:", data);
-  })
-  .catch(error => {
-    console.error("Error:", error.message);
-  });
-```
-
-### Advanced Caching
-
-```typescript
-import create, { createMemoryStorage, StorageProvider } from "create-request";
-
-// Custom key generation
-const request = create
-  .get()
-  .withCache({
-    storage: createMemoryStorage(),
-    keyGenerator: (url, method, headers) => {
-      // Include user ID from authorization header in the cache key
-      const authHeader = headers?.["Authorization"] || "";
-      const userMatch = authHeader.match(/User-(\d+)/);
-      const userId = userMatch ? userMatch[1] : "anonymous";
-      return `${method}:${userId}:${url}`;
-    },
-  })
-  .sendTo("https://api.example.com/data");
+try {
+  // This will fail if the response structure doesn't match expectations
+  const result = await request.sendTo("https://api.example.com/data").getData(data => data.results.items);
+} catch (error) {
+  console.error(error);
+  // Error message includes the original response data for debugging
+}
 ```
 
 ### Implementing Custom Storage Providers
@@ -417,7 +388,7 @@ You can create your own storage provider by implementing the `StorageProvider` i
 ```typescript
 import { StorageProvider } from "create-request";
 
-// Create a simple custom storage provider
+// Create a namespaced storage provider
 export function createNamespacedStorage(namespace: string): StorageProvider {
   return {
     get(key: string): string | null {
@@ -466,13 +437,51 @@ const request = create
   .sendTo("https://api.example.com/data");
 ```
 
-With custom storage providers, you can integrate with any storage system, such as:
+## TypeScript Support
 
-- Custom browser storage solutions
-- Memory caches with expiration policies
-- Session-based storage mechanisms
-- Encrypted storage providers
-- Third-party storage libraries
+```typescript
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  isActive: boolean;
+}
+
+interface ApiResponse<T> {
+  data: T;
+  meta: {
+    total: number;
+    page: number;
+  };
+}
+
+// Type the full response
+const response = await create.get().sendTo("https://api.example.com/users").getJson<ApiResponse<User[]>>();
+
+// Or use getData with type parameters
+const users = await create
+  .get()
+  .sendTo("https://api.example.com/users")
+  .getData<ApiResponse<User[]>, User[]>(data => data.data);
+
+// TypeScript knows the types
+users.forEach(user => {
+  console.log(`${user.name} (${user.email}): ${user.isActive ? "Active" : "Inactive"}`);
+});
+
+// Function with proper types
+async function getUserById(id: number): Promise<User> {
+  return create
+    .get()
+    .withQueryParam("id", id)
+    .sendTo("https://api.example.com/users")
+    .getData<ApiResponse<User[]>, User>(data => {
+      const user = data.data[0];
+      if (!user) throw new Error(`User with ID ${id} not found`);
+      return user;
+    });
+}
+```
 
 ## CSRF Protection
 
@@ -523,7 +532,15 @@ Most modern frameworks support CSRF protection out of the box. The library works
 - **Django**: Compatible with Django's CSRF middleware
 - **Express.js + csurf**: Works with the csurf middleware token pattern
 
-When your server sends a CSRF token in a cookie or response header, `create-request` can automatically extract and include it in subsequent requests.
+## Performance Considerations
+
+create-request is designed to be lightweight and efficient:
+
+- **Zero Dependencies**: No extra libraries to load
+- **Tree-Shakable**: Only import what you need
+- **Minimal Overhead**: Thin wrapper around the native Fetch API
+- **Memory Efficient**: Doesn't create unnecessary objects
+- **Cache Management**: Configurable caching to reduce network requests
 
 ## Browser Support
 
