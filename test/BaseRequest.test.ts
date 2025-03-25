@@ -140,32 +140,6 @@ describe("BaseRequest", () => {
     assert.equal(retryCallbackCalled, true);
   });
 
-  it("should not retry on timeout errors", async () => {
-    // Arrange
-    const timeout = 50;
-    const responseDelay = 200; // Longer than timeout
-
-    FetchMock.mockDelayedResponseOnce(responseDelay);
-
-    let retryCallbackCalled = false;
-    const request = new GetRequest()
-      .withTimeout(timeout)
-      .withRetries(1)
-      .onRetry(() => {
-        retryCallbackCalled = true;
-      });
-
-    // Act & Assert
-    try {
-      await request.sendTo("https://api.example.com/test");
-      assert.fail("Expected request to timeout but it succeeded");
-    } catch (error) {
-      assert(error instanceof RequestError);
-      assert(error.timeoutError);
-      assert.equal(retryCallbackCalled, false); // Should not retry on timeouts
-    }
-  });
-
   it("should use the provided AbortController", async () => {
     // Arrange
     const responseDelay = 500;

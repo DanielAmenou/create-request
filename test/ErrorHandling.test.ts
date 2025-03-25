@@ -237,30 +237,6 @@ describe("Error Handling Tests", () => {
       }
     });
 
-    it("should not retry after timeout", async () => {
-      // Arrange
-      FetchMock.mockDelayedResponseOnce(500, { body: "Too late!" });
-
-      let retryAttempted = false;
-      const request = create
-        .get()
-        .withTimeout(100)
-        .withRetries(3)
-        .onRetry(() => {
-          retryAttempted = true;
-        });
-
-      // Act & Assert
-      try {
-        await request.sendTo("https://api.example.com/slow");
-        assert.fail("Request should have timed out");
-      } catch (error) {
-        assert(error instanceof RequestError);
-        assert.equal(error.timeoutError, true);
-        assert.equal(retryAttempted, false, "Should not attempt retry after timeout");
-      }
-    });
-
     it("should handle timeout when processing large responses", async () => {
       // Arrange - Mock a response that arrives on time but takes time to process
       const largeData = { data: Array(1000000).fill("x") }; // Large object

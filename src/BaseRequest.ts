@@ -1,12 +1,12 @@
 import { type HttpMethod, type RedirectMode, type RequestMode, type RequestPriority, CredentialsPolicy } from "./enums";
-import { RequestError } from "./RequestError";
-import { type ResponsePromise, ResponseWrapper } from "./ResponseWrapper";
 import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions } from "./types";
+import { type ResponsePromise, ResponseWrapper } from "./ResponseWrapper";
 import type { CacheOptions } from "./types/cache";
 import { CacheManager } from "./utils/CacheManager";
-import { Config } from "./utils/Config";
 import { CookieUtils } from "./utils/CookieUtils";
+import { RequestError } from "./RequestError";
 import { CsrfUtils } from "./utils/CsrfUtils";
+import { Config } from "./utils/Config";
 
 /**
  * Base class with common functionality for all request types
@@ -571,30 +571,27 @@ export abstract class BaseRequest {
    * @param url The formatted URL to send the request to
    * @param fetchOptions The fetch options to use
    * @returns A wrapped response object
+   * @throws RequestError if the request fails after all retries
    */
   private async executeWithRetries(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
-    let attempt = 0;
     const maxRetries = this.requestOptions.retries || 0;
 
-    do {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await this.executeRequest(url, fetchOptions);
       } catch (error) {
         const requestError = error instanceof RequestError ? error : RequestError.networkError(url, fetchOptions.method as string, error as Error);
 
-        // Don't retry on timeout errors or if we've reached the max retries
-        if (attempt >= maxRetries || requestError.timeoutError) throw requestError;
-
-        attempt++;
+        if (attempt >= maxRetries) throw requestError;
 
         if (this.requestOptions.onRetry) {
-          await this.requestOptions.onRetry({ attempt, error: requestError });
+          await this.requestOptions.onRetry({ attempt: attempt + 1, error: requestError });
         }
       }
-    } while (attempt <= maxRetries);
+    }
 
-    // If we somehow get here, we throw an error to avoid undefined behavior
-    throw new RequestError(`Max retries reached (${maxRetries}) but request still failed`, url, fetchOptions.method as string);
+    // This should never happen but is needed for type safety
+    throw new RequestError(`Max retries reached`, url, fetchOptions.method as string);
   }
 
   private async executeRequest(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
