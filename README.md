@@ -552,6 +552,37 @@ This library works with all browsers that support the Fetch API:
 - Edge 14+
 - Opera 29+
 
+## Comparison of JavaScript HTTP Client Libraries
+
+Below is a comparison of popular JavaScript HTTP client libraries, including create-request and the native Fetch API.
+
+| Feature                    | create-request | Fetch API            | Axios             | SuperAgent  | Got                | Ky          | node-fetch       | Redaxios             |
+| -------------------------- | -------------- | -------------------- | ----------------- | ----------- | ------------------ | ----------- | ---------------- | -------------------- |
+| **Bundle Size (min+gzip)** | ~5.1KB         | Native               | ~13.6KB           | ~17.8KB     | ~17.8KB            | ~3.4KB      | ~ 7.7KB          | ~1KB                 |
+| **Browser Support**        | Modern         | Modern               | IE11+             | IE9+        | ❌ No Browser      | Modern      | ❌ No Browser    | Modern               |
+| **Node.js Support**        | Polyfill       | Node 18+             | ✅                | ✅          | ✅                 | ✅ + undici | ✅               | ✅                   |
+| **HTTP/2 Support**         | Via Fetch      | Platform-dependent   | ❌                | ✅          | ✅                 | ✅          | ❌               | ❌                   |
+| **Automatic Retries**      | ✅             | ❌                   | ❌ + addon        | ✅          | ✅                 | ✅          | ❌               | ❌                   |
+| **Request Cancellation**   | ✅             | ✅ (AbortController) | ✅                | ✅          | ✅                 | ✅          | ✅               | ✅ (AbortController) |
+| **Response Caching**       | ✅             | ❌                   | ❌ + addon        | ✅          | ✅ (RFC compliant) | ❌          | ❌               | ❌                   |
+| **Automatic JSON**         | ✅             | ❌ (Manual)          | ✅                | ✅          | ✅                 | ✅          | ❌ (Manual)      | ✅                   |
+| **Timeout Handling**       | ✅             | ❌                   | ✅                | ✅          | ✅ (Advanced)      | ✅          | ✅ (AbortSignal) | ❌                   |
+| **TypeScript Support**     | First-class    | ✅                   | ✅                | ✅ (via DT) | ✅                 | ✅          | ✅               | ✅                   |
+| **Streaming**              | Via Fetch      | ✅                   | ❌                | ✅          | ✅                 | ❌          | ✅ (Node only)   | ❌                   |
+| **Progress Events**        | ❌             | ❌                   | ✅ (Browser)      | ✅          | ✅                 | ✅          | ❌               | ❌                   |
+| **Hooks/Middleware**       | ❌             | ❌                   | ✅ (Interceptors) | ❌          | ✅                 | ✅          | ❌               | ❌                   |
+| **Cookies Built-in**       | ✅             | ❌                   | ❌                | ✅          | ✅                 | ❌          | ❌               | ❌                   |
+| **Pagination API**         | ❌             | ❌                   | ❌                | ❌          | ✅                 | ❌          | ❌               | ❌                   |
+| **Zero Dependencies**      | ✅             | ✅                   | ❌                | ❌          | ❌                 | ✅          | ✅               | ✅                   |
+| **Fluent/Chainable API**   | ✅             | ❌                   | ❌                | ✅          | ✅                 | ❌          | ❌               | ❌                   |
+| **CSRF Protection**        | ✅             | ❌                   | ✅                | ❌          | ❌                 | ❌          | ❌               | ❌                   |
+
+**Notes:**
+
+- Bundle sizes are approximate and may vary based on build configuration.
+- "Automatic JSON" refers to automatic parsing of JSON responses.
+- "CSRF Protection" refers to built-in mechanisms for CSRF defense.
+
 ## License
 
 MIT
