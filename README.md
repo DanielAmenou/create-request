@@ -143,6 +143,17 @@ const request = create
   // Authentication methods
   .withBearerToken("your-token") // Adds Authorization: Bearer your-token
   .withBasicAuth("username", "password") // HTTP Basic Authentication
+  .withAuthorization("auth-scheme value") // Custom authorization header
+
+  // Add a single cookie
+  .withCookie("language", "en-US")
+
+  // Add multiple cookies
+  .withCookies({
+    sessionId: "abc123",
+    preferences: { value: "dark-mode", secure: true },
+    tracking: { value: "enabled", sameSite: SameSitePolicy.STRICT },
+  })
 
   // URL parameters
   .withQueryParams({ search: "term", page: 1, limit: 20 })
@@ -157,7 +168,8 @@ const request = create
   .withRedirect(RedirectMode.FOLLOW) // Controls redirect behavior (follow, error, manual)
   .withReferrer("https://example.com") // Sets request referrer
   .withReferrerPolicy(ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE) // Controls referrer policy
-  .withPriority(RequestPriority.HIGH); // Sets request priority
+  .withPriority(RequestPriority.HIGH) // Sets request priority
+  .withKeepAlive(true); // Keeps connection alive after the page is unloaded
 ```
 
 Each configuration method returns the request object, allowing for a fluent interface where methods can be chained together. You can configure only what you need for a specific request:
