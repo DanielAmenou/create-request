@@ -109,9 +109,9 @@ import create from "create-request";
 const getRequest = create.get(); // GET
 const putRequest = create.put(); // PUT
 const postRequest = create.post(); // POST
+const headRequest = create.head(); // HEAD
 const patchRequest = create.patch(); // PATCH
 const deleteRequest = create.del(); // DELETE
-const headRequest = create.head(); // HEAD
 const optionsRequest = create.options(); // OPTIONS
 ```
 
