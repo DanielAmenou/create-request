@@ -120,7 +120,13 @@ const optionsRequest = create.options(); // OPTIONS
 The library provides a comprehensive set of configuration methods that can be chained together to customize your requests:
 
 ```typescript
-import create, { RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, ReferrerPolicy } from "create-request";
+import create, {
+  RequestPriority,
+  CredentialsPolicy,
+  RequestMode,
+  RedirectMode,
+  ReferrerPolicy,
+} from "create-request";
 
 // Configure request options
 const request = create
@@ -176,7 +182,11 @@ Each configuration method returns the request object, allowing for a fluent inte
 
 ```typescript
 // Simple example with just what's needed
-const searchUsers = create.get().withBearerToken(userToken).withQueryParams({ q: searchTerm, limit: 20 }).withTimeout(3000);
+const searchUsers = create
+  .get()
+  .withBearerToken(userToken)
+  .withQueryParams({ q: searchTerm, limit: 20 })
+  .withTimeout(3000);
 
 // Now execute the request
 const users = await searchUsers.sendTo("https://api.example.com/users").getData();
@@ -239,7 +249,9 @@ const bodyStream = await request.sendTo("https://api.example.com/endpoint").getB
 const arrayBuffer = await request.sendTo("https://api.example.com/endpoint").getArrayBuffer();
 
 // Using the data selector API to extract specific data
-const userData = await request.sendTo("https://api.example.com/users").getData(data => data.results.users);
+const userData = await request
+  .sendTo("https://api.example.com/users")
+  .getData(data => data.results.users);
 
 // Using the data selector without a selector function just returns the full JSON response
 const fullData = await request.sendTo("https://api.example.com/data").getData();
@@ -271,7 +283,11 @@ try {
 ### Caching Requests
 
 ```typescript
-import create, { createMemoryStorage, createLocalStorageStorage, createSessionStorageStorage } from "create-request";
+import create, {
+  createMemoryStorage,
+  createLocalStorageStorage,
+  createSessionStorageStorage,
+} from "create-request";
 
 // Simple in-memory caching
 const request = create
@@ -366,20 +382,28 @@ The `getData` method provides a powerful way to extract and transform specific d
 
 ```typescript
 // Extract specific properties from nested structures
-const posts = await request.sendTo("https://api.example.com/feed").getData(data => data.feed.posts);
+const posts = await request
+  .sendTo("https://api.example.com/feed")
+  .getData(data => data.feed.posts);
 
 // Transform data in the selector function
-const usernames = await request.sendTo("https://api.example.com/users").getData(data => data.users.map(user => user.username));
+const usernames = await request
+  .sendTo("https://api.example.com/users")
+  .getData(data => data.users.map(user => user.username));
 
 // Apply filtering in the selector
-const activeUsers = await request.sendTo("https://api.example.com/users").getData(data => data.users.filter(user => user.isActive));
+const activeUsers = await request
+  .sendTo("https://api.example.com/users")
+  .getData(data => data.users.filter(user => user.isActive));
 
 // Combine data from complex nested structures
-const combinedData = await request.sendTo("https://api.example.com/dashboard").getData(data => ({
-  userCount: data.stats.users.total,
-  recentPosts: data.content.recent.slice(0, 5),
-  notifications: data.user.notifications.unread,
-}));
+const combinedData = await request
+  .sendTo("https://api.example.com/dashboard")
+  .getData(data => ({
+    userCount: data.stats.users.total,
+    recentPosts: data.content.recent.slice(0, 5),
+    notifications: data.user.notifications.unread,
+  }));
 ```
 
 When a selector fails, the error message will contain the original response data to help diagnose the issue:
@@ -387,7 +411,9 @@ When a selector fails, the error message will contain the original response data
 ```typescript
 try {
   // This will fail if the response structure doesn't match expectations
-  const result = await request.sendTo("https://api.example.com/data").getData(data => data.results.items);
+  const result = await request
+    .sendTo("https://api.example.com/data")
+    .getData(data => data.results.items);
 } catch (error) {
   console.error(error);
   // Error message includes the original response data for debugging
@@ -469,7 +495,10 @@ interface ApiResponse<T> {
 }
 
 // Type the full response
-const response = await create.get().sendTo("https://api.example.com/users").getJson<ApiResponse<User[]>>();
+const response = await create
+  .get()
+  .sendTo("https://api.example.com/users")
+  .getJson<ApiResponse<User[]>>();
 
 // Or use getData with type parameters
 const users = await create
