@@ -6,7 +6,6 @@
   "module": "dist/library/index.esm.js",
   "types": "dist/library/index.d.ts",
   "sideEffects": false,
-  "type": "module",
   "files": [
     "dist/library"
   ],
