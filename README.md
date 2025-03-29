@@ -142,8 +142,6 @@ const request = create
   .withRetries(3) // Retry up to 3 times on failure
   .onRetry(({ attempt, error }) => {
     console.log(`Attempt ${attempt} failed: ${error.message}. Retrying...`);
-    // You can implement backoff strategy here
-    return new Promise(resolve => setTimeout(resolve, attempt * 1000));
   })
 
   // Authentication methods
