@@ -87,16 +87,16 @@ const treeShakeOptions = {
 };
 
 export default [
-  // UMD build
+  // CommonJS build
   {
     input: "src/index.ts",
     output: {
-      name: "createRequest",
       file: pkg.main,
-      format: "umd",
+      format: "cjs",
       exports: "named",
       sourcemap: true,
       compact: true,
+      interop: "auto",
     },
     plugins: [
       cleaner({
@@ -112,9 +112,8 @@ export default [
         sourceMap: true,
         declaration: true,
       }),
-      // Only apply minification in production builds
       ...(!isDev ? [terser(umdTerserConfig)] : []),
-      ...getVisualizerPlugin("umd-bundle-analysis.html"),
+      ...getVisualizerPlugin("cjs-bundle-analysis.html"),
     ],
     treeshake: treeShakeOptions,
   },
@@ -124,7 +123,7 @@ export default [
     output: {
       file: pkg.module,
       format: "es",
-      exports: "named",
+      exports: "auto",
       sourcemap: true,
       compact: true,
     },

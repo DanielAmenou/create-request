@@ -5,9 +5,18 @@
   "main": "dist/library/index.js",
   "module": "dist/library/index.esm.js",
   "types": "dist/library/index.d.ts",
+  "sideEffects": false,
+  "type": "module",
   "files": [
     "dist/library"
   ],
+  "exports": {
+    ".": {
+      "import": "./dist/library/index.esm.js",
+      "require": "./dist/library/index.js",
+      "types": "./dist/library/index.d.ts"
+    }
+  },
   "scripts": {
     "dev": "cross-env BUILD_ENV=development rollup -c rollup.config.js -w",
     "build": "cross-env BUILD_ENV=production rollup -c rollup.config.js",
@@ -41,7 +50,6 @@
     "type": "git",
     "url": "https://github.com/DanielAmenou/create-request.git"
   },
-  "sideEffects": false,
   "size-limit": [
     {
       "path": "dist/library/index.esm.js",
