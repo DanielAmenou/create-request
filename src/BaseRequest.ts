@@ -279,7 +279,7 @@ export abstract class BaseRequest {
     if (typeof Buffer !== "undefined") return Buffer.from(str).toString("base64");
 
     // Fallback (should never happen in modern environments)
-    throw new Error("Base64 encoding is not supported in this environment");
+    throw new Error("Base64 encoding is not supported");
   }
 
   /**
@@ -307,7 +307,7 @@ export abstract class BaseRequest {
    * @returns The instance for chaining
    */
   withCookies(cookies: CookiesRecord): this {
-    const cookieEntries = Object.entries(cookies);
+    const cookieEntries = Object.entries(cookies || {});
 
     if (cookieEntries.length === 0) {
       return this;
