@@ -93,10 +93,11 @@ export default [
     output: {
       file: pkg.main,
       format: "cjs",
-      exports: "named",
+      exports: "auto",
       sourcemap: true,
       compact: true,
       interop: "auto",
+      esModule: false,
     },
     plugins: [
       cleaner({
@@ -123,9 +124,11 @@ export default [
     output: {
       file: pkg.module,
       format: "es",
-      exports: "auto",
+      exports: "named",
       sourcemap: true,
       compact: true,
+      esModule: true,
+      interop: "auto",
     },
     plugins: [
       typescript({

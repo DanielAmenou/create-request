@@ -21,6 +21,9 @@ export { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadR
 export { createMemoryStorage, createLocalStorageStorage, createSessionStorageStorage } from "./utils/CacheStorage";
 export { CacheManager } from "./utils/CacheManager";
 
+// Export factory functions directly for both ESM and CommonJS usage
+export { get, post, put, del, patch, head, options };
+
 /**
  * Main API object for creating HTTP requests
  * Provides factory methods for all HTTP methods and access to global configuration.
@@ -38,3 +41,8 @@ const create = {
 
 // Default export
 export default create;
+
+// Support CommonJS require pattern by adding properties to module.exports
+if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
+  Object.assign(module.exports, create);
+}
