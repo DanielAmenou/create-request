@@ -6,19 +6,20 @@
   "module": "dist/library/index.esm.js",
   "types": "dist/library/index.d.ts",
   "sideEffects": false,
+  "type": "module",
   "files": [
     "dist/library"
   ],
   "exports": {
     ".": {
-      "import": "./dist/library/esm/index.js",
+      "import": "./dist/library/index.esm.js",
       "require": "./dist/library/index.js",
       "types": "./dist/library/index.d.ts"
     }
   },
   "scripts": {
     "dev": "cross-env BUILD_ENV=development rollup -c rollup.config.js -w",
-    "build": "cross-env BUILD_ENV=production rollup -c rollup.config.js",& node scripts/post-build.js",
+    "build": "cross-env BUILD_ENV=production rollup -c rollup.config.js",
     "analyze": "cross-env ANALYZE=true BUILD_ENV=production rollup -c rollup.config.js",
     "lint": "eslint 'src/**/*.{js,ts,json}' 'test/**/*.{js,ts,json}'",
     "lint:fix": "eslint \"**/*.ts\" --ignore-path .eslintignore --fix",

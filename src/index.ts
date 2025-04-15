@@ -41,8 +41,3 @@ const create = {
 
 // Default export
 export default create;
-
-// Support CommonJS require pattern by adding properties to module.exports
-if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
-  Object.assign(module.exports, create);
-}
