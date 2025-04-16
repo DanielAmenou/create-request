@@ -10,6 +10,7 @@ import fs from "node:fs";
 // Environment configuration
 const isDev = process.env.ROLLUP_WATCH === "true" || process.env.BUILD_ENV === "development";
 const isVisualize = process.env.ANALYZE === "true";
+const shouldMinify = process.env.MINIFY === "true";
 
 // Create bundle analysis directory if visualizing
 if (isVisualize) {
@@ -86,60 +87,106 @@ const treeShakeOptions = {
   tryCatchDeoptimization: false,
 };
 
-export default [
-  // CommonJS build
-  {
-    input: "src/index.ts",
-    output: {
-      file: pkg.main,
-      format: "cjs",
-      exports: "named",
-      sourcemap: true,
-      compact: true,
-      interop: "auto",
-      esModule: false,
-    },
-    plugins: [
-      cleaner({
-        targets: ["./dist/library"],
-      }),
-      resolve({
-        browser: true,
-        preferBuiltins: false,
-      }),
-      commonjs(),
-      typescript({
-        tsconfig: "./tsconfig.json",
-        sourceMap: true,
-        declaration: true,
-      }),
-      ...(!isDev ? [terser(umdTerserConfig)] : []),
-      ...getVisualizerPlugin("cjs-bundle-analysis.html"),
-    ],
-    treeshake: treeShakeOptions,
+// Base configuration for CommonJS
+const cjsBaseConfig = {
+  input: "src/index.ts",
+  output: {
+    format: "cjs",
+    exports: "named",
+    sourcemap: true,
+    compact: shouldMinify,
+    interop: "auto",
+    esModule: false,
   },
-  // ESM build
-  {
-    input: "src/index.ts",
-    output: {
-      file: pkg.module,
-      format: "es",
-      exports: "named",
-      sourcemap: true,
-      compact: true,
-      esModule: true,
-      interop: "auto",
-    },
-    plugins: [
-      typescript({
-        tsconfig: "./tsconfig.json",
-        sourceMap: true,
-        declaration: false,
-        declarationDir: undefined,
-      }),
-      ...(!isDev ? [terser(esmTerserConfig)] : []),
-      ...getVisualizerPlugin("esm-bundle-analysis.html"),
-    ],
-    treeshake: treeShakeOptions,
+  plugins: [
+    resolve({
+      browser: true,
+      preferBuiltins: false,
+    }),
+    commonjs(),
+    typescript({
+      tsconfig: "./tsconfig.json",
+      sourceMap: true,
+      declaration: true,
+    }),
+  ],
+  treeshake: treeShakeOptions,
+};
+
+// Base configuration for ESM
+const esmBaseConfig = {
+  input: "src/index.ts",
+  output: {
+    format: "es",
+    exports: "named",
+    sourcemap: true,
+    compact: shouldMinify,
+    esModule: true,
+    interop: "auto",
   },
-];
+  plugins: [
+    typescript({
+      tsconfig: "./tsconfig.json",
+      sourceMap: true,
+      declaration: false,
+      declarationDir: undefined,
+    }),
+  ],
+  treeshake: treeShakeOptions,
+};
+
+// Generate configurations
+const configs = [];
+
+// Add non-minified CJS
+configs.push({
+  ...cjsBaseConfig,
+  output: {
+    ...cjsBaseConfig.output,
+    file: pkg.main,
+  },
+  plugins: [
+    cleaner({
+      targets: ["./dist/library"],
+    }),
+    ...cjsBaseConfig.plugins,
+    ...getVisualizerPlugin("cjs-bundle-analysis.html"),
+  ],
+});
+
+// Add non-minified ESM
+configs.push({
+  ...esmBaseConfig,
+  output: {
+    ...esmBaseConfig.output,
+    file: pkg.module,
+  },
+  plugins: [...esmBaseConfig.plugins, ...getVisualizerPlugin("esm-bundle-analysis.html")],
+});
+
+// Add minified versions if requested
+if (shouldMinify || !isDev) {
+  // Add minified CJS
+  configs.push({
+    ...cjsBaseConfig,
+    output: {
+      ...cjsBaseConfig.output,
+      file: pkg.main.replace(".js", ".min.js"),
+      compact: true,
+    },
+    plugins: [...cjsBaseConfig.plugins, terser(umdTerserConfig), ...getVisualizerPlugin("cjs-min-bundle-analysis.html")],
+  });
+
+  // Add minified ESM
+  configs.push({
+    ...esmBaseConfig,
+    output: {
+      ...esmBaseConfig.output,
+      file: pkg.module.replace(".esm.js", ".esm.min.js"),
+      compact: true,
+    },
+    plugins: [...esmBaseConfig.plugins, terser(esmTerserConfig), ...getVisualizerPlugin("esm-min-bundle-analysis.html")],
+  });
+}
+
+export default configs;
