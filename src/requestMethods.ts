@@ -1,6 +1,6 @@
-import { BaseRequest } from "./BaseRequest";
-import { BodyRequest } from "./BodyRequest";
-import { HttpMethod } from "./enums";
+import { BaseRequest } from "./BaseRequest.js";
+import { BodyRequest } from "./BodyRequest.js";
+import { HttpMethod } from "./enums.js";
 
 /**
  * HTTP GET request implementation

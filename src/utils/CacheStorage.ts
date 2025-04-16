@@ -1,5 +1,5 @@
-import type { CacheOptions } from "../types/cache";
-import type { StorageProvider } from "./StorageProvider";
+import type { CacheOptions } from "../types/cache.js";
+import type { StorageProvider } from "./StorageProvider.js";
 
 /**
  * Create a memory storage provider using Map

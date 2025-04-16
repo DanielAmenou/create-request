@@ -1,4 +1,4 @@
-import type { CookiesRecord } from "../types";
+import type { CookiesRecord } from "../types.js";
 
 export class CookieUtils {
   /**

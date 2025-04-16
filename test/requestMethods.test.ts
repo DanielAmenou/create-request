@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
 
-import { HttpMethod } from "../src/enums";
-import { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadRequest, OptionsRequest } from "../src/requestMethods";
+import { HttpMethod } from "../src/enums.js";
+import { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadRequest, OptionsRequest } from "../src/requestMethods.js";
 
-import { FetchMock } from "./utils/fetchMock";
+import { FetchMock } from "./utils/fetchMock.js";
 
 describe("Request Methods", () => {
   beforeEach(() => {

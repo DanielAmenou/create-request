@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Blob } from "node:buffer";
 import { describe, it } from "node:test";
 
-import { ResponseWrapper } from "../src/ResponseWrapper";
+import { ResponseWrapper } from "../src/ResponseWrapper.js";
 
 describe("ResponseWrapper", () => {
   it("should properly wrap a Response object", () => {

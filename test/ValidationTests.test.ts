@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { GetRequest } from "../src/requestMethods";
+import { GetRequest } from "../src/requestMethods.js";
 
 describe("Request Validation", () => {
   describe("withTimeout validation", () => {

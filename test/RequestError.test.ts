@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { RequestError } from "../src/RequestError";
+import { RequestError } from "../src/RequestError.js";
 
 describe("RequestError", () => {
   it("should create a basic RequestError", () => {

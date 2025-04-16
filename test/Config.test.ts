@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import { GetRequest } from "../src/requestMethods";
-import { Config } from "../src/utils/Config";
-import { FetchMock } from "./utils/fetchMock";
+import { GetRequest } from "../src/requestMethods.js";
+import { Config } from "../src/utils/Config.js";
+import { FetchMock } from "./utils/fetchMock.js";
 
 describe("Config", () => {
   let config: any;

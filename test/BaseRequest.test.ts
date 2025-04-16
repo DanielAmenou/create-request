@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import { RequestMode, RedirectMode, SameSitePolicy, RequestPriority, CredentialsPolicy } from "../src/enums";
-import create from "../src/index";
-import { RequestError } from "../src/RequestError";
-import { GetRequest } from "../src/requestMethods";
-import type { CookieOptions } from "../src/types";
-import { FetchMock, wait } from "./utils/fetchMock";
+import { RequestMode, RedirectMode, SameSitePolicy, RequestPriority, CredentialsPolicy } from "../src/enums.js";
+import create from "../src/index.js";
+import { RequestError } from "../src/RequestError.js";
+import { GetRequest } from "../src/requestMethods.js";
+import type { CookieOptions } from "../src/types.js";
+import { FetchMock, wait } from "./utils/fetchMock.js";
 
 describe("BaseRequest", () => {
   beforeEach(() => {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import { CsrfUtils } from "../src/utils/CsrfUtils";
+import { CsrfUtils } from "../src/utils/CsrfUtils.js";
 
 describe("CsrfUtils", () => {
   // Mock document object

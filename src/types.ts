@@ -1,5 +1,5 @@
 import { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, CacheMode, SameSitePolicy } from "./enums";
-import type { RequestError } from "./RequestError";
+import type { RequestError } from "./RequestError.js";
 
 export type Body = null | Blob | string | object | FormData | ArrayBuffer | URLSearchParams | ReadableStream;
 

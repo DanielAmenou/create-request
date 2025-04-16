@@ -1,12 +1,12 @@
-import { type HttpMethod, type RedirectMode, type RequestMode, type RequestPriority, CredentialsPolicy } from "./enums";
-import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions } from "./types";
-import { type ResponsePromise, ResponseWrapper } from "./ResponseWrapper";
-import type { CacheOptions } from "./types/cache";
-import { CacheManager } from "./utils/CacheManager";
-import { CookieUtils } from "./utils/CookieUtils";
-import { RequestError } from "./RequestError";
-import { CsrfUtils } from "./utils/CsrfUtils";
-import { Config } from "./utils/Config";
+import { type HttpMethod, type RedirectMode, type RequestMode, type RequestPriority, CredentialsPolicy } from "./enums.js";
+import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions } from "./types.js";
+import { type ResponsePromise, ResponseWrapper } from "./ResponseWrapper.js";
+import type { CacheOptions } from "./types/cache.js";
+import { CacheManager } from "./utils/CacheManager.js";
+import { CookieUtils } from "./utils/CookieUtils.js";
+import { RequestError } from "./RequestError.js";
+import { CsrfUtils } from "./utils/CsrfUtils.js";
+import { Config } from "./utils/Config.js";
 
 /**
  * Base class with common functionality for all request types

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import create from "../src/index";
-import { RequestError } from "../src/RequestError";
-import { FetchMock } from "./utils/fetchMock";
+import create from "../src/index.js";
+import { RequestError } from "../src/RequestError.js";
+import { FetchMock } from "./utils/fetchMock.js";
 
 describe("Error Handling Tests", () => {
   beforeEach(() => {

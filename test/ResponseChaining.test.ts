@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { Blob } from "node:buffer";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import { GetRequest } from "../src/requestMethods";
-import { FetchMock } from "./utils/fetchMock";
+import { GetRequest } from "../src/requestMethods.js";
+import { FetchMock } from "./utils/fetchMock.js";
 
 describe("Response Chaining API", () => {
   beforeEach(() => {

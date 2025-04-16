@@ -1,7 +1,7 @@
-import type { CacheEntry, CacheOptions } from "../types/cache";
-import { createStorageProvider } from "./CacheStorage";
-import type { StorageProvider } from "./StorageProvider";
-import { parseSize } from "./sizeUtils";
+import type { CacheEntry, CacheOptions } from "../types/cache.js";
+import { createStorageProvider } from "./CacheStorage.js";
+import type { StorageProvider } from "./StorageProvider.js";
+import { parseSize } from "./sizeUtils.js";
 
 /**
  * Cache manager that handles storage operations

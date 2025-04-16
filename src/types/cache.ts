@@ -1,4 +1,4 @@
-import type { StorageProvider } from "../utils/StorageProvider";
+import type { StorageProvider } from "../utils/StorageProvider.js";
 
 /**
  * Cache entry with metadata

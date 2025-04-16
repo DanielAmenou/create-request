@@ -1,3 +1,5 @@
+import { RequestError } from "./RequestError.js";
+
 /**
  * Wrapper for HTTP responses with methods to transform the response data
  * Provides caching and conversion between different response formats.

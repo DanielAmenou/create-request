@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import { Blob } from "node:buffer";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import create from "../src/index";
-import { PostRequest } from "../src/requestMethods";
-
-import { FetchMock } from "./utils/fetchMock";
+import create from "../src/index.js";
+import { PostRequest } from "../src/requestMethods.js";
+import { FetchMock } from "./utils/fetchMock.js";
 
 describe("BodyRequest", () => {
   beforeEach(() => {

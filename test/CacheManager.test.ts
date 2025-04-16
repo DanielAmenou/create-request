@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import create from "../src/index";
-import { CacheManager } from "../src/utils/CacheManager";
-import { createMemoryStorage } from "../src/utils/CacheStorage";
-import type { StorageProvider } from "../src/utils/StorageProvider";
-import { FetchMock } from "./utils/fetchMock";
+import create from "../src/index.js";
+import { CacheManager } from "../src/utils/CacheManager.js";
+import { createMemoryStorage } from "../src/utils/CacheStorage.js";
+import type { StorageProvider } from "../src/utils/StorageProvider.js";
+import { FetchMock } from "./utils/fetchMock.js";
 
 describe("CacheManager", () => {
   let cacheManager: CacheManager;

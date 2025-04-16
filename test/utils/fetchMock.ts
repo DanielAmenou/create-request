@@ -8,6 +8,8 @@ type MockResponseInit = {
   body?: unknown;
 };
 
+type ResponseBody = Record<string, any> | string | null;
+
 /**
  * Creates a mock Response object for testing
  */

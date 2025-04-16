@@ -1,6 +1,6 @@
-import { BaseRequest } from "./BaseRequest";
-import { BodyType } from "./enums";
-import type { Body } from "./types";
+import { BaseRequest } from "./BaseRequest.js";
+import { BodyType } from "./enums.js";
+import type { Body } from "./types.js";
 
 /**
  * Base class for requests that can have a body (POST, PUT, PATCH)
