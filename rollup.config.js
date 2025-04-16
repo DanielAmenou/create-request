@@ -93,7 +93,7 @@ export default [
     output: {
       file: pkg.main,
       format: "cjs",
-      exports: "auto",
+      exports: "named",
       sourcemap: true,
       compact: true,
       interop: "auto",
