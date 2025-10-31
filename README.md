@@ -14,6 +14,8 @@
 - [Installation](#installation)
 - [Basic Usage](#basic-usage)
 - [Advanced Usage](#advanced-usage)
+- [GraphQL Support](#graphql-support)
+- [Interceptors](#interceptors)
 - [TypeScript Support](#typescript-support)
 - [CSRF Protection](#csrf-protection)
 - [Performance Considerations](#performance-considerations)
@@ -34,6 +36,8 @@
 - 📉 **Reduced Boilerplate** - Write 60% less code for common API operations
 - 🔒 **CSRF Protection** - Built-in safeguards against cross-site request forgery
 - 🛑 **Request Cancellation** - Abort requests on demand with AbortController integration
+- 🔌 **Interceptors** - Global and per-request interceptors for requests, responses, and errors
+- 📊 **GraphQL Support** - Built-in GraphQL query and mutation helpers
 
 ## Why create-request?
 
@@ -157,9 +161,10 @@ const request = create
     tracking: { value: "enabled", sameSite: SameSitePolicy.STRICT },
   })
 
-  // URL parameters
-  .withQueryParams({ search: "term", page: 1, limit: 20 })
+  // URL parameters (supports arrays, null/undefined filtering, and all types)
+  .withQueryParams({ search: "term", page: 1, limit: 20, tags: ["js", "ts"] })
   .withQueryParam("filter", "active") // Add a single query parameter
+  .withQueryParam("ids", [1, 2, 3]) // Array values create multiple query params
 
   // Request body configuration (for POST/PUT/PATCH)
   .withContentType("application/json") // Set specific content type
@@ -214,6 +219,74 @@ params.append("password", "secret");
 const formUrlEncodedRequest = create.post("https://api.example.com/login").withBody(params);
 ```
 
+### GraphQL Requests
+
+The library provides built-in support for GraphQL queries and mutations:
+
+```typescript
+// GraphQL query without variables
+const users = await create
+  .post("https://api.example.com/graphql")
+  .withGraphQL("query { users { id name email } }")
+  .getJson();
+
+// GraphQL query with variables
+const user = await create
+  .post("https://api.example.com/graphql")
+  .withGraphQL("query GetUser($id: ID!) { user(id: $id) { name email } }", { id: "123" })
+  .getJson();
+
+// GraphQL mutation
+const result = await create
+  .post("https://api.example.com/graphql")
+  .withGraphQL(
+    "mutation CreateUser($name: String!) { createUser(name: $name) { id name } }",
+    { name: "John Doe" }
+  )
+  .getJson();
+```
+
+The `withGraphQL` method automatically:
+
+- Formats the body as JSON with `query` and optional `variables` properties
+- Sets `Content-Type` to `application/json`
+- Trims whitespace from the query string
+- Validates the query is non-empty
+- Validates variables are a plain object (not arrays or null)
+
+### Query Parameters Advanced Features
+
+The library supports advanced query parameter handling:
+
+```typescript
+// Array values create multiple query params with the same key
+const request = create.get("https://api.example.com/search").withQueryParams({
+  tags: ["javascript", "typescript", "node"], // ?tags=javascript&tags=typescript&tags=node
+  page: 1,
+  active: true,
+});
+
+// Null and undefined values are automatically filtered out
+const filtered = create.get("https://api.example.com/users").withQueryParams({
+  name: "John",
+  age: null, // Ignored
+  email: undefined, // Ignored
+});
+
+// Supports all JavaScript types (strings, numbers, booleans, arrays)
+const typed = create.get("https://api.example.com/data").withQueryParams({
+  page: 1, // Number
+  active: true, // Boolean
+  tags: ["js", "ts"], // Array
+  name: "John", // String
+});
+
+// Merge with existing query params in URL
+const merged = create
+  .get("https://api.example.com/users?existing=value")
+  .withQueryParams({ new: "param" }); // Both existing and new params included
+```
+
 ### Executing Requests
 
 ```typescript
@@ -260,6 +333,186 @@ try {
 
 ## Advanced Usage
 
+### GraphQL Support
+
+`create-request` provides first-class support for GraphQL with the `withGraphQL` method:
+
+```typescript
+// Simple query
+const query = "query { user { name email } }";
+const data = await create
+  .post("https://api.example.com/graphql")
+  .withGraphQL(query)
+  .getJson();
+
+// Query with variables
+const queryWithVars = "query GetUser($id: ID!) { user(id: $id) { name email } }";
+const user = await create
+  .post("https://api.example.com/graphql")
+  .withGraphQL(queryWithVars, { id: "123" })
+  .getJson();
+
+// Mutation
+const mutation =
+  "mutation CreateUser($name: String!) { createUser(name: $name) { id name } }";
+const result = await create
+  .post("https://api.example.com/graphql")
+  .withGraphQL(mutation, { name: "John Doe" })
+  .getJson();
+
+// Complex variables with nested objects
+const complexQuery =
+  "query SearchUsers($filters: UserFilters!) { users(filters: $filters) { id name } }";
+const results = await create
+  .post("https://api.example.com/graphql")
+  .withGraphQL(complexQuery, {
+    filters: {
+      name: "John",
+      age: 30,
+      tags: ["active", "verified"],
+      metadata: {
+        source: "web",
+        verified: true,
+      },
+    },
+  })
+  .getJson();
+```
+
+### Interceptors
+
+Interceptors allow you to modify requests, transform responses, or handle errors globally or per-request. This is perfect for adding authentication tokens, logging, error recovery, and more.
+
+#### Global Interceptors
+
+Global interceptors apply to all requests:
+
+```typescript
+// Add a global request interceptor (modify all requests)
+const requestInterceptorId = create.config.addRequestInterceptor(config => {
+  // Add auth token to all requests
+  config.headers["Authorization"] = `Bearer ${getToken()}`;
+  // Modify URL, headers, body, etc.
+  return config;
+});
+
+// Add a global response interceptor (transform all responses)
+const responseInterceptorId = create.config.addResponseInterceptor(response => {
+  console.log(`Response received: ${response.status}`);
+  // Transform or modify the response
+  return response;
+});
+
+// Add a global error interceptor (handle all errors)
+const errorInterceptorId = create.config.addErrorInterceptor(error => {
+  console.error("Request failed:", error.message);
+  // Can throw to propagate error, or return ResponseWrapper to recover
+  throw error;
+});
+
+// Remove interceptors when no longer needed
+create.config.removeRequestInterceptor(requestInterceptorId);
+create.config.removeResponseInterceptor(responseInterceptorId);
+create.config.removeErrorInterceptor(errorInterceptorId);
+
+// Clear all interceptors at once
+create.config.clearInterceptors();
+```
+
+#### Per-Request Interceptors
+
+Per-request interceptors apply only to a specific request:
+
+```typescript
+// Request interceptor - modify request configuration
+const data = await create
+  .get("https://api.example.com/users")
+  .withRequestInterceptor(config => {
+    config.headers["X-Custom-Header"] = "value";
+    config.url = "https://api.example.com/modified-url"; // Can modify URL
+    return config;
+  })
+  .getJson();
+
+// Response interceptor - transform response
+const transformed = await create
+  .get("https://api.example.com/users")
+  .withResponseInterceptor(response => {
+    console.log(`Got response with status ${response.status}`);
+    return response;
+  })
+  .getJson();
+
+// Error interceptor - handle or recover from errors
+const recovered = await create
+  .get("https://api.example.com/users")
+  .withErrorInterceptor(error => {
+    // Option 1: Throw to propagate error
+    throw error;
+
+    // Option 2: Return a ResponseWrapper to recover from error
+    // return new ResponseWrapper(fallbackResponse, error.url, error.method);
+  })
+  .getJson();
+```
+
+#### Interceptor Execution Order
+
+Interceptors execute in a specific order:
+
+1. **Request interceptors**: Global interceptors run first (in registration order), then per-request interceptors (in registration order)
+2. **Response interceptors**: Per-request interceptors run first (in registration order), then global interceptors (in reverse registration order)
+3. **Error interceptors**: Per-request interceptors run first (in registration order), then global interceptors (in reverse registration order)
+
+```typescript
+// Request: Global 1 → Global 2 → Per-request 1 → Per-request 2
+// Response: Per-request 1 → Per-request 2 → Global 2 → Global 1
+const data = await create
+  .get("https://api.example.com/users")
+  .withRequestInterceptor(() => console.log("Per-request 1"))
+  .withRequestInterceptor(() => console.log("Per-request 2"))
+  .getJson();
+```
+
+#### Advanced Interceptor Patterns
+
+```typescript
+// Short-circuit request with early response
+const cached = await create
+  .get("https://api.example.com/users")
+  .withRequestInterceptor(() => {
+    // Return early response from cache
+    return new Response(JSON.stringify(cachedData), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  })
+  .getJson();
+
+// Recover from error with fallback
+const fallback = await create
+  .get("https://api.example.com/users")
+  .withErrorInterceptor(error => {
+    // Return fallback response instead of throwing
+    const fallbackResponse = new Response(JSON.stringify({ users: [] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+    return new ResponseWrapper(fallbackResponse, error.url, error.method);
+  })
+  .getJson();
+
+// Async interceptors
+const asyncData = await create
+  .get("https://api.example.com/users")
+  .withRequestInterceptor(async config => {
+    const token = await getTokenAsync();
+    config.headers["Authorization"] = `Bearer ${token}`;
+    return config;
+  })
+  .getJson();
+```
+
 ### Request Cancellation
 
 ```typescript
@@ -284,6 +537,31 @@ try {
     console.log("Other error:", error.message);
   }
 }
+```
+
+### URL Handling
+
+The library handles both absolute and relative URLs, and automatically merges query parameters:
+
+```typescript
+// Relative URLs (preserved as-is)
+const relative = await create.get("/api/users").getJson();
+
+// Absolute URLs
+const absolute = await create.get("https://api.example.com/users").getJson();
+
+// Merging query params with existing URL params
+const merged = await create
+  .get("https://api.example.com/users?page=1")
+  .withQueryParams({ limit: 20, sort: "name" })
+  .getJson();
+// Result: https://api.example.com/users?page=1&limit=20&sort=name
+
+// Special characters and unicode are properly encoded
+const encoded = await create
+  .get("https://api.example.com/search")
+  .withQueryParams({ name: "用户名", filter: "status:active" })
+  .getJson();
 ```
 
 ### Data Selection
@@ -444,7 +722,6 @@ This library works with all browsers that support the Fetch API:
 | **HTTP/2**          | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
 | **Auto Retries**    | ✅             | ❌     | 🛠️      | ✅         | ✅      | ✅     | ❌         | ❌       |
 | **Cancellation**    | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
-| **Caching**         | ❌             | ❌     | ❌      | ✅         | ✅      | ❌     | ❌         | ❌       |
 | **Auto JSON**       | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ✅       |
 | **Timeout**         | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
 | **TypeScript**      | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
@@ -456,6 +733,8 @@ This library works with all browsers that support the Fetch API:
 | **Zero Deps**       | ✅             | ✅     | ❌      | ❌         | ❌      | ✅     | ✅         | ✅       |
 | **Chainable API**   | ✅             | ❌     | ❌      | ✅         | ✅      | ✅     | ❌         | ❌       |
 | **CSRF Protection** | ✅             | ❌     | ✅      | ❌         | ❌      | ❌     | ❌         | ❌       |
+| **GraphQL Support** | ✅             | ❌     | ❌      | ❌         | ❌      | ❌     | ❌         | ❌       |
+| **Interceptors**    | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
 
 **Notes:**
 
