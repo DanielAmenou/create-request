@@ -4,6 +4,7 @@ export class RequestError extends Error {
   public readonly url: string;
   public readonly method: string;
   public readonly isTimeout?: boolean;
+  public readonly isAborted?: boolean;
 
   constructor(
     message: string,
@@ -13,6 +14,7 @@ export class RequestError extends Error {
       status?: number;
       response?: Response;
       isTimeout?: boolean;
+      isAborted?: boolean;
     } = {}
   ) {
     super(message);
@@ -22,6 +24,7 @@ export class RequestError extends Error {
     this.status = options.status;
     this.response = options.response;
     this.isTimeout = options.isTimeout;
+    this.isAborted = options.isAborted;
 
     // For better stack traces in modern environments
     if (Error.captureStackTrace) {
@@ -53,5 +56,11 @@ export class RequestError extends Error {
     const error = new RequestError(`Network error: ${originalError.message}`, url, method);
     error.stack = originalError.stack;
     return error;
+  }
+
+  static abortError(url: string, method: string): RequestError {
+    return new RequestError("Request was aborted", url, method, {
+      isAborted: true,
+    });
   }
 }

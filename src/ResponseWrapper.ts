@@ -6,6 +6,8 @@ import { RequestError } from "./RequestError.js";
  */
 export class ResponseWrapper {
   private readonly response: Response;
+  public readonly url?: string;
+  public readonly method?: string;
 
   // Cache properties for each response type
   private textCache: string | undefined;
@@ -13,8 +15,10 @@ export class ResponseWrapper {
   private blobCache: Blob | undefined;
   private bodyUsed = false;
 
-  constructor(response: Response) {
+  constructor(response: Response, url?: string, method?: string) {
     this.response = response;
+    this.url = url;
+    this.method = method;
   }
 
   // Wrapper properties
@@ -63,16 +67,37 @@ export class ResponseWrapper {
           return parsed as T;
         } catch (e) {
           const errorMessage = e instanceof Error ? e.message : String(e);
+          if (this.url && this.method) {
+            throw new RequestError(`Cannot parse cached text as JSON: ${errorMessage}`, this.url, this.method, {
+              response: this.response,
+            });
+          }
           throw new Error(`Cannot parse cached text as JSON: ${errorMessage}`);
         }
+      }
+      if (this.url && this.method) {
+        throw new RequestError("Response body has already been consumed in a different format", this.url, this.method, {
+          response: this.response,
+        });
       }
       throw new Error("Response body has already been consumed in a different format");
     }
 
     this.bodyUsed = true;
-    const parsed: unknown = await this.response.json();
-    this.jsonCache = parsed;
-    return parsed as T;
+    try {
+      const parsed: unknown = await this.response.json();
+      this.jsonCache = parsed;
+      return parsed as T;
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      if (this.url && this.method) {
+        throw new RequestError(`Failed to parse response as JSON: ${errorMessage}`, this.url, this.method, {
+          status: this.response.status,
+          response: this.response,
+        });
+      }
+      throw e;
+    }
   }
 
   /**
@@ -100,16 +125,42 @@ export class ResponseWrapper {
 
       // If we have blob, convert to text
       if (this.blobCache !== undefined) {
-        this.textCache = await this.blobCache.text();
-        return this.textCache;
+        try {
+          this.textCache = await this.blobCache.text();
+          return this.textCache;
+        } catch (e) {
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          if (this.url && this.method) {
+            throw new RequestError(`Failed to convert blob to text: ${errorMessage}`, this.url, this.method, {
+              response: this.response,
+            });
+          }
+          throw e;
+        }
       }
 
+      if (this.url && this.method) {
+        throw new RequestError("Response body has already been consumed in a format that cannot be converted to text", this.url, this.method, {
+          response: this.response,
+        });
+      }
       throw new Error("Response body has already been consumed in a format that cannot be converted to text");
     }
 
     this.bodyUsed = true;
-    this.textCache = await this.response.text();
-    return this.textCache;
+    try {
+      this.textCache = await this.response.text();
+      return this.textCache;
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      if (this.url && this.method) {
+        throw new RequestError(`Failed to read response as text: ${errorMessage}`, this.url, this.method, {
+          status: this.response.status,
+          response: this.response,
+        });
+      }
+      throw e;
+    }
   }
 
   /**
@@ -135,12 +186,28 @@ export class ResponseWrapper {
         this.blobCache = new Blob([this.textCache], { type: "text/plain" });
         return this.blobCache;
       }
+      if (this.url && this.method) {
+        throw new RequestError("Response body has already been consumed in a format that cannot be converted to Blob", this.url, this.method, {
+          response: this.response,
+        });
+      }
       throw new Error("Response body has already been consumed in a format that cannot be converted to Blob");
     }
 
     this.bodyUsed = true;
-    this.blobCache = await this.response.blob();
-    return this.blobCache;
+    try {
+      this.blobCache = await this.response.blob();
+      return this.blobCache;
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      if (this.url && this.method) {
+        throw new RequestError(`Failed to read response as blob: ${errorMessage}`, this.url, this.method, {
+          status: this.response.status,
+          response: this.response,
+        });
+      }
+      throw e;
+    }
   }
 
   /**
@@ -159,6 +226,11 @@ export class ResponseWrapper {
    */
   getBody(): ReadableStream<Uint8Array> | null {
     if (this.bodyUsed) {
+      if (this.url && this.method) {
+        throw new RequestError("Response body has already been consumed", this.url, this.method, {
+          response: this.response,
+        });
+      }
       throw new Error("Response body has already been consumed");
     }
 

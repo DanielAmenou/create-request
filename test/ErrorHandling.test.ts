@@ -82,8 +82,10 @@ describe("Error Handling Tests", () => {
         await request.getJson();
         assert.fail("Should have thrown a JSON parsing error");
       } catch (error) {
-        assert(error instanceof SyntaxError);
-        assert(error.message.includes("Unexpected token"));
+        assert(error instanceof RequestError);
+        assert(error.message.includes("JSON"));
+        assert.equal(error.url, "https://api.example.com/data");
+        assert.equal(error.method, "GET");
       }
     });
 
@@ -100,8 +102,10 @@ describe("Error Handling Tests", () => {
         await request.getJson();
         assert.fail("Should have thrown a JSON parsing error");
       } catch (error) {
-        assert(error instanceof SyntaxError);
-        assert(error.message.includes("Unexpected end of JSON input"));
+        assert(error instanceof RequestError);
+        assert(error.message.includes("JSON"));
+        assert.equal(error.url, "https://api.example.com/data");
+        assert.equal(error.method, "GET");
       }
     });
 
@@ -118,7 +122,10 @@ describe("Error Handling Tests", () => {
         await request.getJson();
         assert.fail("Should have thrown a JSON parsing error");
       } catch (error) {
-        assert(error instanceof SyntaxError);
+        assert(error instanceof RequestError);
+        assert(error.message.includes("JSON"));
+        assert.equal(error.url, "https://api.example.com/data");
+        assert.equal(error.method, "GET");
       }
     });
     //   // Arrange
@@ -578,7 +585,10 @@ describe("Error Handling Tests", () => {
         await request.getJson();
         assert.fail("Should have thrown an error");
       } catch (error) {
-        assert(error instanceof SyntaxError);
+        assert(error instanceof RequestError);
+        assert(error.message.includes("JSON"));
+        assert.equal(error.url, "https://api.example.com/data");
+        assert.equal(error.method, "GET");
       }
     });
 

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { Blob } from "node:buffer";
 import { describe, it, beforeEach, afterEach } from "node:test";
 import { GetRequest } from "../src/requestMethods.js";
+import { RequestError } from "../src/RequestError.js";
 import { FetchMock } from "./utils/fetchMock.js";
 
 describe("Response Chaining API", () => {
@@ -314,9 +315,12 @@ describe("Response Chaining API", () => {
     // Assert
     try {
       await response.getJson();
-      assert.fail("Should have thrown a SyntaxError for malformed JSON");
+      assert.fail("Should have thrown a RequestError for malformed JSON");
     } catch (error) {
-      assert(error instanceof SyntaxError);
+      assert(error instanceof RequestError);
+      assert(error.message.includes("JSON"));
+      assert.equal(error.url, "https://api.example.com/test");
+      assert.equal(error.method, "GET");
     }
   });
 
@@ -454,7 +458,10 @@ describe("Response Chaining API", () => {
       await response1.getJson();
       assert.fail("Should have thrown an error when parsing text as JSON");
     } catch (error) {
-      assert(error instanceof SyntaxError);
+      assert(error instanceof RequestError);
+      assert(error.message.includes("JSON"));
+      assert.equal(error.url, "https://api.example.com/test");
+      assert.equal(error.method, "GET");
     }
 
     // Second request - getting it as text should work

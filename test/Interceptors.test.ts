@@ -489,8 +489,8 @@ describe("Error Interceptors", () => {
 
     FetchMock.mockResponseOnce({ status: 500 });
 
-    const request = new GetRequest("https://api.example.com/test").withErrorInterceptor(() => {
-      return new ResponseWrapper(fallbackResponse);
+    const request = new GetRequest("https://api.example.com/test").withErrorInterceptor(error => {
+      return new ResponseWrapper(fallbackResponse, error.url, error.method);
     });
 
     // Act
@@ -553,8 +553,8 @@ describe("Error Interceptors", () => {
 
     FetchMock.mockResponseOnce({ status: 500 });
 
-    const request = new GetRequest("https://api.example.com/test").withErrorInterceptor(() => {
-      return new ResponseWrapper(fallbackResponse);
+    const request = new GetRequest("https://api.example.com/test").withErrorInterceptor(error => {
+      return new ResponseWrapper(fallbackResponse, error.url, error.method);
     });
 
     // Act

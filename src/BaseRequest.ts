@@ -550,20 +550,21 @@ export abstract class BaseRequest {
       // Apply the selector if provided
       return selector(data);
     } catch (error) {
+      // If it's already a RequestError, re-throw it
+      if (error instanceof RequestError) {
+        throw error;
+      }
+
       // Enhance selector errors with context
       if (selector) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        const enhancedError = new Error(`Data selector failed: ${errorMessage}`);
-
-        // Preserve the stack trace if available
-        if (error instanceof Error && error.stack) {
-          enhancedError.stack = error.stack;
-        }
-
-        throw enhancedError;
+        throw new RequestError(`Data selector failed: ${errorMessage}`, this.url, this.method);
       }
 
-      throw error;
+      // If we get here and it's not a RequestError, wrap it
+      // This should rarely happen as ResponseWrapper methods should throw RequestError
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      throw RequestError.networkError(this.url, this.method, errorObj);
     }
   }
 
@@ -693,7 +694,8 @@ export abstract class BaseRequest {
         currentConfig = result;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new Error(`Request interceptor ${i + 1} failed: ${errorMessage}`);
+        // Use RequestError when we have request context
+        throw new RequestError(`Request interceptor ${i + 1} failed: ${errorMessage}`, currentConfig.url, currentConfig.method);
       }
     }
 
@@ -719,6 +721,11 @@ export abstract class BaseRequest {
         currentResponse = await allInterceptors[i](currentResponse);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
+        // Use RequestError when we have response context (url/method from ResponseWrapper)
+        if (currentResponse.url && currentResponse.method) {
+          throw new RequestError(`Response interceptor ${i + 1} failed: ${errorMessage}`, currentResponse.url, currentResponse.method);
+        }
+        // Fallback to generic Error if no context available (shouldn't happen in practice)
         throw new Error(`Response interceptor ${i + 1} failed: ${errorMessage}`);
       }
     }
@@ -755,12 +762,17 @@ export abstract class BaseRequest {
           currentError = interceptorError;
         } else {
           const errorMessage = interceptorError instanceof Error ? interceptorError.message : String(interceptorError);
-          // Only use url/method if currentError is still a RequestError
+          // Always wrap in RequestError when we have context
           if (currentError instanceof RequestError) {
             currentError = new RequestError(`Error interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method);
+          } else if (currentError instanceof ResponseWrapper && currentError.url && currentError.method) {
+            // If it's a ResponseWrapper, we can still create a proper RequestError from its context
+            currentError = new RequestError(`Error interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method);
           } else {
-            // If it's a ResponseWrapper, can't create proper RequestError, just throw the interceptorError
-            throw interceptorError;
+            // Last resort: if we have no context at all, use the original error's context
+            // This shouldn't happen in practice, but handle it gracefully
+            const errorObj = interceptorError instanceof Error ? interceptorError : new Error(String(interceptorError));
+            currentError = RequestError.networkError(error.url, error.method, errorObj);
           }
         }
       }
@@ -802,7 +814,7 @@ export abstract class BaseRequest {
 
       // If interceptor returned a Response, short-circuit and wrap it
       if (interceptorResult instanceof Response) {
-        const wrappedResponse = new ResponseWrapper(interceptorResult);
+        const wrappedResponse = new ResponseWrapper(interceptorResult, this.url, this.method);
         // Still run response interceptors
         return await this.runResponseInterceptors(wrappedResponse);
       }
@@ -918,7 +930,12 @@ export abstract class BaseRequest {
           throw RequestError.timeout(url, method, this.requestOptions.timeout!);
         }
 
-        // Otherwise it's either a user-triggered abort or another network error
+        // Check if this is a user-triggered abort (not timeout)
+        if (error instanceof DOMException && error.name === "AbortError" && !abortedByTimeout) {
+          throw RequestError.abortError(url, method);
+        }
+
+        // Otherwise it's a network error
         const errorObj = error instanceof Error ? error : new Error(String(error));
         throw RequestError.networkError(url, method, errorObj);
       }
@@ -928,7 +945,7 @@ export abstract class BaseRequest {
       }
 
       // Return a wrapped response and run response interceptors
-      const wrappedResponse = new ResponseWrapper(response);
+      const wrappedResponse = new ResponseWrapper(response, url, method);
       return await this.runResponseInterceptors(wrappedResponse);
     } catch (error) {
       // Convert to RequestError if needed
