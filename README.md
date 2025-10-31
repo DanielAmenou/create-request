@@ -33,7 +33,6 @@
 - 🔁 **Automatic Retries** - Retry failed requests with customizable settings
 - 📉 **Reduced Boilerplate** - Write 60% less code for common API operations
 - 🔒 **CSRF Protection** - Built-in safeguards against cross-site request forgery
-- 📝 **Response Caching** - Flexible caching system with multiple storage options
 - 🛑 **Request Cancellation** - Abort requests on demand with AbortController integration
 
 ## Why create-request?
@@ -445,7 +444,7 @@ This library works with all browsers that support the Fetch API:
 | **HTTP/2**          | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
 | **Auto Retries**    | ✅             | ❌     | 🛠️      | ✅         | ✅      | ✅     | ❌         | ❌       |
 | **Cancellation**    | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
-| **Caching**         | ✅             | ❌     | ❌      | ✅         | ✅      | ❌     | ❌         | ❌       |
+| **Caching**         | ❌             | ❌     | ❌      | ✅         | ✅      | ❌     | ❌         | ❌       |
 | **Auto JSON**       | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ✅       |
 | **Timeout**         | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
 | **TypeScript**      | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |

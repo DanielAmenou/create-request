@@ -258,4 +258,178 @@ describe("BodyRequest", () => {
     assert.equal(headers["Content-Type"], undefined);
     assert.equal(options.body, JSON.stringify(data));
   });
+
+  describe("withGraphQL", () => {
+    it("should format GraphQL query without variables", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce();
+      const query = "query { user { name email } }";
+      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query);
+
+      // Act
+      await request.get();
+
+      // Assert
+      const [, options] = FetchMock.mock.calls[0];
+      const body = JSON.parse(options.body as string);
+      assert.deepEqual(body, { query: query.trim() });
+      assert.deepEqual(options.headers, {
+        "Content-Type": "application/json",
+      });
+    });
+
+    it("should format GraphQL query with variables", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce();
+      const query = "query GetUser($id: ID!) { user(id: $id) { name email } }";
+      const variables = { id: "123" };
+      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
+
+      // Act
+      await request.get();
+
+      // Assert
+      const [, options] = FetchMock.mock.calls[0];
+      const body = JSON.parse(options.body as string);
+      assert.deepEqual(body, {
+        query: query.trim(),
+        variables,
+      });
+      assert.deepEqual(options.headers, {
+        "Content-Type": "application/json",
+      });
+    });
+
+    it("should format GraphQL mutation", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce();
+      const mutation = "mutation CreateUser($name: String!) { createUser(name: $name) { id name } }";
+      const variables = { name: "John Doe" };
+      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(mutation, variables);
+
+      // Act
+      await request.get();
+
+      // Assert
+      const [, options] = FetchMock.mock.calls[0];
+      const body = JSON.parse(options.body as string);
+      assert.deepEqual(body, {
+        query: mutation.trim(),
+        variables,
+      });
+      assert.deepEqual(options.headers, {
+        "Content-Type": "application/json",
+      });
+    });
+
+    it("should trim whitespace from query", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce();
+      const query = "   query { user { name } }   ";
+      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query);
+
+      // Act
+      await request.get();
+
+      // Assert
+      const [, options] = FetchMock.mock.calls[0];
+      const body = JSON.parse(options.body as string);
+      assert.equal(body.query, "query { user { name } }");
+    });
+
+    it("should throw error for empty query string", () => {
+      // Act & Assert
+      assert.throws(() => {
+        new PostRequest("https://api.example.com/graphql").withGraphQL("");
+      }, /GraphQL query must be a non-empty string/);
+    });
+
+    it("should throw error for whitespace-only query string", () => {
+      // Act & Assert
+      assert.throws(() => {
+        new PostRequest("https://api.example.com/graphql").withGraphQL("   ");
+      }, /GraphQL query must be a non-empty string/);
+    });
+
+    it("should throw error for invalid variables (array)", () => {
+      // Act & Assert
+      assert.throws(() => {
+        new PostRequest("https://api.example.com/graphql").withGraphQL("query { user { name } }", [] as any);
+      }, /GraphQL variables must be an object/);
+    });
+
+    it("should throw error for invalid variables (null)", () => {
+      // Act & Assert
+      assert.throws(() => {
+        new PostRequest("https://api.example.com/graphql").withGraphQL("query { user { name } }", null as any);
+      }, /GraphQL variables must be an object/);
+    });
+
+    it("should respect existing Content-Type header when using withGraphQL", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce();
+      const query = "query { user { name } }";
+      const request = new PostRequest("https://api.example.com/graphql").withHeaders({ "Content-Type": "application/vnd.graphql+json" }).withGraphQL(query);
+
+      // Act
+      await request.get();
+
+      // Assert
+      const [, options] = FetchMock.mock.calls[0];
+      const body = JSON.parse(options.body as string);
+      assert.deepEqual(body, { query: query.trim() });
+      assert.deepEqual(options.headers, {
+        "Content-Type": "application/vnd.graphql+json", // Original header preserved
+      });
+    });
+
+    it("should allow chaining withGraphQL with other methods", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce();
+      const query = "query { user { name } }";
+      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query).withBearerToken("token123").withHeader("X-Custom", "value");
+
+      // Act
+      await request.get();
+
+      // Assert
+      const [, options] = FetchMock.mock.calls[0];
+      const body = JSON.parse(options.body as string);
+      assert.deepEqual(body, { query: query.trim() });
+      assert.deepEqual(options.headers, {
+        "Content-Type": "application/json",
+        Authorization: "Bearer token123",
+        "X-Custom": "value",
+      });
+    });
+
+    it("should handle complex variables object", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce();
+      const query = "query SearchUsers($filters: UserFilters!) { users(filters: $filters) { id name } }";
+      const variables = {
+        filters: {
+          name: "John",
+          age: 30,
+          tags: ["active", "verified"],
+          metadata: {
+            source: "web",
+            verified: true,
+          },
+        },
+      };
+      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
+
+      // Act
+      await request.get();
+
+      // Assert
+      const [, options] = FetchMock.mock.calls[0];
+      const body = JSON.parse(options.body as string);
+      assert.deepEqual(body, {
+        query: query.trim(),
+        variables,
+      });
+    });
+  });
 });

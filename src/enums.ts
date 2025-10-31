@@ -49,18 +49,6 @@ export enum RedirectMode {
 }
 
 /**
- * Enum for cache modes
- */
-export enum CacheMode {
-  DEFAULT = "default",
-  RELOAD = "reload",
-  NO_STORE = "no-store",
-  NO_CACHE = "no-cache",
-  FORCE_CACHE = "force-cache",
-  ONLY_IF_CACHED = "only-if-cached",
-}
-
-/**
  * Enum for cookie SameSite policies
  */
 export enum SameSitePolicy {

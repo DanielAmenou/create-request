@@ -2,7 +2,7 @@ import { get, put, head, post, patch, del, options } from "./requestFactories.js
 import { Config } from "./utils/Config.js";
 
 // Export enums
-export { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, CacheMode, SameSitePolicy, ReferrerPolicy } from "./enums.js";
+export { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, SameSitePolicy, ReferrerPolicy } from "./enums.js";
 
 // Export types
 export type { RetryCallback, RequestOptions, CookiesRecord, CookieOptions, RequestConfig, RequestInterceptor, ResponseInterceptor, ErrorInterceptor } from "./types.js";

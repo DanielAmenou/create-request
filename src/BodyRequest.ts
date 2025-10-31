@@ -1,7 +1,7 @@
 import { BaseRequest } from "./BaseRequest.js";
 import { BodyType } from "./enums.js";
 import type { Body } from "./types.js";
-import { ResponseWrapper } from "./ResponseWrapper.js";
+import type { ResponseWrapper } from "./ResponseWrapper.js";
 
 /**
  * Base class for requests that can have a body (POST, PUT, PATCH)
@@ -42,6 +42,52 @@ export abstract class BodyRequest extends BaseRequest {
     } else {
       this.bodyType = BodyType.BINARY;
     }
+
+    return this;
+  }
+
+  /**
+   * Sets a GraphQL query or mutation as the request body
+   * Automatically formats the body as JSON and sets Content-Type to application/json
+   *
+   * @param query - The GraphQL query or mutation string
+   * @param variables - Optional variables object to pass with the query
+   * @returns The request instance for chaining
+   *
+   * @example
+   * const request = new PostRequest('/graphql')
+   *   .withGraphQL('query { user(id: $id) { name email } }', { id: '123' });
+   *
+   * @example
+   * const request = new PostRequest('/graphql')
+   *   .withGraphQL('mutation { createUser(name: $name) { id } }', { name: 'John' });
+   */
+  withGraphQL(query: string, variables?: Record<string, unknown>): this {
+    if (typeof query !== "string" || query.trim().length === 0) {
+      throw new Error("GraphQL query must be a non-empty string");
+    }
+
+    const graphQLBody: { query: string; variables?: Record<string, unknown> } = {
+      query: query.trim(),
+    };
+
+    if (variables !== undefined) {
+      if (typeof variables !== "object" || variables === null || Array.isArray(variables)) {
+        throw new Error("GraphQL variables must be an object");
+      }
+      graphQLBody.variables = variables;
+    }
+
+    // Validate JSON is stringifiable early
+    try {
+      JSON.stringify(graphQLBody);
+    } catch (error) {
+      throw new Error(`Failed to stringify GraphQL body: ${String(error)}`);
+    }
+
+    this.body = graphQLBody;
+    this.bodyType = BodyType.JSON;
+    this.setContentTypeIfNeeded("application/json");
 
     return this;
   }

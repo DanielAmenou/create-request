@@ -1,4 +1,4 @@
-import { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, CacheMode, SameSitePolicy } from "./enums";
+import { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, SameSitePolicy } from "./enums";
 import type { RequestError } from "./RequestError.js";
 import type { ResponseWrapper } from "./ResponseWrapper.js";
 
@@ -61,9 +61,9 @@ export interface CookieOptions {
 
 export type CookiesRecord = Record<string, string | CookieOptions>;
 
-export { CacheMode, HttpMethod, RequestMode, RedirectMode, SameSitePolicy, RequestPriority, CredentialsPolicy };
+export { HttpMethod, RequestMode, RedirectMode, SameSitePolicy, RequestPriority, CredentialsPolicy };
 
-export interface RequestOptions extends Omit<RequestInit, "signal" | "body" | "method" | "credentials" | "mode" | "redirect" | "cache" | "priority"> {
+export interface RequestOptions extends Omit<RequestInit, "signal" | "body" | "method" | "credentials" | "mode" | "redirect" | "priority"> {
   timeout?: number;
   retries?: number;
   onRetry?: RetryCallback;
