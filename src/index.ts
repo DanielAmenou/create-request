@@ -5,7 +5,7 @@ import { Config } from "./utils/Config.js";
 export { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, CacheMode, SameSitePolicy, ReferrerPolicy } from "./enums.js";
 
 // Export types
-export type { RetryCallback, RequestOptions, CookiesRecord, CookieOptions } from "./types.js";
+export type { RetryCallback, RequestOptions, CookiesRecord, CookieOptions, RequestConfig, RequestInterceptor, ResponseInterceptor, ErrorInterceptor } from "./types.js";
 
 // Export core classes
 export { ResponseWrapper } from "./ResponseWrapper.js";

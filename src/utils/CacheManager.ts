@@ -93,10 +93,22 @@ export class CacheManager {
     if (!value) return null;
 
     try {
-      const entry: CacheEntry = JSON.parse(value) as CacheEntry;
+      const parsed: unknown = JSON.parse(value);
+
+      // Validate that parsed data has expected structure
+      if (!parsed || typeof parsed !== "object") {
+        throw new Error("Invalid cache entry format");
+      }
+
+      const entry = parsed as CacheEntry;
+
+      // Validate required fields
+      if (!("value" in entry) || !("timestamp" in entry)) {
+        throw new Error("Cache entry missing required fields");
+      }
 
       // Check if the entry has expired
-      if (entry.expiry && entry.expiry < Date.now()) {
+      if (entry.expiry && typeof entry.expiry === "number" && entry.expiry < Date.now()) {
         await Promise.resolve(this.storage.delete(key));
         return null;
       }
@@ -104,6 +116,8 @@ export class CacheManager {
       return entry;
     } catch (e) {
       // If we can't parse the cached value, remove it
+      const errorMessage = e instanceof Error ? e.message : "Unknown error";
+      console.warn(`Failed to parse cache entry for key "${key}": ${errorMessage}`);
       await Promise.resolve(this.storage.delete(key));
       return null;
     }

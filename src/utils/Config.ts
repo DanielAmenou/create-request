@@ -1,3 +1,13 @@
+import type { RequestInterceptor, ResponseInterceptor, ErrorInterceptor } from "../types.js";
+
+/**
+ * Internal storage for interceptors with IDs
+ */
+interface InterceptorWithId<T> {
+  id: number;
+  interceptor: T;
+}
+
 /**
  * Global configuration for create-request
  */
@@ -11,6 +21,12 @@ export class Config {
   private csrfToken: string | null = null;
   private enableAutoXsrf: boolean = true;
   private enableAntiCsrf: boolean = true; // X-Requested-With header
+
+  // Interceptor configuration
+  private requestInterceptors: InterceptorWithId<RequestInterceptor>[] = [];
+  private responseInterceptors: InterceptorWithId<ResponseInterceptor>[] = [];
+  private errorInterceptors: InterceptorWithId<ErrorInterceptor>[] = [];
+  private nextInterceptorId: number = 1;
 
   private constructor() {}
 
@@ -166,6 +182,135 @@ export class Config {
   }
 
   /**
+   * Add a global request interceptor
+   * Request interceptors can modify the request configuration or return an early response
+   *
+   * @param interceptor - The request interceptor function
+   * @returns The interceptor ID for later removal
+   *
+   * @example
+   * const id = Config.getInstance().addRequestInterceptor((config) => {
+   *   config.headers['X-Custom'] = 'value';
+   *   return config;
+   * });
+   */
+  public addRequestInterceptor(interceptor: RequestInterceptor): number {
+    const id = this.nextInterceptorId++;
+    this.requestInterceptors.push({ id, interceptor });
+    return id;
+  }
+
+  /**
+   * Add a global response interceptor
+   * Response interceptors can transform the response
+   *
+   * @param interceptor - The response interceptor function
+   * @returns The interceptor ID for later removal
+   *
+   * @example
+   * const id = Config.getInstance().addResponseInterceptor((response) => {
+   *   console.log('Response received:', response.status);
+   *   return response;
+   * });
+   */
+  public addResponseInterceptor(interceptor: ResponseInterceptor): number {
+    const id = this.nextInterceptorId++;
+    this.responseInterceptors.push({ id, interceptor });
+    return id;
+  }
+
+  /**
+   * Add a global error interceptor
+   * Error interceptors can handle or transform errors
+   *
+   * @param interceptor - The error interceptor function
+   * @returns The interceptor ID for later removal
+   *
+   * @example
+   * const id = Config.getInstance().addErrorInterceptor((error) => {
+   *   console.error('Request failed:', error);
+   *   throw error;
+   * });
+   */
+  public addErrorInterceptor(interceptor: ErrorInterceptor): number {
+    const id = this.nextInterceptorId++;
+    this.errorInterceptors.push({ id, interceptor });
+    return id;
+  }
+
+  /**
+   * Remove a request interceptor by its ID
+   *
+   * @param id - The interceptor ID returned from addRequestInterceptor
+   *
+   * @example
+   * Config.getInstance().removeRequestInterceptor(id);
+   */
+  public removeRequestInterceptor(id: number): void {
+    this.requestInterceptors = this.requestInterceptors.filter(item => item.id !== id);
+  }
+
+  /**
+   * Remove a response interceptor by its ID
+   *
+   * @param id - The interceptor ID returned from addResponseInterceptor
+   *
+   * @example
+   * Config.getInstance().removeResponseInterceptor(id);
+   */
+  public removeResponseInterceptor(id: number): void {
+    this.responseInterceptors = this.responseInterceptors.filter(item => item.id !== id);
+  }
+
+  /**
+   * Remove an error interceptor by its ID
+   *
+   * @param id - The interceptor ID returned from addErrorInterceptor
+   *
+   * @example
+   * Config.getInstance().removeErrorInterceptor(id);
+   */
+  public removeErrorInterceptor(id: number): void {
+    this.errorInterceptors = this.errorInterceptors.filter(item => item.id !== id);
+  }
+
+  /**
+   * Clear all interceptors (request, response, and error)
+   *
+   * @example
+   * Config.getInstance().clearInterceptors();
+   */
+  public clearInterceptors(): void {
+    this.requestInterceptors = [];
+    this.responseInterceptors = [];
+    this.errorInterceptors = [];
+  }
+
+  /**
+   * Get all global request interceptors (in registration order)
+   * @internal
+   */
+  public getRequestInterceptors(): RequestInterceptor[] {
+    return this.requestInterceptors.map(item => item.interceptor);
+  }
+
+  /**
+   * Get all global response interceptors (in registration order)
+   * @internal
+   */
+  public getResponseInterceptors(): ResponseInterceptor[] {
+    return this.responseInterceptors.map(item => item.interceptor);
+  }
+
+  /**
+   * Get all global error interceptors (in registration order)
+   * @internal
+   */
+  public getErrorInterceptors(): ErrorInterceptor[] {
+    return this.errorInterceptors.map(item => item.interceptor);
+  }
+
+  /**
    * Reset all configuration options to their default values
    *
    * @returns The config instance for chaining
@@ -180,6 +325,7 @@ export class Config {
     this.xsrfCookieName = "XSRF-TOKEN";
     this.xsrfHeaderName = "X-XSRF-TOKEN";
     this.enableAutoXsrf = true;
+    this.clearInterceptors();
     return this;
   }
 }

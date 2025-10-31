@@ -1,9 +1,52 @@
 import { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, CacheMode, SameSitePolicy } from "./enums";
 import type { RequestError } from "./RequestError.js";
+import type { ResponseWrapper } from "./ResponseWrapper.js";
 
 export type Body = null | Blob | string | object | FormData | ArrayBuffer | URLSearchParams | ReadableStream;
 
 export type RetryCallback = (options: { attempt: number; error: RequestError }) => void | Promise<void>;
+
+/**
+ * Configuration object passed to request interceptors
+ * Contains all the information needed to make the request
+ */
+export interface RequestConfig {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  body?: Body;
+  signal?: AbortSignal;
+  credentials?: RequestCredentials;
+  mode?: RequestMode | string;
+  redirect?: RedirectMode | string;
+  referrer?: string;
+  referrerPolicy?: ReferrerPolicy;
+  keepalive?: boolean;
+  priority?: RequestPriority | string;
+}
+
+/**
+ * Request interceptor that can modify the request configuration or return an early response
+ * If it returns a Response, the request will be short-circuited and that response will be used
+ * @param config - The request configuration
+ * @returns Modified config, a Response to short-circuit, or a Promise of either
+ */
+export type RequestInterceptor = (config: RequestConfig) => RequestConfig | Response | Promise<RequestConfig | Response>;
+
+/**
+ * Response interceptor that can transform the response
+ * @param response - The response wrapper
+ * @returns Modified response wrapper or a Promise of it
+ */
+export type ResponseInterceptor = (response: ResponseWrapper) => ResponseWrapper | Promise<ResponseWrapper>;
+
+/**
+ * Error interceptor that can handle or transform errors
+ * Can return a ResponseWrapper to recover from the error
+ * @param error - The error that occurred
+ * @returns Modified error, a ResponseWrapper to recover, or a Promise of either
+ */
+export type ErrorInterceptor = (error: RequestError) => RequestError | ResponseWrapper | Promise<RequestError | ResponseWrapper>;
 
 export interface CookieOptions {
   value: string;

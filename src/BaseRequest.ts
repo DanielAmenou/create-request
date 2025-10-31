@@ -1,5 +1,5 @@
 import { type HttpMethod, type RedirectMode, type RequestMode, type RequestPriority, CredentialsPolicy } from "./enums.js";
-import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions } from "./types.js";
+import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions, RequestInterceptor, ResponseInterceptor, ErrorInterceptor, RequestConfig } from "./types.js";
 import { ResponseWrapper } from "./ResponseWrapper.js";
 import { CookieUtils } from "./utils/CookieUtils.js";
 import { RequestError } from "./RequestError.js";
@@ -19,6 +19,11 @@ export abstract class BaseRequest {
   protected abortController?: AbortController;
   protected queryParams: URLSearchParams = new URLSearchParams();
   protected autoApplyCsrfProtection: boolean = true;
+
+  // Per-request interceptors
+  private requestInterceptors: RequestInterceptor[] = [];
+  private responseInterceptors: ResponseInterceptor[] = [];
+  private errorInterceptors: ErrorInterceptor[] = [];
 
   constructor(url: string) {
     this.url = url;
@@ -394,6 +399,60 @@ export abstract class BaseRequest {
   }
 
   /**
+   * Add a request interceptor for this specific request
+   * Request interceptors can modify the request configuration or return an early response
+   *
+   * @param interceptor - The request interceptor function
+   * @returns The instance for chaining
+   *
+   * @example
+   * request.withRequestInterceptor((config) => {
+   *   config.headers['X-Custom'] = 'value';
+   *   return config;
+   * });
+   */
+  withRequestInterceptor(interceptor: RequestInterceptor): this {
+    this.requestInterceptors.push(interceptor);
+    return this;
+  }
+
+  /**
+   * Add a response interceptor for this specific request
+   * Response interceptors can transform the response
+   *
+   * @param interceptor - The response interceptor function
+   * @returns The instance for chaining
+   *
+   * @example
+   * request.withResponseInterceptor((response) => {
+   *   console.log('Status:', response.status);
+   *   return response;
+   * });
+   */
+  withResponseInterceptor(interceptor: ResponseInterceptor): this {
+    this.responseInterceptors.push(interceptor);
+    return this;
+  }
+
+  /**
+   * Add an error interceptor for this specific request
+   * Error interceptors can handle or transform errors
+   *
+   * @param interceptor - The error interceptor function
+   * @returns The instance for chaining
+   *
+   * @example
+   * request.withErrorInterceptor((error) => {
+   *   console.error('Request failed:', error);
+   *   throw error;
+   * });
+   */
+  withErrorInterceptor(interceptor: ErrorInterceptor): this {
+    this.errorInterceptors.push(interceptor);
+    return this;
+  }
+
+  /**
    * Execute the request and return the ResponseWrapper
    * This is the base method for getting the full response.
    *
@@ -591,12 +650,13 @@ export abstract class BaseRequest {
    */
   private async executeWithRetries(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
     const maxRetries = this.requestOptions.retries || 0;
+    const method = typeof fetchOptions.method === "string" ? fetchOptions.method : "GET";
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await this.executeRequest(url, fetchOptions);
       } catch (error) {
-        const requestError = error instanceof RequestError ? error : RequestError.networkError(url, fetchOptions.method as string, error as Error);
+        const requestError = error instanceof RequestError ? error : RequestError.networkError(url, method, error instanceof Error ? error : new Error(String(error)));
 
         if (attempt >= maxRetries) throw requestError;
 
@@ -607,56 +667,247 @@ export abstract class BaseRequest {
     }
 
     // This should never happen but is needed for type safety
-    throw new RequestError(`Max retries reached`, url, fetchOptions.method as string);
+    throw new RequestError(`Max retries reached`, url, method);
   }
 
-  private async executeRequest(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
-    // Create a request controller for timeout if needed, or use the provided one
-    const controller = this.abortController || new AbortController();
-    const { signal } = controller;
+  /**
+   * Run request interceptors in order: global interceptors first, then per-request
+   * @param configParam - The request configuration
+   * @returns Modified config or a Response to short-circuit
+   */
+  private async runRequestInterceptors(configParam: RequestConfig): Promise<RequestConfig | Response> {
+    const globalConfig = Config.getInstance();
+    const allInterceptors = [...globalConfig.getRequestInterceptors(), ...this.requestInterceptors];
 
-    // Use the controller signal for the fetch request, but don't overwrite an existing signal
-    fetchOptions.signal = fetchOptions.signal || signal;
+    let currentConfig = configParam;
 
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    // Flag to track if abort was caused by our timeout
-    let abortedByTimeout = false;
+    for (let i = 0; i < allInterceptors.length; i++) {
+      try {
+        const result = await allInterceptors[i](currentConfig);
 
-    // Handle timeout regardless of whether an external controller is provided
-    if (this.requestOptions.timeout) {
-      if (this.abortController) {
-        // If we have an external controller, create a separate timeout controller
-        // that won't interfere with the external one
-
-        // Use AbortSignal.timeout if available (modern browsers)
-        if (typeof AbortSignal.timeout === "function") {
-          const timeoutSignal = AbortSignal.timeout(this.requestOptions.timeout);
-
-          // Add event listener to propagate the abort to the main controller
-          timeoutSignal.addEventListener("abort", () => {
-            if (!controller.signal.aborted) {
-              abortedByTimeout = true;
-              controller.abort();
-            }
-          });
-        } else {
-          // Fallback for browsers without AbortSignal.timeout
-          timeoutId = setTimeout(() => {
-            if (!controller.signal.aborted) {
-              abortedByTimeout = true;
-              controller.abort();
-            }
-          }, this.requestOptions.timeout);
+        // If interceptor returns a Response, short-circuit
+        if (result instanceof Response) {
+          return result;
         }
-      } else {
-        timeoutId = setTimeout(() => {
-          abortedByTimeout = true;
-          controller.abort();
-        }, this.requestOptions.timeout);
+
+        currentConfig = result;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Request interceptor ${i + 1} failed: ${errorMessage}`);
       }
     }
 
+    return currentConfig;
+  }
+
+  /**
+   * Run response interceptors in reverse order: per-request interceptors first, then global in reverse
+   * @param response - The response wrapper
+   * @returns Modified response wrapper
+   */
+  private async runResponseInterceptors(response: ResponseWrapper): Promise<ResponseWrapper> {
+    const globalConfig = Config.getInstance();
+    const globalInterceptors = globalConfig.getResponseInterceptors();
+
+    // Per-request in order, then global in reverse
+    const allInterceptors = [...this.responseInterceptors, ...globalInterceptors.reverse()];
+
+    let currentResponse = response;
+
+    for (let i = 0; i < allInterceptors.length; i++) {
+      try {
+        currentResponse = await allInterceptors[i](currentResponse);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Response interceptor ${i + 1} failed: ${errorMessage}`);
+      }
+    }
+
+    return currentResponse;
+  }
+
+  /**
+   * Run error interceptors in reverse order: per-request interceptors first, then global in reverse
+   * @param error - The error that occurred
+   * @returns Modified error or a ResponseWrapper to recover
+   */
+  private async runErrorInterceptors(error: RequestError): Promise<RequestError | ResponseWrapper> {
+    const globalConfig = Config.getInstance();
+    const globalInterceptors = globalConfig.getErrorInterceptors();
+
+    // Per-request in order, then global in reverse
+    const allInterceptors = [...this.errorInterceptors, ...globalInterceptors.reverse()];
+
+    let currentError: RequestError | ResponseWrapper = error;
+
+    for (let i = 0; i < allInterceptors.length; i++) {
+      try {
+        // If previous interceptor recovered with a response, stop processing
+        if (currentError instanceof ResponseWrapper) {
+          return currentError;
+        }
+
+        const result: RequestError | ResponseWrapper = await allInterceptors[i](currentError);
+        currentError = result;
+      } catch (interceptorError) {
+        // If an error interceptor throws, that becomes the new error
+        if (interceptorError instanceof RequestError) {
+          currentError = interceptorError;
+        } else {
+          const errorMessage = interceptorError instanceof Error ? interceptorError.message : String(interceptorError);
+          // Only use url/method if currentError is still a RequestError
+          if (currentError instanceof RequestError) {
+            currentError = new RequestError(`Error interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method);
+          } else {
+            // If it's a ResponseWrapper, can't create proper RequestError, just throw the interceptorError
+            throw interceptorError;
+          }
+        }
+      }
+    }
+
+    return currentError;
+  }
+
+  private async executeRequest(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
+    // Track resources that need cleanup
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let timeoutController: AbortController | undefined;
+    let abortListener: (() => void) | undefined;
+
+    // Flag to track if abort was caused by our timeout
+    let abortedByTimeout = false;
+
+    // Extract method early for error handling
+    const method = typeof fetchOptions.method === "string" ? fetchOptions.method : "GET";
+
     try {
+      // Run request interceptors before making the request
+      const requestConfig: RequestConfig = {
+        url,
+        method,
+        headers: (fetchOptions.headers as Record<string, string>) || {},
+        body: fetchOptions.body as any,
+        signal: fetchOptions.signal || undefined,
+        credentials: fetchOptions.credentials,
+        mode: fetchOptions.mode,
+        redirect: fetchOptions.redirect,
+        referrer: fetchOptions.referrer,
+        referrerPolicy: fetchOptions.referrerPolicy,
+        keepalive: fetchOptions.keepalive,
+        priority: (fetchOptions as any).priority,
+      };
+
+      const interceptorResult = await this.runRequestInterceptors(requestConfig);
+
+      // If interceptor returned a Response, short-circuit and wrap it
+      if (interceptorResult instanceof Response) {
+        const wrappedResponse = new ResponseWrapper(interceptorResult);
+        // Still run response interceptors
+        return await this.runResponseInterceptors(wrappedResponse);
+      }
+
+      // Update fetchOptions with interceptor modifications
+      url = interceptorResult.url;
+      fetchOptions.headers = interceptorResult.headers;
+      if (interceptorResult.body !== undefined) {
+        fetchOptions.body = interceptorResult.body as any;
+      }
+      // Determine which signal to use for the fetch request
+      let finalSignal: AbortSignal | undefined;
+
+      if (this.requestOptions.timeout) {
+        if (this.abortController) {
+          // External controller provided - need to combine signals
+
+          // Use AbortSignal.any() if available
+          if (typeof (AbortSignal as any).any === "function") {
+            timeoutController = new AbortController();
+            timeoutId = setTimeout(() => {
+              abortedByTimeout = true;
+              timeoutController!.abort();
+            }, this.requestOptions.timeout);
+
+            finalSignal = (AbortSignal as any).any([this.abortController.signal, timeoutController.signal]);
+          }
+          // Fallback: use AbortSignal.timeout if available
+          else if (typeof AbortSignal.timeout === "function") {
+            const timeoutSignal = AbortSignal.timeout(this.requestOptions.timeout);
+
+            // Listen for timeout abort
+            abortListener = () => {
+              if (!this.abortController!.signal.aborted) {
+                abortedByTimeout = true;
+              }
+            };
+            timeoutSignal.addEventListener("abort", abortListener, { once: true });
+
+            // Manually combine signals
+            if (typeof (AbortSignal as any).any === "function") {
+              finalSignal = (AbortSignal as any).any([this.abortController.signal, timeoutSignal]);
+            } else {
+              // Final fallback: propagate timeout abort to external controller
+              timeoutController = new AbortController();
+              timeoutId = setTimeout(() => {
+                abortedByTimeout = true;
+                timeoutController!.abort();
+              }, this.requestOptions.timeout);
+
+              finalSignal = timeoutController.signal;
+
+              // Also listen to external controller
+              const externalAbortListener = () => {
+                if (!timeoutController!.signal.aborted) {
+                  timeoutController!.abort();
+                }
+              };
+              this.abortController.signal.addEventListener("abort", externalAbortListener, { once: true });
+            }
+          }
+          // Last resort fallback for older environments
+          else {
+            timeoutController = new AbortController();
+            timeoutId = setTimeout(() => {
+              abortedByTimeout = true;
+              timeoutController!.abort();
+            }, this.requestOptions.timeout);
+
+            finalSignal = timeoutController.signal;
+
+            // Propagate external abort to timeout controller
+            const externalAbortListener = () => {
+              if (!timeoutController!.signal.aborted) {
+                timeoutController!.abort();
+              }
+            };
+            this.abortController.signal.addEventListener("abort", externalAbortListener, { once: true });
+          }
+        } else {
+          // No external controller - simple timeout case
+          if (typeof AbortSignal.timeout === "function") {
+            const timeoutSignal = AbortSignal.timeout(this.requestOptions.timeout);
+            abortListener = () => {
+              abortedByTimeout = true;
+            };
+            timeoutSignal.addEventListener("abort", abortListener, { once: true });
+            finalSignal = timeoutSignal;
+          } else {
+            timeoutController = new AbortController();
+            timeoutId = setTimeout(() => {
+              abortedByTimeout = true;
+              timeoutController!.abort();
+            }, this.requestOptions.timeout);
+            finalSignal = timeoutController.signal;
+          }
+        }
+      } else {
+        // No timeout - just use external controller if provided
+        finalSignal = this.abortController?.signal;
+      }
+
+      // Set the final signal
+      fetchOptions.signal = finalSignal;
+
       let response: Response;
 
       try {
@@ -664,23 +915,48 @@ export abstract class BaseRequest {
       } catch (error) {
         // Check if this is an abort error that was specifically caused by our timeout
         if (error instanceof DOMException && error.name === "AbortError" && abortedByTimeout) {
-          throw RequestError.timeout(url, fetchOptions.method as string, this.requestOptions.timeout!);
+          throw RequestError.timeout(url, method, this.requestOptions.timeout!);
         }
 
         // Otherwise it's either a user-triggered abort or another network error
-        throw RequestError.networkError(url, fetchOptions.method as string, error as Error);
+        const errorObj = error instanceof Error ? error : new Error(String(error));
+        throw RequestError.networkError(url, method, errorObj);
       }
 
       if (!response.ok) {
-        throw RequestError.fromResponse(response, url, fetchOptions.method as string);
+        throw RequestError.fromResponse(response, url, method);
       }
 
-      // Return a wrapped response instead of parsing it
-      return new ResponseWrapper(response);
+      // Return a wrapped response and run response interceptors
+      const wrappedResponse = new ResponseWrapper(response);
+      return await this.runResponseInterceptors(wrappedResponse);
+    } catch (error) {
+      // Convert to RequestError if needed
+      let requestError: RequestError;
+      if (error instanceof RequestError) {
+        requestError = error;
+      } else {
+        const errorObj = error instanceof Error ? error : new Error(String(error));
+        requestError = RequestError.networkError(url, method, errorObj);
+      }
+
+      // Run error interceptors
+      const interceptorResult = await this.runErrorInterceptors(requestError);
+
+      // If error interceptor returned a ResponseWrapper, recover from error
+      if (interceptorResult instanceof ResponseWrapper) {
+        return interceptorResult;
+      }
+
+      // Otherwise throw the (possibly modified) error
+      throw interceptorResult;
     } finally {
-      if (timeoutId) {
+      // Cleanup: clear timeout and remove all event listeners
+      if (timeoutId !== undefined) {
         clearTimeout(timeoutId);
       }
+      // Note: Event listeners with { once: true } are automatically removed after firing
+      // Controllers are garbage collected when no longer referenced
     }
   }
 }

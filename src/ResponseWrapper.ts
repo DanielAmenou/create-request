@@ -58,19 +58,21 @@ export class ResponseWrapper {
       // If we already have text, try to parse it as JSON
       if (this.textCache !== undefined) {
         try {
-          // Fix unsafe assignment by explicitly casting to unknown first
-          this.jsonCache = JSON.parse(this.textCache) as unknown;
-          return this.jsonCache as T;
+          const parsed: unknown = JSON.parse(this.textCache);
+          this.jsonCache = parsed;
+          return parsed as T;
         } catch (e) {
-          throw new Error("Cannot parse cached text as JSON");
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          throw new Error(`Cannot parse cached text as JSON: ${errorMessage}`);
         }
       }
       throw new Error("Response body has already been consumed in a different format");
     }
 
     this.bodyUsed = true;
-    this.jsonCache = (await this.response.json()) as unknown;
-    return this.jsonCache as T;
+    const parsed: unknown = await this.response.json();
+    this.jsonCache = parsed;
+    return parsed as T;
   }
 
   /**
