@@ -15,7 +15,7 @@ describe("RequestError", () => {
     assert.equal(error.name, "RequestError");
     assert.equal(error.status, undefined);
     assert.equal(error.response, undefined);
-    assert.equal(error.timeoutError, undefined);
+    assert.equal(error.isTimeout, undefined);
   });
 
   it("should create a RequestError with status and response", () => {
@@ -38,7 +38,7 @@ describe("RequestError", () => {
     assert.equal(error.message, "Request timed out after 5000ms");
     assert.equal(error.url, "https://api.example.com");
     assert.equal(error.method, "GET");
-    assert.equal(error.timeoutError, true);
+    assert.equal(error.isTimeout, true);
   });
 
   it("should create a network error RequestError", () => {

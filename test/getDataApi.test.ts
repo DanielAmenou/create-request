@@ -59,10 +59,10 @@ describe("getData Feature", () => {
     };
 
     FetchMock.mockResponseOnce({ body: responseData });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const result = await request.sendTo("https://api.example.com/users").getData<UsersResponse>();
+    const result = await request.getData<UsersResponse>();
 
     // Assert
     assert.deepEqual(result, responseData);
@@ -79,11 +79,11 @@ describe("getData Feature", () => {
     };
 
     FetchMock.mockResponseOnce({ body: responseData });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act - specify both input and output types for getData
     type UserArray = Array<{ id: number; name: string; role: string }>;
-    const users = await request.sendTo("https://api.example.com/users").getData<UsersResponse, UserArray>(data => data.users);
+    const users = await request.getData<UsersResponse, UserArray>(data => data.users);
 
     // Assert
     assert.deepEqual(users, responseData.users);
@@ -104,11 +104,11 @@ describe("getData Feature", () => {
     };
 
     FetchMock.mockResponseOnce({ body: responseData });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act - specify both input and output types
     type ItemArray = Array<{ id: number; value: string }>;
-    const items = await request.sendTo("https://api.example.com/nested").getData<NestedResponse, ItemArray>(data => data.data.results.items);
+    const items = await request.getData<NestedResponse, ItemArray>(data => data.data.results.items);
 
     // Assert
     assert.deepEqual(items, responseData.data.results.items);
@@ -124,10 +124,10 @@ describe("getData Feature", () => {
     };
 
     FetchMock.mockResponseOnce({ body: responseData });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act - extract only names with proper typing
-    const names = await request.sendTo("https://api.example.com/users").getData<SimpleUsersResponse, string[]>(data => data.users.map(user => user.name));
+    const names = await request.getData<SimpleUsersResponse, string[]>(data => data.users.map(user => user.name));
 
     // Assert
     assert.deepEqual(names, ["Alice", "Bob"]);
@@ -153,10 +153,10 @@ describe("getData Feature", () => {
     };
 
     FetchMock.mockResponseOnce({ body: responseData });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act - with type annotations
-    const result = await request.sendTo("https://api.example.com/users").getData<ApiResponse, string[]>(data => data.users.map(u => u.email));
+    const result = await request.getData<ApiResponse, string[]>(data => data.users.map(u => u.email));
 
     // Assert
     assert.deepEqual(result, ["alice@example.com", "bob@example.com"]);

@@ -72,23 +72,6 @@ describe("ResponseWrapper", () => {
     assert.equal(text, content);
   });
 
-  it("should get ArrayBuffer response", async () => {
-    // Arrange
-    const content = "Buffer content";
-    const mockResponse = new Response(content, {
-      headers: { "Content-Type": "application/octet-stream" },
-    });
-    const wrapper = new ResponseWrapper(mockResponse);
-
-    // Act
-    const result = await wrapper.getArrayBuffer();
-
-    // Assert
-    assert(result instanceof ArrayBuffer);
-    const decoder = new TextDecoder();
-    assert.equal(decoder.decode(result), content);
-  });
-
   it("should get ReadableStream response", () => {
     // Arrange
     const content = "Stream content";

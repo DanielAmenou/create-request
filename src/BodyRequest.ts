@@ -1,6 +1,7 @@
 import { BaseRequest } from "./BaseRequest.js";
 import { BodyType } from "./enums.js";
 import type { Body } from "./types.js";
+import { ResponseWrapper } from "./ResponseWrapper.js";
 
 /**
  * Base class for requests that can have a body (POST, PUT, PATCH)
@@ -8,6 +9,10 @@ import type { Body } from "./types.js";
 export abstract class BodyRequest extends BaseRequest {
   protected body?: Body;
   private bodyType?: BodyType;
+
+  constructor(url: string) {
+    super(url);
+  }
 
   /**
    * Sets the body of the request
@@ -50,10 +55,10 @@ export abstract class BodyRequest extends BaseRequest {
   }
 
   /**
-   * Send the request to the specified URL
+   * Execute the request and return the ResponseWrapper
    * Overrides the base implementation to add body handling
    */
-  sendTo(url: string): ReturnType<BaseRequest["sendTo"]> {
+  async get(): Promise<ResponseWrapper> {
     if (this.body !== undefined) {
       // Remove previous body if it exists
       if (this.requestOptions.body) delete this.requestOptions.body;
@@ -66,6 +71,6 @@ export abstract class BodyRequest extends BaseRequest {
       }
     }
 
-    return super.sendTo(url);
+    return super.get();
   }
 }

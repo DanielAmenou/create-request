@@ -25,10 +25,10 @@ describe("BaseRequest", () => {
     // Arrange
     const expectedResponse = { success: true };
     FetchMock.mockResponseOnce({ body: expectedResponse });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").getJson();
+    const result = await request.getJson();
 
     // Assert
     assert.deepEqual(result, expectedResponse);
@@ -41,13 +41,13 @@ describe("BaseRequest", () => {
   it("should set custom headers", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withHeaders({
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withHeaders({
       "X-Custom-Header": "test-value",
       Authorization: "Bearer token123",
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -60,7 +60,7 @@ describe("BaseRequest", () => {
   it("should handle query parameters correctly", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest()
+    const request = new GetRequest("https://api.example.com/test")
       .withQueryParams({
         param1: "value1",
         param2: 123,
@@ -72,7 +72,7 @@ describe("BaseRequest", () => {
       .withQueryParam("param7", "value7");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [url] = FetchMock.mock.calls[0];
@@ -89,10 +89,10 @@ describe("BaseRequest", () => {
   it("should merge query parameters with existing URL params", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withQueryParam("param1", "value1");
+    const request = new GetRequest("https://api.example.com/test?existing=value").withQueryParam("param1", "value1");
 
     // Act
-    await request.sendTo("https://api.example.com/test?existing=value");
+    await request.get();
 
     // Assert
     const [url] = FetchMock.mock.calls[0];
@@ -107,15 +107,15 @@ describe("BaseRequest", () => {
     const responseDelay = 200; // Longer than timeout
 
     FetchMock.mockDelayedResponseOnce(responseDelay);
-    const request = new GetRequest().withTimeout(timeout);
+    const request = new GetRequest("https://api.example.com/test").withTimeout(timeout);
 
     // Act & Assert - the request should timeout and throw
     try {
-      await request.sendTo("https://api.example.com/test");
+      await request.get();
       assert.fail("Expected request to timeout but it succeeded");
     } catch (error) {
       assert(error instanceof RequestError);
-      assert(error.timeoutError);
+      assert(error.isTimeout);
       assert.equal(error.url, "https://api.example.com/test");
       assert.equal(error.method, "GET");
     }
@@ -127,12 +127,12 @@ describe("BaseRequest", () => {
     FetchMock.mockResponseOnce({ body: { success: true } }); // Second attempt succeeds
 
     let retryCallbackCalled = false;
-    const request = new GetRequest().withRetries(1).onRetry(() => {
+    const request = new GetRequest("https://api.example.com/test").withRetries(1).onRetry(() => {
       retryCallbackCalled = true;
     });
 
     // Act
-    const response = await request.sendTo("https://api.example.com/test").getJson();
+    const response = await request.getJson();
 
     // Assert
     assert.deepEqual(response, { success: true });
@@ -145,10 +145,10 @@ describe("BaseRequest", () => {
     const responseDelay = 500;
     FetchMock.mockDelayedResponseOnce(responseDelay);
     const controller = new AbortController();
-    const request = new GetRequest().withAbortController(controller);
+    const request = new GetRequest("https://api.example.com/test").withAbortController(controller);
 
     // Act
-    const requestPromise = request.sendTo("https://api.example.com/test");
+    const requestPromise = request.get();
 
     // Wait a bit then abort the request
     await wait(100);
@@ -168,10 +168,10 @@ describe("BaseRequest", () => {
   it("should set credentials policy", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCredentials(CredentialsPolicy.INCLUDE);
+    const request = new GetRequest("https://api.example.com/test").withCredentials(CredentialsPolicy.INCLUDE);
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -181,10 +181,10 @@ describe("BaseRequest", () => {
   it("should set redirect mode", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withRedirect(RedirectMode.ERROR);
+    const request = new GetRequest("https://api.example.com/test").withRedirect(RedirectMode.ERROR);
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -194,10 +194,10 @@ describe("BaseRequest", () => {
   it("should set request mode", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withMode(RequestMode.CORS);
+    const request = new GetRequest("https://api.example.com/test").withMode(RequestMode.CORS);
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -207,10 +207,10 @@ describe("BaseRequest", () => {
   it("should set request priority", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withPriority(RequestPriority.HIGH);
+    const request = new GetRequest("https://api.example.com/test").withPriority(RequestPriority.HIGH);
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -220,10 +220,10 @@ describe("BaseRequest", () => {
   it("should set keepalive flag", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withKeepAlive(true);
+    const request = new GetRequest("https://api.example.com/test").withKeepAlive(true);
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -233,10 +233,10 @@ describe("BaseRequest", () => {
   it("should set referrer", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withReferrer("https://referer.com");
+    const request = new GetRequest("https://api.example.com/test").withReferrer("https://referer.com");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -246,10 +246,10 @@ describe("BaseRequest", () => {
   it("should set content type", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withContentType("text/plain");
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withContentType("text/plain");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -261,10 +261,10 @@ describe("BaseRequest", () => {
   it("should set authorization header", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withAuthorization("Bearer token123");
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withAuthorization("Bearer token123");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -276,10 +276,10 @@ describe("BaseRequest", () => {
   it("should set basic auth header", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withBasicAuth("username", "password");
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withBasicAuth("username", "password");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -291,10 +291,10 @@ describe("BaseRequest", () => {
   it("should set bearer token", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withBearerToken("token123");
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withBearerToken("token123");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -310,11 +310,11 @@ describe("BaseRequest", () => {
       statusText: "Not Found",
       body: { error: "Resource not found" },
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act & Assert
     await assert.rejects(
-      async () => request.sendTo("https://api.example.com/test"),
+      async () => request.get(),
       error => {
         assert(error instanceof RequestError);
         assert.equal(error.status, 404);
@@ -329,11 +329,11 @@ describe("BaseRequest", () => {
     // Arrange
     const networkError = new Error("Network error");
     FetchMock.mockErrorOnce(networkError);
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act & Assert
     await assert.rejects(
-      async () => request.sendTo("https://api.example.com/test"),
+      async () => request.get(),
       error => {
         assert(error instanceof RequestError);
         assert.equal(error.url, "https://api.example.com/test");
@@ -348,10 +348,10 @@ describe("BaseRequest", () => {
     // Arrange
     const textContent = "Hello, world!";
     FetchMock.mockResponseOnce({ body: textContent });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").getText();
+    const result = await request.getText();
 
     // Assert
     assert.equal(result, textContent);
@@ -361,10 +361,10 @@ describe("BaseRequest", () => {
     // Arrange
     const content = "Blob content";
     FetchMock.mockResponseOnce({ body: content });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").getBlob();
+    const result = await request.getBlob();
 
     // Assert
     assert(result instanceof Blob);
@@ -372,29 +372,14 @@ describe("BaseRequest", () => {
     assert.equal(text, content);
   });
 
-  it("should get response as array buffer using chained method", async () => {
-    // Arrange
-    const content = "Buffer content";
-    FetchMock.mockResponseOnce({ body: content });
-    const request = new GetRequest();
-
-    // Act
-    const result = await request.sendTo("https://api.example.com/test").getArrayBuffer();
-
-    // Assert
-    assert(result instanceof ArrayBuffer);
-    const decoder = new TextDecoder();
-    assert.equal(decoder.decode(result), content);
-  });
-
   it("should get response body using chained method", async () => {
     // Arrange
     const content = "Stream content";
     FetchMock.mockResponseOnce({ body: content });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const result = await request.sendTo("https://api.example.com/test").getBody();
+    const result = await request.getBody();
 
     // Assert
     assert(result instanceof ReadableStream);
@@ -407,10 +392,10 @@ describe("BaseRequest", () => {
       body: jsonString,
       headers: { "Content-Type": "application/json" },
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const response = await request.sendTo("https://api.example.com/user");
+    const response = await request.get();
     const result = await response.getJson<{ name: string; age: number; isActive: boolean }>();
 
     // Assert
@@ -460,10 +445,10 @@ describe("BaseRequest", () => {
       body: complexJsonString,
       headers: { "Content-Type": "application/json" },
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const response = await request.sendTo("https://api.example.com/complex");
+    const response = await request.get();
     const result = await response.getJson<ComplexResponse>();
 
     // Assert
@@ -480,10 +465,10 @@ describe("BaseRequest", () => {
       body: "name,age,city\nJohn,30,New York\nJane,25,Boston",
       headers: { "Content-Type": "text/csv" },
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const response = await request.sendTo("https://api.example.com/data.csv");
+    const response = await request.get();
     const result = await response.getText();
 
     // Assert
@@ -495,7 +480,7 @@ describe("BaseRequest", () => {
   it("should handle edge cases in URL construction", async () => {
     // Arrange
     FetchMock.mockResponseOnce({ body: {} });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Add query params with special characters and empty values
     request.withQueryParams({
@@ -507,7 +492,7 @@ describe("BaseRequest", () => {
     });
 
     // Act
-    await request.sendTo("https://api.example.com/search");
+    await request.get();
 
     // Assert - Check that the URL was constructed correctly
     const lastUrl = FetchMock.mock.calls[0][0] as string;
@@ -529,12 +514,12 @@ describe("BaseRequest", () => {
     FetchMock.mockErrorOnce(new Error("Network error"));
     FetchMock.mockResponseOnce({ body: "Success after retries" });
 
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
     request.withRetries(2); // Only retry twice, which means it should still fail
 
     // Act & Assert
     try {
-      await request.sendTo("https://api.example.com/unstable");
+      await request.get();
       assert.fail("Should have thrown after retries were exhausted");
     } catch (error: any) {
       assert(error.message.includes("Network error"));
@@ -545,11 +530,11 @@ describe("BaseRequest", () => {
     // Arrange
     FetchMock.mockDelayedResponseOnce(1000, { body: "Delayed response" });
     const controller = new AbortController();
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
     request.withAbortController(controller);
 
     // Act & Assert
-    const requestPromise = request.sendTo("https://api.example.com/slow");
+    const requestPromise = request.get();
 
     // Abort after a small delay
     setTimeout(() => controller.abort(), 50);
@@ -565,7 +550,7 @@ describe("BaseRequest", () => {
   it("should respect custom headers case sensitivity", async () => {
     // Arrange
     FetchMock.mockResponseOnce({ body: {} });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     const customHeaders = {
       "Content-Type": "application/json",
@@ -576,7 +561,7 @@ describe("BaseRequest", () => {
 
     // Act
     request.withHeaders(customHeaders);
-    await request.sendTo("https://api.example.com/headers");
+    await request.get();
 
     // Assert
     const lastOptions = FetchMock.mock.calls[0][1]; // Access options directly from the mock calls
@@ -589,7 +574,7 @@ describe("BaseRequest", () => {
   it("should respect provided fetch options", async () => {
     // Arrange
     FetchMock.mockResponseOnce({ body: {} });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
     // Using enum values for proper type checking
@@ -599,7 +584,7 @@ describe("BaseRequest", () => {
     request.withReferrer("https://example.com/referrer");
     request.withKeepAlive(true);
 
-    await request.sendTo("https://api.example.com/options");
+    await request.get();
 
     // Assert - Adjust assertions to match actual capabilities
     const lastOptions = FetchMock.mock.calls[0][1]; // Access options directly from the mock calls
@@ -613,13 +598,13 @@ describe("BaseRequest", () => {
   it("should set cookies correctly", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withCookies({
       sessionId: "abc123",
       userId: "user456",
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -631,13 +616,13 @@ describe("BaseRequest", () => {
   it("should handle cookies with special characters", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withCookies({
       "complex key": "value with spaces",
       "special=chars": "!@#$%^&*()",
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -651,10 +636,10 @@ describe("BaseRequest", () => {
   it("should merge cookies with existing Cookie header", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withHeaders({ Cookie: "existing=value" }).withCookies({ newCookie: "newValue" });
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withHeaders({ Cookie: "existing=value" }).withCookies({ newCookie: "newValue" });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -666,7 +651,7 @@ describe("BaseRequest", () => {
   it("should handle cookies with security options", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withCookies({
       basic: "value",
       complex: {
         value: "test",
@@ -679,7 +664,7 @@ describe("BaseRequest", () => {
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -691,7 +676,7 @@ describe("BaseRequest", () => {
   it("should handle complex cookie options", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookie("session", {
+    const request = new GetRequest("https://api.example.com/test").withCookie("session", {
       value: "abc123",
       secure: true,
       httpOnly: true,
@@ -701,7 +686,7 @@ describe("BaseRequest", () => {
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -712,7 +697,7 @@ describe("BaseRequest", () => {
   it("should handle complex cookie options with validation", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookie("session", {
+    const request = new GetRequest("https://api.example.com/test").withCookie("session", {
       value: "abc123",
       secure: true,
       httpOnly: true,
@@ -722,7 +707,7 @@ describe("BaseRequest", () => {
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -733,12 +718,12 @@ describe("BaseRequest", () => {
   it("should handle case-insensitive cookie headers", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest()
+    const request = new GetRequest("https://api.example.com/test")
       .withHeaders({ cookie: "existing=value" }) // lowercase cookie header
       .withCookies({ newCookie: "newValue" });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -756,15 +741,15 @@ describe("BaseRequest", () => {
     const controller = new AbortController();
 
     FetchMock.mockDelayedResponseOnce(responseDelay);
-    const request = new GetRequest().withTimeout(timeout).withAbortController(controller);
+    const request = new GetRequest("https://api.example.com/test").withTimeout(timeout).withAbortController(controller);
 
     // Act & Assert - the request should timeout and throw
     try {
-      await request.sendTo("https://api.example.com/test");
+      await request.get();
       assert.fail("Expected request to timeout but it succeeded");
     } catch (error) {
       assert(error instanceof RequestError);
-      assert(error.timeoutError, "Error should be marked as a timeout error");
+      assert(error.isTimeout, "Error should be marked as a timeout error");
       assert.equal(error.url, "https://api.example.com/test");
       assert.equal(error.method, "GET");
     }
@@ -776,10 +761,10 @@ describe("BaseRequest", () => {
     const controller = new AbortController();
 
     FetchMock.mockDelayedResponseOnce(responseDelay);
-    const request = new GetRequest().withAbortController(controller);
+    const request = new GetRequest("https://api.example.com/test").withAbortController(controller);
 
     // Act - start the request then abort it manually
-    const requestPromise = request.sendTo("https://api.example.com/test");
+    const requestPromise = request.get();
 
     // Wait a bit then abort the request manually
     await wait(10);
@@ -791,14 +776,14 @@ describe("BaseRequest", () => {
       assert.fail("Expected request to be aborted but it succeeded");
     } catch (error) {
       // Error should not be marked as a timeout
-      assert(!(error instanceof RequestError && error.timeoutError), "User-initiated abort should not be reported as timeout");
+      assert(!(error instanceof RequestError && error.isTimeout), "User-initiated abort should not be reported as timeout");
     }
   });
 
   it("should respect provided fetch options", async () => {
     // Arrange
     FetchMock.mockResponseOnce({ body: {} });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
     // Using enum values for proper type checking
@@ -808,7 +793,7 @@ describe("BaseRequest", () => {
     request.withReferrer("https://example.com/referrer");
     request.withKeepAlive(true);
 
-    await request.sendTo("https://api.example.com/options");
+    await request.get();
 
     // Assert - Adjust assertions to match actual capabilities
     const lastOptions = FetchMock.mock.calls[0][1]; // Access options directly from the mock calls
@@ -822,13 +807,13 @@ describe("BaseRequest", () => {
   it("should set cookies correctly", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withCookies({
       sessionId: "abc123",
       userId: "user456",
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -840,13 +825,13 @@ describe("BaseRequest", () => {
   it("should handle cookies with special characters", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withCookies({
       "complex key": "value with spaces",
       "special=chars": "!@#$%^&*()",
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -860,10 +845,10 @@ describe("BaseRequest", () => {
   it("should merge cookies with existing Cookie header", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withHeaders({ Cookie: "existing=value" }).withCookies({ newCookie: "newValue" });
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withHeaders({ Cookie: "existing=value" }).withCookies({ newCookie: "newValue" });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -875,7 +860,7 @@ describe("BaseRequest", () => {
   it("should handle cookies with security options", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withCookies({
       basic: "value",
       complex: {
         value: "test",
@@ -888,7 +873,7 @@ describe("BaseRequest", () => {
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -900,7 +885,7 @@ describe("BaseRequest", () => {
   it("should handle complex cookie options", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookie("session", {
+    const request = new GetRequest("https://api.example.com/test").withCookie("session", {
       value: "abc123",
       secure: true,
       httpOnly: true,
@@ -910,7 +895,7 @@ describe("BaseRequest", () => {
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -921,7 +906,7 @@ describe("BaseRequest", () => {
   it("should handle complex cookie options with validation", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookie("session", {
+    const request = new GetRequest("https://api.example.com/test").withCookie("session", {
       value: "abc123",
       secure: true,
       httpOnly: true,
@@ -931,7 +916,7 @@ describe("BaseRequest", () => {
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -942,12 +927,12 @@ describe("BaseRequest", () => {
   it("should handle case-insensitive cookie headers", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest()
+    const request = new GetRequest("https://api.example.com/test")
       .withHeaders({ cookie: "existing=value" }) // lowercase cookie header
       .withCookies({ newCookie: "newValue" });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -964,16 +949,16 @@ describe("BaseRequest", () => {
     FetchMock.mockResponseOnce();
 
     // Using withQueryParams (already supported arrays)
-    const request1 = new GetRequest().withQueryParams({
+    const request1 = new GetRequest("https://api.example.com/search1").withQueryParams({
       tags: ["javascript", "typescript", "react"],
     });
 
     // Using withQueryParam with array (new functionality)
-    const request2 = new GetRequest().withQueryParam("tags", ["javascript", "typescript", "react"]);
+    const request2 = new GetRequest("https://api.example.com/search2").withQueryParam("tags", ["javascript", "typescript", "react"]);
 
     // Act
-    await request1.sendTo("https://api.example.com/search1");
-    await request2.sendTo("https://api.example.com/search2");
+    await request1.get();
+    await request2.get();
 
     // Assert - Both methods should produce identical results
     const [url1] = FetchMock.mock.calls[0];
@@ -998,7 +983,7 @@ describe("BaseRequest", () => {
       FetchMock.mockErrorOnce(new Error(`Network error #${i + 1}`));
     }
 
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
     const maxRetries = 3; // Set max retries to a reasonable value
     request.withRetries(maxRetries);
 
@@ -1009,7 +994,7 @@ describe("BaseRequest", () => {
 
     // Act & Assert
     try {
-      await request.sendTo("https://api.example.com/retry-test");
+      await request.get();
       assert.fail("Request should have failed after max retries");
     } catch (error: any) {
       // Should have exactly 3 retries (original attempt + 3 retries = 4 total attempts)
@@ -1032,13 +1017,13 @@ describe("Cookie Options Tests", () => {
   it("should handle basic string cookies", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       simple: "value",
       another: "anotherValue",
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1050,12 +1035,12 @@ describe("Cookie Options Tests", () => {
   it("should handle cookie with secure flag", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       secureCookie: { value: "secureValue", secure: true },
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1066,12 +1051,12 @@ describe("Cookie Options Tests", () => {
   it("should handle cookie with httpOnly flag", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       httpOnlyCookie: { value: "httpOnlyValue", httpOnly: true },
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1082,12 +1067,12 @@ describe("Cookie Options Tests", () => {
   it("should handle cookie with SameSite=Strict option", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       strictCookie: { value: "strictValue", sameSite: SameSitePolicy.STRICT },
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1098,12 +1083,12 @@ describe("Cookie Options Tests", () => {
   it("should handle cookie with SameSite=Lax option", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       laxCookie: { value: "laxValue", sameSite: SameSitePolicy.LAX },
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1114,12 +1099,12 @@ describe("Cookie Options Tests", () => {
   it("should handle cookie with SameSite=None option", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       noneCookie: { value: "noneValue", sameSite: SameSitePolicy.NONE },
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1130,12 +1115,12 @@ describe("Cookie Options Tests", () => {
   it("should handle cookie with path option", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       pathCookie: { value: "pathValue", path: "/dashboard" },
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1146,12 +1131,12 @@ describe("Cookie Options Tests", () => {
   it("should handle cookie with domain option", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       domainCookie: { value: "domainValue", domain: "example.com" },
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1162,12 +1147,12 @@ describe("Cookie Options Tests", () => {
   it("should handle cookie with maxAge option", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       maxAgeCookie: { value: "maxAgeValue", maxAge: 3600 },
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1179,12 +1164,12 @@ describe("Cookie Options Tests", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const expiryDate = new Date(Date.now() + 86400000); // 24 hours later
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       expiresCookie: { value: "expiresValue", expires: expiryDate },
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1195,7 +1180,7 @@ describe("Cookie Options Tests", () => {
   it("should handle multiple cookies with different options", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       cookie1: "simple",
       cookie2: { value: "secure", secure: true },
       cookie3: { value: "httpOnly", httpOnly: true },
@@ -1203,7 +1188,7 @@ describe("Cookie Options Tests", () => {
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1220,7 +1205,7 @@ describe("Cookie Options Tests", () => {
     FetchMock.mockResponseOnce();
     const expiryDate = new Date(Date.now() + 86400000); // 24 hours later
 
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       complexCookie: {
         value: "complexValue",
         secure: true,
@@ -1234,7 +1219,7 @@ describe("Cookie Options Tests", () => {
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1245,13 +1230,13 @@ describe("Cookie Options Tests", () => {
   it("should handle empty cookie values", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       emptyCookie: "",
       emptyOptionCookie: { value: "" },
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1263,7 +1248,7 @@ describe("Cookie Options Tests", () => {
   it("should handle cookies with special characters", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       "name with spaces": "value with spaces",
       "name+with+plus": "value+with+plus",
       "name@symbols!": "value@symbols!",
@@ -1271,7 +1256,7 @@ describe("Cookie Options Tests", () => {
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1289,12 +1274,12 @@ describe("Cookie Options Tests", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const longValue = "a".repeat(1000); // 1000 character string
-    const request = new GetRequest().withCookies({
+    const request = new GetRequest("https://api.example.com/test").withCookies({
       longCookie: longValue,
     });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1305,10 +1290,10 @@ describe("Cookie Options Tests", () => {
   it("should handle cookies with the withCookie method", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCookie("session", "abc123").withCookie("preference", { value: "dark", sameSite: SameSitePolicy.LAX });
+    const request = new GetRequest("https://api.example.com/test").withCookie("session", "abc123").withCookie("preference", { value: "dark", sameSite: SameSitePolicy.LAX });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1320,13 +1305,13 @@ describe("Cookie Options Tests", () => {
   it("should merge multiple cookie calls correctly", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest()
+    const request = new GetRequest("https://api.example.com/test")
       .withCookies({ first: "one", second: "two" })
       .withCookie("third", "three")
       .withCookies({ fourth: { value: "four", secure: true } });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1354,10 +1339,10 @@ describe("CSRF Protection Tests", () => {
   it("should set CSRF token in headers", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCsrfToken("test-token-12345");
+    const request = new GetRequest("https://api.example.com/test").withCsrfToken("test-token-12345");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1368,10 +1353,10 @@ describe("CSRF Protection Tests", () => {
   it("should set CSRF token with custom header name", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withCsrfToken("test-token-12345", "X-XSRF-TOKEN");
+    const request = new GetRequest("https://api.example.com/test").withCsrfToken("test-token-12345", "X-XSRF-TOKEN");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1382,10 +1367,10 @@ describe("CSRF Protection Tests", () => {
   it("should set anti-CSRF headers", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withAntiCsrfHeaders();
+    const request = new GetRequest("https://api.example.com/test").withAntiCsrfHeaders();
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1396,10 +1381,10 @@ describe("CSRF Protection Tests", () => {
   it("should automatically add anti-CSRF headers by default", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1410,10 +1395,10 @@ describe("CSRF Protection Tests", () => {
   it("should allow disabling automatic CSRF protection", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withoutCsrfProtection();
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection();
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1425,10 +1410,10 @@ describe("CSRF Protection Tests", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     create.config.setEnableAntiCsrf(true); // Enable globally
-    const request = new GetRequest().withoutCsrfProtection(); // Disable locally
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection(); // Disable locally
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1440,10 +1425,10 @@ describe("CSRF Protection Tests", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     create.config.setEnableAntiCsrf(false); // Disable globally
-    const request = new GetRequest(); // Don't disable locally
+    const request = new GetRequest("https://api.example.com/test"); // Don't disable locally
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1455,10 +1440,10 @@ describe("CSRF Protection Tests", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     create.config.setEnableAntiCsrf(false); // Disable globally
-    const request = new GetRequest().withAntiCsrfHeaders(); // Enable locally
+    const request = new GetRequest("https://api.example.com/test").withAntiCsrfHeaders(); // Enable locally
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1483,10 +1468,10 @@ describe("Global Config CSRF Tests", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     create.config.setCsrfToken("global-csrf-token");
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1498,10 +1483,10 @@ describe("Global Config CSRF Tests", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     create.config.setCsrfToken("global-csrf-token").setCsrfHeaderName("X-Custom-CSRF");
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1513,10 +1498,10 @@ describe("Global Config CSRF Tests", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     create.config.setEnableAntiCsrf(false);
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1529,10 +1514,10 @@ describe("Global Config CSRF Tests", () => {
     FetchMock.mockResponseOnce();
     create.config.setCsrfToken("global-csrf-token");
     // Use explicit header name to avoid confusion with automatic headers
-    const request = new GetRequest().withCsrfToken("local-csrf-token", "X-CSRF-Token");
+    const request = new GetRequest("https://api.example.com/test").withCsrfToken("local-csrf-token", "X-CSRF-Token");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1554,13 +1539,13 @@ describe("Relative URL Handling", () => {
   it("should handle relative URLs correctly with query parameters", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withQueryParams({
+    const request = new GetRequest("https://api.example.com/test").withQueryParams({
       param1: "value1",
       param2: "value2",
     });
 
     // Act - Use a relative URL
-    await request.sendTo("/api/users");
+    await request.get();
 
     // Assert - Check the URL was constructed correctly
     const [url] = FetchMock.mock.calls[0];
@@ -1573,12 +1558,12 @@ describe("Relative URL Handling", () => {
   it("should handle relative URLs that already have query parameters", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest().withQueryParams({
+    const request = new GetRequest("https://api.example.com/test").withQueryParams({
       additionalParam: "value",
     });
 
     // Act - Use a relative URL with existing query parameter
-    await request.sendTo("/api/search?q=test");
+    await request.get();
 
     // Assert - Check the URL was constructed correctly
     const [url] = FetchMock.mock.calls[0];
@@ -1592,12 +1577,12 @@ describe("Relative URL Handling", () => {
     FetchMock.mockResponseOnce();
     FetchMock.mockResponseOnce();
 
-    const request1 = new GetRequest().withQueryParams({ param: "value1" });
-    const request2 = new GetRequest().withQueryParams({ param: "value2" });
+    const request1 = new GetRequest("https://api.example.com/items").withQueryParams({ param: "value1" });
+    const request2 = new GetRequest("/local/path").withQueryParams({ param: "value2" });
 
     // Act - Send requests to both absolute and relative URLs
-    await request1.sendTo("https://api.example.com/items");
-    await request2.sendTo("/local/path");
+    await request1.get();
+    await request2.get();
 
     // Assert
     const [absoluteUrl] = FetchMock.mock.calls[0];
@@ -1637,10 +1622,10 @@ describe("Cross-Environment Base64 Encoding", () => {
     FetchMock.mockResponseOnce();
     const username = "testuser";
     const password = "testpass123";
-    const request = new GetRequest().withBasicAuth(username, password);
+    const request = new GetRequest("https://api.example.com/test").withBasicAuth(username, password);
 
     // Act
-    await request.sendTo("https://api.example.com/secure");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1656,10 +1641,10 @@ describe("Cross-Environment Base64 Encoding", () => {
     FetchMock.mockResponseOnce();
     const username = "user@example.com";
     const password = "p@$$w0rd!";
-    const request = new GetRequest().withBasicAuth(username, password);
+    const request = new GetRequest("https://api.example.com/test").withBasicAuth(username, password);
 
     // Act
-    await request.sendTo("https://api.example.com/secure");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1675,10 +1660,10 @@ describe("Cross-Environment Base64 Encoding", () => {
     FetchMock.mockResponseOnce();
     const username = "üser";
     const password = "пароль";
-    const request = new GetRequest().withBasicAuth(username, password);
+    const request = new GetRequest("https://api.example.com/test").withBasicAuth(username, password);
 
     // Act
-    await request.sendTo("https://api.example.com/secure");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -1710,10 +1695,10 @@ describe("Header Case Sensitivity", () => {
     create.config.setCsrfHeaderName("X-CSRF-Token"); // Default name
 
     // Set a lowercase version of the header
-    const request = new GetRequest().withHeaders({ "x-csrf-token": "local-token" });
+    const request = new GetRequest("https://api.example.com/test").withHeaders({ "x-csrf-token": "local-token" });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert - Global token should not be applied because local token exists
     const [, options] = FetchMock.mock.calls[0];
@@ -1734,10 +1719,10 @@ describe("Header Case Sensitivity", () => {
     create.config.setXsrfHeaderName("X-XSRF-TOKEN");
 
     // Set a mixed-case version of the header
-    const request = new GetRequest().withHeaders({ "X-xsrf-TOken": "local-token" });
+    const request = new GetRequest("https://api.example.com/test").withHeaders({ "X-xsrf-TOken": "local-token" });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert - The case of the original header should be preserved
     const [, options] = FetchMock.mock.calls[0];
@@ -1752,7 +1737,7 @@ describe("Header Case Sensitivity", () => {
     FetchMock.mockResponseOnce();
 
     // Create a request with multiple cookie headers using different cases
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // First add headers with different cookie cases
     request.withHeaders({
@@ -1764,7 +1749,7 @@ describe("Header Case Sensitivity", () => {
     request.withCookie("third", "value");
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];

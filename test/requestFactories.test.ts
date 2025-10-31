@@ -5,38 +5,40 @@ import { get, post, put, del, patch, head, options } from "../src/requestFactori
 import { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadRequest, OptionsRequest } from "../src/requestMethods.js";
 
 describe("Request Factories", () => {
+  const testUrl = "https://api.example.com/test";
+
   it("should create a GetRequest instance", () => {
-    const request = get();
+    const request = get(testUrl);
     assert.ok(request instanceof GetRequest);
   });
 
   it("should create a PostRequest instance", () => {
-    const request = post();
+    const request = post(testUrl);
     assert.ok(request instanceof PostRequest);
   });
 
   it("should create a PutRequest instance", () => {
-    const request = put();
+    const request = put(testUrl);
     assert.ok(request instanceof PutRequest);
   });
 
   it("should create a DeleteRequest instance", () => {
-    const request = del();
+    const request = del(testUrl);
     assert.ok(request instanceof DeleteRequest);
   });
 
   it("should create a PatchRequest instance", () => {
-    const request = patch();
+    const request = patch(testUrl);
     assert.ok(request instanceof PatchRequest);
   });
 
   it("should create a HeadRequest instance", () => {
-    const request = head();
+    const request = head(testUrl);
     assert.ok(request instanceof HeadRequest);
   });
 
   it("should create an OptionsRequest instance", () => {
-    const request = options();
+    const request = options(testUrl);
     assert.ok(request instanceof OptionsRequest);
   });
 });

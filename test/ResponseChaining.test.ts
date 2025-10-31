@@ -18,10 +18,10 @@ describe("Response Chaining API", () => {
     // Arrange
     const expectedData = { name: "John", age: 30 };
     FetchMock.mockResponseOnce({ body: expectedData });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const result = await request.sendTo("https://api.example.com/user").getJson();
+    const result = await request.getJson();
 
     // Assert
     assert.deepEqual(result, expectedData);
@@ -31,10 +31,10 @@ describe("Response Chaining API", () => {
     // Arrange
     const expectedText = "Hello, World!";
     FetchMock.mockResponseOnce({ body: expectedText });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const result = await request.sendTo("https://api.example.com/text").getText();
+    const result = await request.getText();
 
     // Assert
     assert.equal(result, expectedText);
@@ -43,10 +43,10 @@ describe("Response Chaining API", () => {
   it("should support chained getBlob() call after sendTo", async () => {
     // Arrange
     FetchMock.mockResponseOnce({ body: "Binary data" });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const result = await request.sendTo("https://api.example.com/file").getBlob();
+    const result = await request.getBlob();
 
     // Assert
     assert(result instanceof Blob);
@@ -55,10 +55,10 @@ describe("Response Chaining API", () => {
   it("should support chained getArrayBuffer() call after sendTo", async () => {
     // Arrange
     FetchMock.mockResponseOnce({ body: "Binary data" });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const result = await request.sendTo("https://api.example.com/binary").getArrayBuffer();
+    const result = await request.getBody();
 
     // Assert
     assert(result instanceof ArrayBuffer);
@@ -67,10 +67,10 @@ describe("Response Chaining API", () => {
   it("should support chained getBody() call after sendTo", async () => {
     // Arrange
     FetchMock.mockResponseOnce({ body: "Stream content" });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const result = await request.sendTo("https://api.example.com/stream").getBody();
+    const result = await request.getBody();
 
     // Assert
     assert(result instanceof ReadableStream);
@@ -91,10 +91,10 @@ describe("Response Chaining API", () => {
     };
 
     FetchMock.mockResponseOnce({ body: userData });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const result = await request.sendTo("https://api.example.com/user").getJson<User>();
+    const result = await request.getJson<User>();
 
     // Assert
     assert.equal(result.id, 123);
@@ -112,10 +112,10 @@ describe("Response Chaining API", () => {
       headers: { Location: "/resources/123" },
     });
 
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const response = await request.sendTo("https://api.example.com/create");
+    const response = await request.get();
 
     // Assert response properties first
     assert.equal(response.status, 201);
@@ -131,11 +131,11 @@ describe("Response Chaining API", () => {
     // Arrange
     const expectedData = { name: "Jane", age: 25 };
     FetchMock.mockResponseOnce({ body: expectedData });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act & Assert
     await request
-      .sendTo("https://api.example.com/user")
+      .get()
       .then(response => {
         assert.equal(response.ok, true);
         return response.getJson();
@@ -152,11 +152,11 @@ describe("Response Chaining API", () => {
       statusText: "Bad Request",
       body: { error: "Invalid request" },
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act & Assert
     try {
-      await request.sendTo("https://api.example.com/error");
+      await request.get();
       assert.fail("Should have thrown an error for status 400");
     } catch (error: any) {
       // Assert error properties
@@ -172,10 +172,10 @@ describe("Response Chaining API", () => {
       body: "Not valid JSON",
       headers: { "Content-Type": "application/json" },
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const response = await request.sendTo("https://api.example.com/invalid");
+    const response = await request.get();
 
     // Assert
     try {
@@ -193,14 +193,14 @@ describe("Response Chaining API", () => {
       statusText: "Server Error",
       body: "Internal Server Error",
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act & Assert
     let errorStatus = 0;
     let errorUrl = "";
 
     await request
-      .sendTo("https://api.example.com/server-error")
+      .get()
       .then(() => {
         assert.fail("Should not reach this point for status 500");
       })
@@ -220,11 +220,11 @@ describe("Response Chaining API", () => {
       statusText: "Not Found",
       body: { message: "Resource not found" },
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act & Assert
     try {
-      await request.sendTo("https://api.example.com/missing");
+      await request.get();
       assert.fail("Should have thrown for 404 status");
     } catch (error: any) {
       // Assert proper error properties
@@ -247,10 +247,10 @@ describe("Response Chaining API", () => {
       emojis: "😀🚀✨🌍",
     };
     FetchMock.mockResponseOnce({ body: expectedData });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const result = await request.sendTo("https://api.example.com/unicode").getJson();
+    const result = await request.getJson();
 
     // Assert
     assert.deepEqual(result, expectedData);
@@ -263,10 +263,10 @@ describe("Response Chaining API", () => {
       statusText: "OK",
       body: "",
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const response = await request.sendTo("https://api.example.com/no-content");
+    const response = await request.get();
 
     // Assert
     assert.equal(response.status, 200);
@@ -281,11 +281,11 @@ describe("Response Chaining API", () => {
       statusText: "Service Unavailable",
       body: null,
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act & Assert
     try {
-      await request.sendTo("https://api.example.com/unavailable");
+      await request.get();
       assert.fail("Should have thrown an error for status 503");
     } catch (error: any) {
       // Assert error properties
@@ -306,10 +306,10 @@ describe("Response Chaining API", () => {
       body: malformedJson,
       headers: { "Content-Type": "application/json" },
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const response = await request.sendTo("https://api.example.com/malformed");
+    const response = await request.get();
 
     // Assert
     try {
@@ -336,7 +336,7 @@ describe("Response Chaining API", () => {
       status: 200,
       body: userData,
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act - multiple chained operations
     let responseStatus = 0;
@@ -344,7 +344,7 @@ describe("Response Chaining API", () => {
     let firstUserName = "";
 
     await request
-      .sendTo("https://api.example.com/users")
+      .get()
       .then(response => {
         responseStatus = response.status;
         return response.getJson<UserData>();
@@ -370,11 +370,11 @@ describe("Response Chaining API", () => {
       statusText: "Too Many Requests",
       body: { message: "Rate limit exceeded" },
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
     const errorResult = await request
-      .sendTo("https://api.example.com/rate-limited")
+      .get()
       .then(() => {
         return "This should not execute";
       })
@@ -404,18 +404,18 @@ describe("Response Chaining API", () => {
     FetchMock.mockResponseOnce({ body: orderData });
     FetchMock.mockResponseOnce({ body: userData });
 
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act - nested promise chain
     const result = await request
-      .sendTo("https://api.example.com/order")
+      .get()
       .then(response => {
         return response.getJson();
       })
       .then(order => {
         // Use order data to make another request
-        return new GetRequest()
-          .sendTo(`https://api.example.com/user`)
+        return new GetRequest("https://api.example.com/test")
+          .get()
           .then(response => response.getJson())
           .then(user => {
             // Combine data from both requests
@@ -446,10 +446,10 @@ describe("Response Chaining API", () => {
       headers: { "Content-Type": "text/plain" },
     });
 
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act & Assert - First attempt as JSON should fail
-    const response1 = await request.sendTo("https://api.example.com/text-only");
+    const response1 = await request.get();
     try {
       await response1.getJson();
       assert.fail("Should have thrown an error when parsing text as JSON");
@@ -458,7 +458,7 @@ describe("Response Chaining API", () => {
     }
 
     // Second request - getting it as text should work
-    const response2 = await request.sendTo("https://api.example.com/text-only");
+    const response2 = await request.get();
     const textContent = await response2.getText();
     assert.equal(textContent, plainTextContent);
   });
@@ -470,7 +470,7 @@ describe("Response Chaining API", () => {
       statusText: "Forbidden",
       body: { reason: "Access denied" },
     });
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Variables to track execution flow
     let finallyExecuted = false;
@@ -478,7 +478,7 @@ describe("Response Chaining API", () => {
 
     // Act
     await request
-      .sendTo("https://api.example.com/restricted")
+      .get()
       .then(() => {
         assert.fail("Should not execute then block on error");
       })

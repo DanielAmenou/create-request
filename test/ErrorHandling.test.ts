@@ -19,11 +19,11 @@ describe("Error Handling Tests", () => {
     it("should handle general network errors", async () => {
       // Arrange
       FetchMock.mockErrorOnce(new Error("Failed to connect"));
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/data");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -36,11 +36,11 @@ describe("Error Handling Tests", () => {
     it("should handle DNS resolution errors", async () => {
       // Arrange
       FetchMock.mockErrorOnce(new TypeError("Failed to resolve 'non-existent-domain.invalid'"));
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://non-existent-domain.invalid/api");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -52,11 +52,11 @@ describe("Error Handling Tests", () => {
       // Arrange
       const originalError = new Error("Original error message");
       FetchMock.mockErrorOnce(originalError);
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/data");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -75,11 +75,11 @@ describe("Error Handling Tests", () => {
         body: invalidJson,
         headers: { "Content-Type": "application/json" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert - Ensure error bubbles up properly
       try {
-        await request.sendTo("https://api.example.com/data").getJson();
+        await request.getJson();
         assert.fail("Should have thrown a JSON parsing error");
       } catch (error) {
         assert(error instanceof SyntaxError);
@@ -93,11 +93,11 @@ describe("Error Handling Tests", () => {
         body: "",
         headers: { "Content-Type": "application/json" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/empty").getJson();
+        await request.getJson();
         assert.fail("Should have thrown a JSON parsing error");
       } catch (error) {
         assert(error instanceof SyntaxError);
@@ -111,11 +111,11 @@ describe("Error Handling Tests", () => {
         body: "<html><body>Not JSON</body></html>",
         headers: { "Content-Type": "text/html" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/html").getJson();
+        await request.getJson();
         assert.fail("Should have thrown a JSON parsing error");
       } catch (error) {
         assert(error instanceof SyntaxError);
@@ -126,10 +126,10 @@ describe("Error Handling Tests", () => {
     //     body: { data: "test" },
     //     headers: { "Content-Type": "application/json" },
     //   });
-    //   const request = create.get();
+    //   const request = create.get("https://api.example.com/data");
 
     //   // Act
-    //   const response = await request.sendTo("https://api.example.com/data");
+    //   const response = await request.get();
 
     //   // Get the body stream first
     //   //const body = response.getBody();
@@ -153,12 +153,12 @@ describe("Error Handling Tests", () => {
         status: 500,
         body: "Server Error",
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/error");
 
       // Act & Assert
       let errorCaught = false;
       await request
-        .sendTo("https://api.example.com/error")
+        .get()
         .then(() => {
           assert.fail("This should not be called on error");
         })
@@ -177,11 +177,11 @@ describe("Error Handling Tests", () => {
         status: 404,
         body: { message: "Resource not found" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/missing");
 
       // Act & Assert
       const result = await request
-        .sendTo("https://api.example.com/missing")
+        .get()
         .then(() => "Success")
         .catch(() => "Error handled");
 
@@ -194,14 +194,14 @@ describe("Error Handling Tests", () => {
         status: 401,
         body: { message: "Unauthorized" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/protected");
 
       // Act
       let finallyExecuted = false;
       let errorCaught = false;
 
       await request
-        .sendTo("https://api.example.com/protected")
+        .get()
         .then(() => {
           assert.fail("Then clause should not execute");
         })
@@ -224,15 +224,15 @@ describe("Error Handling Tests", () => {
     it("should handle timeouts with appropriate error message", async () => {
       // Arrange
       FetchMock.mockDelayedResponseOnce(500, { body: "Too late!" });
-      const request = create.get().withTimeout(100);
+      const request = create.get("https://api.example.com/data").withTimeout(100);
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/slow");
+        await request.get();
         assert.fail("Request should have timed out");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert.equal(error.timeoutError, true);
+        assert.equal(error.isTimeout, true);
         assert(error.message.includes("timed out after 100ms"));
       }
     });
@@ -249,10 +249,10 @@ describe("Error Handling Tests", () => {
 
       // Create a custom AbortController to abort while processing
       const controller = new AbortController();
-      const request = create.get().withAbortController(controller);
+      const request = create.get("https://api.example.com/data").withAbortController(controller);
 
       // Act
-      const responsePromise = request.sendTo("https://api.example.com/large");
+      const responsePromise = request.get();
 
       // Abort after the response starts but before processing completes
       setTimeout(() => controller.abort(), 50);
@@ -279,7 +279,7 @@ describe("Error Handling Tests", () => {
 
       let retryCount = 0;
       const request = create
-        .get()
+        .get("https://api.example.com/data")
         .withRetries(3)
         .onRetry(() => {
           retryCount++;
@@ -287,7 +287,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/unstable");
+        await request.get();
         assert.fail("Request should have failed after retries");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -302,7 +302,7 @@ describe("Error Handling Tests", () => {
 
       // Create a request with an intentionally incorrect retry setup
       // Instead of directly accessing protected property, use Object.defineProperty
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Use defineProperty to bypass TypeScript's protection
       // This is only for testing purposes to simulate a corrupted request object
@@ -312,7 +312,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/test");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         // Request should fail without infinite retries
@@ -330,14 +330,14 @@ describe("Error Handling Tests", () => {
 
       let retryCount = 0;
       const request = create
-        .get()
+        .get("https://api.example.com/data")
         .withRetries(5)
         .onRetry(() => {
           retryCount++;
         });
 
       // Act
-      const result = await request.sendTo("https://api.example.com/eventually-succeeds").getJson();
+      const result = await request.getJson();
 
       // Assert
       assert.equal(retryCount, 2, "Should have retried exactly 2 times");
@@ -355,7 +355,7 @@ describe("Error Handling Tests", () => {
 
       let errorDetails: any = null;
       const request = create
-        .get()
+        .get("https://api.example.com/data")
         .withRetries(1)
         .onRetry(({ error }) => {
           errorDetails = {
@@ -365,7 +365,7 @@ describe("Error Handling Tests", () => {
         });
 
       // Act
-      await request.sendTo("https://api.example.com/rate-limited").getJson();
+      await request.getJson();
 
       // Assert
       assert.equal(errorDetails.status, 429);
@@ -381,11 +381,11 @@ describe("Error Handling Tests", () => {
       FetchMock.mockResponseOnce({
         body: { items: [1, 2, 3] }, // Missing the 'users' property that selector expects
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/items").getData(data => {
+        await request.getData(data => {
           // Add type assertion to fix the 'unknown' type issue
           const typedData = data as { users?: { name: string }[] };
           // This selector expects a 'users' property that doesn't exist
@@ -405,11 +405,11 @@ describe("Error Handling Tests", () => {
       FetchMock.mockResponseOnce({
         body: { value: "not-a-number" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/value").getData(data => {
+        await request.getData(data => {
           // Add type assertion to fix the 'unknown' type issue
           const typedData = data as { value: string };
           // This will fail because "not-a-number" can't be parsed as a number
@@ -438,11 +438,11 @@ describe("Error Handling Tests", () => {
           errors: ["Missing required field 'name'"],
         },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/users");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -466,11 +466,11 @@ describe("Error Handling Tests", () => {
         statusText: "Unauthorized",
         body: { message: "Authentication required" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/protected");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -485,11 +485,11 @@ describe("Error Handling Tests", () => {
         statusText: "Forbidden",
         body: { message: "Insufficient permissions" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/admin");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -504,11 +504,11 @@ describe("Error Handling Tests", () => {
         statusText: "Not Found",
         body: { message: "Resource not found" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/missing");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -523,11 +523,11 @@ describe("Error Handling Tests", () => {
         statusText: "Internal Server Error",
         body: { message: "An unexpected error occurred" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/error");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -543,11 +543,11 @@ describe("Error Handling Tests", () => {
         headers: { "Retry-After": "120" },
         body: { message: "Service temporarily unavailable" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/maintenance");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -571,11 +571,11 @@ describe("Error Handling Tests", () => {
         body: "<html><body>Not JSON</body></html>",
         headers: { "Content-Type": "text/html" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert - direct chained call
       try {
-        await request.sendTo("https://api.example.com/html").getJson();
+        await request.getJson();
         assert.fail("Should have thrown an error");
       } catch (error) {
         assert(error instanceof SyntaxError);
@@ -589,13 +589,13 @@ describe("Error Handling Tests", () => {
         body: "Not JSON data",
         headers: { "Content-Type": "text/plain" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act
       let errorMessage = "";
 
       await request
-        .sendTo("https://api.example.com/text")
+        .get()
         .then(response => response.getJson())
         .then(() => {
           assert.fail("This should not be called");
@@ -617,10 +617,10 @@ describe("Error Handling Tests", () => {
         body: '{"data": "test"}',
         headers: { "Content-Type": "text/plain" },
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert - should still parse JSON correctly
-      const response = await request.sendTo("https://api.example.com/wrong-content-type");
+      const response = await request.get();
       const result = await response.getJson();
       assert.deepEqual(result, { data: "test" });
     });
@@ -628,12 +628,12 @@ describe("Error Handling Tests", () => {
     it("should handle request to URL with unusual characters", async () => {
       // Arrange
       FetchMock.mockResponseOnce({ body: { success: true } });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert - URL with spaces, unicode and special chars
       try {
         // URL with spaces and special characters
-        await request.sendTo("https://api.example.com/test path/with spaces/special&chars?q=test value");
+        await request.get();
         // If this doesn't throw, it's good
       } catch (error) {
         // Fix typing of the error object
@@ -653,11 +653,11 @@ describe("Error Handling Tests", () => {
         status: 500,
         body: largeErrorData,
       });
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert
       try {
-        await request.sendTo("https://api.example.com/large-error");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -683,11 +683,11 @@ describe("Error Handling Tests", () => {
         body: { message: "Second error" },
       });
 
-      const request = create.get();
+      const request = create.get("https://api.example.com/data");
 
       // Act & Assert - first request
       try {
-        await request.sendTo("https://api.example.com/first-error");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -696,7 +696,7 @@ describe("Error Handling Tests", () => {
 
       // Second request with same object
       try {
-        await request.sendTo("https://api.example.com/second-error");
+        await request.get();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);

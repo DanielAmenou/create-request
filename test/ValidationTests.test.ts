@@ -7,7 +7,7 @@ describe("Request Validation", () => {
   describe("withTimeout validation", () => {
     it("should throw error for negative timeout value", () => {
       // Arrange
-      const request = new GetRequest();
+      const request = new GetRequest("https://api.example.com/test");
 
       // Act & Assert
       assert.throws(() => {
@@ -17,7 +17,7 @@ describe("Request Validation", () => {
 
     it("should throw error for zero timeout value", () => {
       // Arrange
-      const request = new GetRequest();
+      const request = new GetRequest("https://api.example.com/test");
 
       // Act & Assert
       assert.throws(() => {
@@ -27,7 +27,7 @@ describe("Request Validation", () => {
 
     it("should throw error for non-finite timeout values", () => {
       // Arrange
-      const request = new GetRequest();
+      const request = new GetRequest("https://api.example.com/test");
 
       // Act & Assert - NaN
       assert.throws(() => {
@@ -42,7 +42,7 @@ describe("Request Validation", () => {
 
     it("should accept valid timeout value", () => {
       // Arrange
-      const request = new GetRequest();
+      const request = new GetRequest("https://api.example.com/test");
 
       // Act & Assert
       assert.doesNotThrow(() => {
@@ -54,7 +54,7 @@ describe("Request Validation", () => {
   describe("withRetries validation", () => {
     it("should throw error for negative retry count", () => {
       // Arrange
-      const request = new GetRequest();
+      const request = new GetRequest("https://api.example.com/test");
 
       // Act & Assert
       assert.throws(() => {
@@ -64,7 +64,7 @@ describe("Request Validation", () => {
 
     it("should throw error for non-integer retry count", () => {
       // Arrange
-      const request = new GetRequest();
+      const request = new GetRequest("https://api.example.com/test");
 
       // Act & Assert
       assert.throws(() => {
@@ -74,7 +74,7 @@ describe("Request Validation", () => {
 
     it("should throw error for NaN retry count", () => {
       // Arrange
-      const request = new GetRequest();
+      const request = new GetRequest("https://api.example.com/test");
 
       // Act & Assert
       assert.throws(() => {
@@ -84,7 +84,7 @@ describe("Request Validation", () => {
 
     it("should accept zero retry count", () => {
       // Arrange
-      const request = new GetRequest();
+      const request = new GetRequest("https://api.example.com/test");
 
       // Act & Assert
       assert.doesNotThrow(() => {
@@ -94,7 +94,7 @@ describe("Request Validation", () => {
 
     it("should accept positive integer retry count", () => {
       // Arrange
-      const request = new GetRequest();
+      const request = new GetRequest("https://api.example.com/test");
 
       // Act & Assert
       assert.doesNotThrow(() => {

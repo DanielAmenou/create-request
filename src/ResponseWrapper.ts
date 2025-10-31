@@ -7,11 +7,10 @@ import { RequestError } from "./RequestError.js";
 export class ResponseWrapper {
   private readonly response: Response;
 
-  // Add cache properties for each response type - fix the 'any' type issues
+  // Cache properties for each response type
   private textCache: string | undefined;
   private jsonCache: unknown;
   private blobCache: Blob | undefined;
-  private arrayBufferCache: ArrayBuffer | undefined;
   private bodyUsed = false;
 
   constructor(response: Response) {
@@ -143,46 +142,6 @@ export class ResponseWrapper {
   }
 
   /**
-   * Get the response body as an ArrayBuffer
-   * Caches the result for subsequent calls. Attempts to convert from text or Blob
-   * if the body has already been consumed in those formats.
-   *
-   * @returns The response as an ArrayBuffer
-   * @throws Error if the response has already been consumed in an incompatible format
-   *
-   * @example
-   * const buffer = await response.getArrayBuffer();
-   */
-  async getArrayBuffer(): Promise<ArrayBuffer> {
-    if (this.arrayBufferCache !== undefined) {
-      return this.arrayBufferCache;
-    }
-
-    if (this.bodyUsed) {
-      // If we have text, convert to ArrayBuffer
-      if (this.textCache !== undefined) {
-        const encoder = new TextEncoder();
-        // Fix ArrayBufferLike by explicitly casting to ArrayBuffer
-        const uint8Array = encoder.encode(this.textCache);
-        this.arrayBufferCache = uint8Array.buffer as ArrayBuffer;
-        return this.arrayBufferCache;
-      }
-
-      // If we have blob, convert to ArrayBuffer
-      if (this.blobCache !== undefined) {
-        this.arrayBufferCache = await this.blobCache.arrayBuffer();
-        return this.arrayBufferCache;
-      }
-
-      throw new Error("Response body has already been consumed in a format that cannot be converted to ArrayBuffer");
-    }
-
-    this.bodyUsed = true;
-    this.arrayBufferCache = await this.response.arrayBuffer();
-    return this.arrayBufferCache;
-  }
-
-  /**
    * Get the raw response body as a ReadableStream
    * This method consumes the body and should only be called once.
    *
@@ -204,16 +163,4 @@ export class ResponseWrapper {
     this.bodyUsed = true;
     return this.response.body;
   }
-}
-
-/**
- * Type for Promise with response data transformation methods
- */
-export interface ResponsePromise<T = ResponseWrapper> extends Promise<T> {
-  getJson<R = unknown>(): Promise<R>;
-  getText(): Promise<string>;
-  getBlob(): Promise<Blob>;
-  getArrayBuffer(): Promise<ArrayBuffer>;
-  getBody(): Promise<ReadableStream<Uint8Array> | null>;
-  getData<T = unknown, R = T>(selector?: (data: T) => R): Promise<T | R>;
 }

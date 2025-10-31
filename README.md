@@ -73,10 +73,9 @@ import create from "create-request";
 
 function createUser(userData) {
   return create
-    .post()
+    .post("https://api.example.com/users")
     .withBasicAuth("username", "password")
     .withBody(userData) // Content-Type automatically set to application/json
-    .sendTo("https://api.example.com/users")
     .getData<User>() // Type-safe response handling
     .catch(error => {
       console.error("Fetch error:", error);
@@ -105,14 +104,14 @@ pnpm add create-request
 ```typescript
 import create from "create-request";
 
-// Create different request types
-const getRequest = create.get(); // GET
-const putRequest = create.put(); // PUT
-const postRequest = create.post(); // POST
-const headRequest = create.head(); // HEAD
-const patchRequest = create.patch(); // PATCH
-const deleteRequest = create.del(); // DELETE
-const optionsRequest = create.options(); // OPTIONS
+// Create different request types with URL
+const getRequest = create.get("https://api.example.com/users"); // GET
+const putRequest = create.put("https://api.example.com/users/1"); // PUT
+const postRequest = create.post("https://api.example.com/users"); // POST
+const headRequest = create.head("https://api.example.com/users/1"); // HEAD
+const patchRequest = create.patch("https://api.example.com/users/1"); // PATCH
+const deleteRequest = create.del("https://api.example.com/users/1"); // DELETE
+const optionsRequest = create.options("https://api.example.com/users"); // OPTIONS
 ```
 
 ### Request Configuration
@@ -130,7 +129,7 @@ import create, {
 
 // Configure request options
 const request = create
-  .get()
+  .get("https://api.example.com/users")
   // Basic headers
   .withHeaders({ "X-API-Key": "abc123", "Accept-Language": "en-US" })
   .withHeader("Custom-Header", "value") // Add a single header
@@ -180,79 +179,61 @@ Each configuration method returns the request object, allowing for a fluent inte
 
 ```typescript
 // Simple example with just what's needed
-const searchUsers = create
-  .get()
+const users = await create
+  .get("https://api.example.com/users")
   .withBearerToken(userToken)
   .withQueryParams({ q: searchTerm, limit: 20 })
-  .withTimeout(3000);
-
-// Now execute the request
-const users = await searchUsers.sendTo("https://api.example.com/users").getData();
-```
-
-You can also create reusable base requests with common settings:
-
-```typescript
-// Create base authenticated request
-const apiBase = create
-  .get()
-  .withHeaders({
-    "X-API-Version": "1.2",
-    "Accept-Language": "en-US",
-  })
-  .withBearerToken(authToken)
-  .withTimeout(5000)
-  .withRetries(2);
-
-// Use the base request for different endpoints
-const users = await apiBase.sendTo("https://api.example.com/users").getData();
-const products = await apiBase.sendTo("https://api.example.com/products").getData();
+  .withTimeout(3000)
+  .getData();
 ```
 
 ### Request Bodies (POST/PUT/PATCH)
 
 ```typescript
 // JSON body (Content-Type automatically set to application/json)
-const jsonRequest = create.post().withBody({ name: "John", age: 30 });
+const jsonRequest = create
+  .post("https://api.example.com/users")
+  .withBody({ name: "John", age: 30 });
 
 // String body (Content-Type automatically set to text/plain)
-const textRequest = create.post().withBody("Plain text content");
+const textRequest = create
+  .post("https://api.example.com/users")
+  .withBody("Plain text content");
 
 // Form data
 const formData = new FormData();
 formData.append("name", "John");
 formData.append("file", fileBlob);
 
-const formRequest = create.post().withBody(formData);
+const formRequest = create.post("https://api.example.com/users").withBody(formData);
 
 // URLSearchParams (typically used for application/x-www-form-urlencoded)
 const params = new URLSearchParams();
 params.append("username", "john");
 params.append("password", "secret");
 
-const formUrlEncodedRequest = create.post().withBody(params);
+const formUrlEncodedRequest = create.post("https://api.example.com/login").withBody(params);
 ```
 
 ### Executing Requests
 
 ```typescript
-// Simple execution
-const response = await request.sendTo("https://api.example.com/endpoint");
+// Get the full response
+const response = await create.get("https://api.example.com/endpoint").get();
 
 // With direct data extraction
-const jsonData = await request.sendTo("https://api.example.com/endpoint").getJson();
-const textData = await request.sendTo("https://api.example.com/endpoint").getText();
-const blobData = await request.sendTo("https://api.example.com/endpoint").getBlob();
-const bodyStream = await request.sendTo("https://api.example.com/endpoint").getBody();
-const arrayBuffer = await request.sendTo("https://api.example.com/endpoint").getArrayBuffer();
+const jsonData = await create.get("https://api.example.com/endpoint").getJson();
+const textData = await create.get("https://api.example.com/endpoint").getText();
+const blobData = await create.get("https://api.example.com/endpoint").getBlob();
+const bodyStream = await create.get("https://api.example.com/endpoint").getBody();
 
 // Using the data selector API to extract specific data
-const userData = await request
-  .sendTo("https://api.example.com/users")
+const userData = await create
+  .get("https://api.example.com/users")
   .getData(data => data.results.users);
 
 // Using the data selector without a selector function just returns the full JSON response
-const fullData = await request.sendTo("https://api.example.com/data").getData();
+const fullData = await create.get("https://api.example.com/data").getData();
 ```
 
 ### Error Handling
@@ -261,14 +242,14 @@ All errors from requests are instances of `RequestError` with detailed informati
 
 ```typescript
 try {
-  const data = await request.sendTo("https://api.example.com/data").getJson();
+  const data = await create.get("https://api.example.com/data").getJson();
 } catch (error) {
   // error will always be a RequestError
   console.log(error.message); // Error message
   console.log(error.status); // HTTP status code (if available)
   console.log(error.url); // Request URL
   console.log(error.method); // HTTP method
-  console.log(error.timeoutError); // Whether it was a timeout
+  console.log(error.isTimeout); // Whether it was a timeout
 
   // Access the original response if available
   if (error.response) {
@@ -278,95 +259,27 @@ try {
 }
 ```
 
-### Caching Requests
-
-```typescript
-import create, {
-  createMemoryStorage,
-  createLocalStorageStorage,
-  createSessionStorageStorage,
-} from "create-request";
-
-// Simple in-memory caching
-const request = create
-  .get()
-  .withCache({
-    storage: createMemoryStorage(),
-    ttl: 60000, // 1 minute in milliseconds
-  })
-  .sendTo("https://api.example.com/data");
-
-// Using localStorage storage
-const request = create
-  .get()
-  .withCache({
-    storage: createLocalStorageStorage(),
-    ttl: 5 * 60 * 1000, // 5 minutes
-    maxSize: "1MB",
-    keyPrefix: "user-data",
-  })
-  .sendTo("https://api.example.com/users");
-
-// Using sessionStorage for per-session caching
-const request = create
-  .get()
-  .withCache({
-    storage: createSessionStorageStorage(),
-    maxEntries: 50,
-    varyByHeaders: ["x-api-version"],
-  })
-  .sendTo("https://api.example.com/data");
-```
-
 ## Advanced Usage
-
-### Request Reuse
-
-```typescript
-// Create a base authenticated request
-const authRequest = create.get().withBearerToken("token123").withTimeout(5000).withRetries(2);
-
-// Reuse for different endpoints
-const users = await authRequest.sendTo("https://api.example.com/users").getJson();
-const products = await authRequest.sendTo("https://api.example.com/products").getJson();
-
-// You can also create application-wide base requests
-const apiBase = () =>
-  create
-    .get()
-    .withHeaders({
-      "X-API-Version": "1.2",
-      "Accept-Language": "en-US",
-    })
-    .withBearerToken(getAuthToken()) // Get fresh token each time
-    .withTimeout(5000);
-
-// Use throughout your application
-function getUsers() {
-  return apiBase().sendTo("https://api.example.com/users").getData();
-}
-
-function getProducts() {
-  return apiBase().sendTo("https://api.example.com/products").getData();
-}
-```
 
 ### Request Cancellation
 
 ```typescript
 const controller = new AbortController();
 
-const request = create.get().withTimeout(10000).withAbortController(controller);
+const request = create
+  .get("https://api.example.com/slow-endpoint")
+  .withTimeout(10000)
+  .withAbortController(controller);
 
 // Later, cancel the request if needed
 setTimeout(() => controller.abort(), 2000);
 
 try {
-  const data = await request.sendTo("https://api.example.com/slow-endpoint").getJson();
+  const data = await request.getJson();
 } catch (error) {
   if (error.name === "AbortError") {
     console.log("Request was cancelled by user");
-  } else if (error.timeoutError) {
+  } else if (error.isTimeout) {
     console.log("Request timed out");
   } else {
     console.log("Other error:", error.message);
@@ -380,98 +293,40 @@ The `getData` method provides a powerful way to extract and transform specific d
 
 ```typescript
 // Extract specific properties from nested structures
-const posts = await request
-  .sendTo("https://api.example.com/feed")
+const posts = await create
+  .get("https://api.example.com/feed")
   .getData(data => data.feed.posts);
 
 // Transform data in the selector function
-const usernames = await request
-  .sendTo("https://api.example.com/users")
+const usernames = await create
+  .get("https://api.example.com/users")
   .getData(data => data.users.map(user => user.username));
 
 // Apply filtering in the selector
-const activeUsers = await request
-  .sendTo("https://api.example.com/users")
+const activeUsers = await create
+  .get("https://api.example.com/users")
   .getData(data => data.users.filter(user => user.isActive));
 
 // Combine data from complex nested structures
-const combinedData = await request
-  .sendTo("https://api.example.com/dashboard")
-  .getData(data => ({
-    userCount: data.stats.users.total,
-    recentPosts: data.content.recent.slice(0, 5),
-    notifications: data.user.notifications.unread,
-  }));
+const combinedData = await create.get("https://api.example.com/dashboard").getData(data => ({
+  userCount: data.stats.users.total,
+  recentPosts: data.content.recent.slice(0, 5),
+  notifications: data.user.notifications.unread,
+}));
 ```
 
-When a selector fails, the error message will contain the original response data to help diagnose the issue:
+When a selector fails, the error message will contain helpful context to diagnose the issue:
 
 ```typescript
 try {
   // This will fail if the response structure doesn't match expectations
-  const result = await request
-    .sendTo("https://api.example.com/data")
+  const result = await create
+    .get("https://api.example.com/data")
     .getData(data => data.results.items);
 } catch (error) {
   console.error(error);
-  // Error message includes the original response data for debugging
+  // Error message includes context for debugging
 }
-```
-
-### Implementing Custom Storage Providers
-
-You can create your own storage provider by implementing the `StorageProvider` interface:
-
-```typescript
-import { StorageProvider } from "create-request";
-
-// Create a namespaced storage provider
-export function createNamespacedStorage(namespace: string): StorageProvider {
-  return {
-    get(key: string): string | null {
-      return localStorage.getItem(`${namespace}:${key}`);
-    },
-
-    set(key: string, value: string): void {
-      try {
-        localStorage.setItem(`${namespace}:${key}`, value);
-      } catch (e) {
-        // Handle quota exceeded errors
-        console.warn("Storage quota exceeded, clearing cache");
-        this.clear();
-        try {
-          localStorage.setItem(`${namespace}:${key}`, value);
-        } catch (e) {
-          console.error("Failed to set cache item even after clearing cache");
-        }
-      }
-    },
-
-    has(key: string): boolean {
-      return localStorage.getItem(`${namespace}:${key}`) !== null;
-    },
-
-    delete(key: string): void {
-      localStorage.removeItem(`${namespace}:${key}`);
-    },
-
-    clear(): void {
-      // Only clear items in our namespace
-      Object.keys(localStorage)
-        .filter(key => key.startsWith(`${namespace}:`))
-        .forEach(key => localStorage.removeItem(key));
-    },
-  };
-}
-
-// Usage:
-const request = create
-  .get()
-  .withCache({
-    storage: createNamespacedStorage("api-cache"),
-    ttl: 24 * 60 * 60 * 1000, // 24 hours
-  })
-  .sendTo("https://api.example.com/data");
 ```
 
 ## TypeScript Support
@@ -494,14 +349,12 @@ interface ApiResponse<T> {
 
 // Type the full response
 const response = await create
-  .get()
-  .sendTo("https://api.example.com/users")
+  .get("https://api.example.com/users")
   .getJson<ApiResponse<User[]>>();
 
 // Or use getData with type parameters
 const users = await create
-  .get()
-  .sendTo("https://api.example.com/users")
+  .get("https://api.example.com/users")
   .getData<ApiResponse<User[]>, User[]>(data => data.data);
 
 // TypeScript knows the types
@@ -512,9 +365,8 @@ users.forEach(user => {
 // Function with proper types
 async function getUserById(id: number): Promise<User> {
   return create
-    .get()
+    .get("https://api.example.com/users")
     .withQueryParam("id", id)
-    .sendTo("https://api.example.com/users")
     .getData<ApiResponse<User[]>, User>(data => {
       const user = data.data[0];
       if (!user) throw new Error(`User with ID ${id} not found`);
@@ -580,7 +432,7 @@ create-request is designed to be lightweight and efficient:
 - **Tree-Shakable**: Only import what you need
 - **Minimal Overhead**: Thin wrapper around the native Fetch API
 - **Memory Efficient**: Doesn't create unnecessary objects
-- **Cache Management**: Configurable caching to reduce network requests
+- **Clean API**: Simple and intuitive interface
 
 ## Browser Support
 

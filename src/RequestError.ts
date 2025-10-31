@@ -3,7 +3,7 @@ export class RequestError extends Error {
   public readonly response?: Response;
   public readonly url: string;
   public readonly method: string;
-  public readonly timeoutError?: boolean;
+  public readonly isTimeout?: boolean;
 
   constructor(
     message: string,
@@ -12,7 +12,7 @@ export class RequestError extends Error {
     options: {
       status?: number;
       response?: Response;
-      timeoutError?: boolean;
+      isTimeout?: boolean;
     } = {}
   ) {
     super(message);
@@ -21,7 +21,7 @@ export class RequestError extends Error {
     this.method = method;
     this.status = options.status;
     this.response = options.response;
-    this.timeoutError = options.timeoutError;
+    this.isTimeout = options.isTimeout;
 
     // For better stack traces in modern environments
     if (Error.captureStackTrace) {
@@ -38,7 +38,7 @@ export class RequestError extends Error {
 
   static timeout(url: string, method: string, timeoutMs: number): RequestError {
     return new RequestError(`Request timed out after ${timeoutMs}ms`, url, method, {
-      timeoutError: true,
+      isTimeout: true,
     });
   }
 

@@ -7,12 +7,16 @@ import { HttpMethod } from "./enums.js";
  * Used for retrieving data from an API endpoint.
  *
  * @example
- * const request = new GetRequest()
- *   .withQueryParams({ id: '123' })
- *   .sendTo('/api/users');
+ * const request = new GetRequest('/api/users')
+ *   .withQueryParams({ id: '123' });
+ * const data = await request.getData();
  */
 export class GetRequest extends BaseRequest {
   protected method: HttpMethod = HttpMethod.GET;
+
+  constructor(url: string) {
+    super(url);
+  }
 }
 
 /**
@@ -20,11 +24,15 @@ export class GetRequest extends BaseRequest {
  * Similar to GET but returns only headers without a response body.
  *
  * @example
- * const request = new HeadRequest()
- *   .sendTo('/api/users/123');
+ * const request = new HeadRequest('/api/users/123');
+ * const response = await request.get();
  */
 export class HeadRequest extends BaseRequest {
   protected method: HttpMethod = HttpMethod.HEAD;
+
+  constructor(url: string) {
+    super(url);
+  }
 }
 
 /**
@@ -32,11 +40,15 @@ export class HeadRequest extends BaseRequest {
  * Used to describe the communication options for the target resource.
  *
  * @example
- * const request = new OptionsRequest()
- *   .sendTo('/api/users');
+ * const request = new OptionsRequest('/api/users');
+ * const response = await request.get();
  */
 export class OptionsRequest extends BaseRequest {
   protected method: HttpMethod = HttpMethod.OPTIONS;
+
+  constructor(url: string) {
+    super(url);
+  }
 }
 
 /**
@@ -44,11 +56,15 @@ export class OptionsRequest extends BaseRequest {
  * Used to delete a resource on the server.
  *
  * @example
- * const request = new DeleteRequest()
- *   .sendTo('/api/users/123');
+ * const request = new DeleteRequest('/api/users/123');
+ * await request.getData();
  */
 export class DeleteRequest extends BaseRequest {
   protected method: HttpMethod = HttpMethod.DELETE;
+
+  constructor(url: string) {
+    super(url);
+  }
 }
 
 /**
@@ -56,12 +72,16 @@ export class DeleteRequest extends BaseRequest {
  * Used to create a new resource or submit data for processing.
  *
  * @example
- * const request = new PostRequest()
- *   .withJson({ name: 'John', email: 'john@example.com' })
- *   .sendTo('/api/users');
+ * const request = new PostRequest('/api/users')
+ *   .withJson({ name: 'John', email: 'john@example.com' });
+ * const data = await request.getData();
  */
 export class PostRequest extends BodyRequest {
   protected method: HttpMethod = HttpMethod.POST;
+
+  constructor(url: string) {
+    super(url);
+  }
 }
 
 /**
@@ -69,12 +89,16 @@ export class PostRequest extends BodyRequest {
  * Used to replace or update an existing resource.
  *
  * @example
- * const request = new PutRequest()
- *   .withJson({ id: '123', name: 'John', email: 'john@example.com' })
- *   .sendTo('/api/users/123');
+ * const request = new PutRequest('/api/users/123')
+ *   .withJson({ id: '123', name: 'John', email: 'john@example.com' });
+ * const data = await request.getData();
  */
 export class PutRequest extends BodyRequest {
   protected method: HttpMethod = HttpMethod.PUT;
+
+  constructor(url: string) {
+    super(url);
+  }
 }
 
 /**
@@ -82,10 +106,14 @@ export class PutRequest extends BodyRequest {
  * Used to apply partial modifications to a resource.
  *
  * @example
- * const request = new PatchRequest()
- *   .withJson({ email: 'new.email@example.com' })
- *   .sendTo('/api/users/123');
+ * const request = new PatchRequest('/api/users/123')
+ *   .withJson({ email: 'new.email@example.com' });
+ * const data = await request.getData();
  */
 export class PatchRequest extends BodyRequest {
   protected method: HttpMethod = HttpMethod.PATCH;
+
+  constructor(url: string) {
+    super(url);
+  }
 }

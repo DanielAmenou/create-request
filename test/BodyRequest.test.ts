@@ -23,10 +23,10 @@ describe("BodyRequest", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const data = { name: "John Doe", age: 30, active: true };
-    const request = new PostRequest().withBody(data);
+    const request = new PostRequest("https://api.example.com/test").withBody(data);
 
     // Act
-    await request.sendTo("https://api.example.com/users");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -40,10 +40,10 @@ describe("BodyRequest", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const textContent = "Hello, world!";
-    const request = new PostRequest().withBody(textContent);
+    const request = new PostRequest("https://api.example.com/test").withBody(textContent);
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -58,10 +58,10 @@ describe("BodyRequest", () => {
     formData.append("name", "John Doe");
     formData.append("age", "30");
 
-    const request = new PostRequest().withBody(formData);
+    const request = new PostRequest("https://api.example.com/test").withBody(formData);
 
     // Act
-    await request.sendTo("https://api.example.com/form");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -83,10 +83,10 @@ describe("BodyRequest", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const blob = new Blob(["Hello, world!"], { type: "text/plain" });
-    const request = new PostRequest().withBody(blob);
+    const request = new PostRequest("https://api.example.com/test").withBody(blob);
 
     // Act
-    await request.sendTo("https://api.example.com/blob");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -101,10 +101,10 @@ describe("BodyRequest", () => {
     params.append("name", "John Doe");
     params.append("age", "30");
 
-    const request = new PostRequest().withBody(params);
+    const request = new PostRequest("https://api.example.com/test").withBody(params);
 
     // Act
-    await request.sendTo("https://api.example.com/params");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -116,10 +116,10 @@ describe("BodyRequest", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const buffer = new ArrayBuffer(8);
-    const request = new PostRequest().withBody(buffer);
+    const request = new PostRequest("https://api.example.com/test").withBody(buffer);
 
     // Act
-    await request.sendTo("https://api.example.com/buffer");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -130,10 +130,10 @@ describe("BodyRequest", () => {
   it("should handle null body", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new PostRequest().withBody(null);
+    const request = new PostRequest("https://api.example.com/test").withBody(null);
 
     // Act
-    await request.sendTo("https://api.example.com/empty");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -147,7 +147,7 @@ describe("BodyRequest", () => {
 
     // Act & Assert
     assert.throws(() => {
-      new PostRequest().withBody(circularObj as Body);
+      new PostRequest("https://api.example.com/test").withBody(circularObj as Body);
     }, /Failed to stringify request body/);
   });
 
@@ -155,10 +155,10 @@ describe("BodyRequest", () => {
     // Arrange
     FetchMock.mockResponseOnce();
     const data = { name: "John Doe", age: 30 };
-    const request = new PostRequest().withHeaders({ "Content-Type": "application/vnd.custom+json" }).withBody(data);
+    const request = new PostRequest("https://api.example.com/test").withHeaders({ "Content-Type": "application/vnd.custom+json" }).withBody(data);
 
     // Act
-    await request.sendTo("https://api.example.com/users");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -171,7 +171,7 @@ describe("BodyRequest", () => {
   it("should preserve headers case sensitivity", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new PostRequest()
+    const request = new PostRequest("https://api.example.com/test")
       .withHeaders({
         "Content-Type": "application/json",
         "X-Custom-ID": "123",
@@ -180,7 +180,7 @@ describe("BodyRequest", () => {
       .withBody({ test: true });
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -197,13 +197,13 @@ describe("BodyRequest", () => {
     FetchMock.mockResponseOnce();
 
     const data = { name: "Test User", action: "create" };
-    const request = new PostRequest().withBody(data);
+    const request = new PostRequest("https://api.example.com/test").withBody(data);
 
     // Act - Send first request
-    await request.sendTo("https://api.example.com/users");
+    await request.get();
 
     // Send second request with same instance
-    await request.sendTo("https://api.example.com/users");
+    await request.get();
 
     // Assert - Both requests should have the body
     assert.equal(FetchMock.mock.calls.length, 2);
@@ -220,14 +220,14 @@ describe("BodyRequest", () => {
     FetchMock.mockResponseOnce();
     FetchMock.mockResponseOnce();
 
-    const request = new PostRequest().withBody({ id: 1, name: "First User" });
+    const request = new PostRequest("https://api.example.com/test").withBody({ id: 1, name: "First User" });
 
     // Act - Send first request
-    await request.sendTo("https://api.example.com/users");
+    await request.get();
 
     // Change body and send second request
     request.withBody({ id: 2, name: "Second User" });
-    await request.sendTo("https://api.example.com/users");
+    await request.get();
 
     // Assert
     assert.equal(FetchMock.mock.calls.length, 2);
@@ -245,10 +245,10 @@ describe("BodyRequest", () => {
     const data = { name: "Test" };
 
     // Use a non-standard case for content-type
-    const request = new PostRequest().withHeaders({ "content-TYPE": "application/json" }).withBody(data);
+    const request = new PostRequest("https://api.example.com/test").withHeaders({ "content-TYPE": "application/json" }).withBody(data);
 
     // Act
-    await request.sendTo("https://api.example.com/test");
+    await request.get();
 
     // Assert - The content-type header should remain as provided
     const [, options] = FetchMock.mock.calls[0];

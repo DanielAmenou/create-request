@@ -19,10 +19,10 @@ describe("Request Methods", () => {
   it("should create GET request with correct method", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest();
+    const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    await request.sendTo("https://api.example.com/resource");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
@@ -32,10 +32,10 @@ describe("Request Methods", () => {
   it("should create POST request with correct method", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new PostRequest();
+    const request = new PostRequest("https://api.example.com/test");
 
     // Act
-    await request.sendTo("https://api.example.com/resource");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -45,10 +45,10 @@ describe("Request Methods", () => {
   it("should create PUT request with correct method", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new PutRequest();
+    const request = new PutRequest("https://api.example.com/test");
 
     // Act
-    await request.sendTo("https://api.example.com/resource");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -58,10 +58,10 @@ describe("Request Methods", () => {
   it("should create DELETE request with correct method", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new DeleteRequest();
+    const request = new DeleteRequest("https://api.example.com/test");
 
     // Act
-    await request.sendTo("https://api.example.com/resource");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -71,10 +71,10 @@ describe("Request Methods", () => {
   it("should create PATCH request with correct method", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new PatchRequest();
+    const request = new PatchRequest("https://api.example.com/test");
 
     // Act
-    await request.sendTo("https://api.example.com/resource");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -84,10 +84,10 @@ describe("Request Methods", () => {
   it("should create HEAD request with correct method", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new HeadRequest();
+    const request = new HeadRequest("https://api.example.com/test");
 
     // Act
-    await request.sendTo("https://api.example.com/resource");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -97,10 +97,10 @@ describe("Request Methods", () => {
   it("should create OPTIONS request with correct method", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new OptionsRequest();
+    const request = new OptionsRequest("https://api.example.com/test");
 
     // Act
-    await request.sendTo("https://api.example.com/resource");
+    await request.get();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];

@@ -6,8 +6,6 @@ export { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMo
 
 // Export types
 export type { RetryCallback, RequestOptions, CookiesRecord, CookieOptions } from "./types.js";
-export type { StorageProvider } from "./utils/StorageProvider.js";
-export type { CacheOptions } from "./types/cache.js";
 
 // Export core classes
 export { ResponseWrapper } from "./ResponseWrapper.js";
@@ -16,10 +14,6 @@ export { RequestError } from "./RequestError.js";
 
 // Export request classes
 export { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadRequest, OptionsRequest } from "./requestMethods.js";
-
-// Export cache utilities
-export { createMemoryStorage, createLocalStorageStorage, createSessionStorageStorage } from "./utils/CacheStorage.js";
-export { CacheManager } from "./utils/CacheManager.js";
 
 /**
  * Main API object for creating HTTP requests

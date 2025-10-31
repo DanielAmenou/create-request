@@ -1,8 +1,6 @@
 import { type HttpMethod, type RedirectMode, type RequestMode, type RequestPriority, CredentialsPolicy } from "./enums.js";
 import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions } from "./types.js";
-import { type ResponsePromise, ResponseWrapper } from "./ResponseWrapper.js";
-import type { CacheOptions } from "./types/cache.js";
-import { CacheManager } from "./utils/CacheManager.js";
+import { ResponseWrapper } from "./ResponseWrapper.js";
 import { CookieUtils } from "./utils/CookieUtils.js";
 import { RequestError } from "./RequestError.js";
 import { CsrfUtils } from "./utils/CsrfUtils.js";
@@ -14,16 +12,17 @@ import { Config } from "./utils/Config.js";
  */
 export abstract class BaseRequest {
   protected abstract method: HttpMethod;
+  protected url: string;
   protected requestOptions: RequestOptions = {
     headers: {},
   };
   protected abortController?: AbortController;
   protected queryParams: URLSearchParams = new URLSearchParams();
   protected autoApplyCsrfProtection: boolean = true;
-  protected cacheManager?: CacheManager;
-  protected cacheEnabled = false;
 
-  constructor() {}
+  constructor(url: string) {
+    this.url = url;
+  }
 
   /**
    * Add multiple HTTP headers to the request
@@ -395,136 +394,107 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Configure request caching behavior
-   * When enabled, responses will be cached and reused for subsequent identical requests.
+   * Execute the request and return the ResponseWrapper
+   * This is the base method for getting the full response.
    *
-   * @param options - Cache configuration options
-   * @returns The request instance for chaining
-   *
-   * @example
-   * request.withCache({
-   *   ttl: 60000, // Cache for 1 minute
-   *   maxEntries: 100,
-   *   storage: localStorage
-   * });
-   */
-  withCache(options: CacheOptions = {}): this {
-    this.cacheEnabled = true;
-    this.cacheManager = new CacheManager(options);
-    return this;
-  }
-
-  /**
-   * Send the request to the specified URL
-   * This is the final method in the chain that executes the request.
-   *
-   * @param url - The URL to send the request to
-   * @returns A promise with additional methods for processing the response
+   * @returns A promise that resolves to the ResponseWrapper
    *
    * @example
-   * const response = await request.sendTo('/api/users');
-   * const data = await response.getJson();
+   * const response = await request.get();
+   * console.log(response.status);
    */
-  sendTo(url: string): ResponsePromise {
-    // Format the URL with query parameters
-    url = this.formatUrlWithQueryParams(url);
+  async get(): Promise<ResponseWrapper> {
+    const url = this.formatUrlWithQueryParams(this.url);
+    this.applyCsrfProtection();
 
-    // Apply automatic CSRF protection if enabled
-    if (this.autoApplyCsrfProtection) {
-      const config = Config.getInstance();
-
-      // Apply anti-CSRF headers if enabled
-      if (config.isAntiCsrfEnabled()) {
-        this.withHeaders({
-          "X-Requested-With": "XMLHttpRequest",
-        });
-      }
-
-      // Apply global CSRF token if set
-      const globalToken = config.getCsrfToken();
-      if (globalToken) {
-        // Check if local token exists using case-insensitive comparison
-        const headers = this.requestOptions.headers as Record<string, string>;
-        const csrfHeaderName = config.getCsrfHeaderName();
-        const hasLocalToken = this.hasHeader(headers, "X-CSRF-Token") || this.hasHeader(headers, csrfHeaderName);
-
-        if (!hasLocalToken) {
-          this.withHeaders({
-            [csrfHeaderName]: globalToken,
-          });
-        }
-      }
-
-      // check for XSRF token in cookies and send it as a header
-      if (config.isAutoXsrfEnabled() && typeof document !== "undefined") {
-        const xsrfToken = CsrfUtils.getTokenFromCookie(config.getXsrfCookieName());
-        if (xsrfToken && CsrfUtils.isValidToken(xsrfToken)) {
-          const headers = this.requestOptions.headers as Record<string, string>;
-          const xsrfHeaderName = config.getXsrfHeaderName();
-          const hasLocalToken = this.hasHeader(headers, "X-XSRF-TOKEN") || this.hasHeader(headers, xsrfHeaderName);
-
-          if (!hasLocalToken) {
-            this.withHeaders({
-              [xsrfHeaderName]: xsrfToken,
-            });
-          }
-        }
-      }
-    }
-
-    // Cast the request options to RequestInit to ensure compatibility
     const fetchOptions: RequestInit = {
       ...(this.requestOptions as RequestInit),
       method: this.method,
     };
 
-    // Create the base promise - handle caching if enabled
-    let basePromise: Promise<ResponseWrapper>;
+    return !this.requestOptions.retries ? this.executeRequest(url, fetchOptions) : this.executeWithRetries(url, fetchOptions);
+  }
 
-    if (this.cacheEnabled && this.cacheManager) {
-      const cacheKey = this.cacheManager.generateKey(url, this.method, this.requestOptions.headers as Record<string, string>, this.requestOptions.body);
+  /**
+   * Execute the request and parse the response as JSON
+   *
+   * @returns A promise that resolves to the parsed JSON data
+   *
+   * @example
+   * const users = await request.getJson<User[]>();
+   */
+  async getJson<T = unknown>(): Promise<T> {
+    const response = await this.get();
+    return response.getJson<T>();
+  }
 
-      basePromise = this.executeWithCache(url, fetchOptions, cacheKey);
-    } else {
-      basePromise = !this.requestOptions.retries ? this.executeRequest(url, fetchOptions) : this.executeWithRetries(url, fetchOptions);
-    }
+  /**
+   * Execute the request and get the response as text
+   *
+   * @returns A promise that resolves to the response text
+   *
+   * @example
+   * const text = await request.getText();
+   */
+  async getText(): Promise<string> {
+    const response = await this.get();
+    return response.getText();
+  }
 
-    const responsePromise = basePromise as ResponsePromise;
+  /**
+   * Execute the request and get the response as a Blob
+   *
+   * @returns A promise that resolves to the response Blob
+   *
+   * @example
+   * const blob = await request.getBlob();
+   */
+  async getBlob(): Promise<Blob> {
+    const response = await this.get();
+    return response.getBlob();
+  }
 
-    // Attach convenience methods that begin processing immediately
-    responsePromise.getJson = async <T = unknown>(): Promise<T> => {
-      return basePromise.then(response => response.getJson<T>());
-    };
+  /**
+   * Execute the request and get the response body as a ReadableStream
+   *
+   * @returns A promise that resolves to the response body stream
+   *
+   * @example
+   * const stream = await request.getBody();
+   */
+  async getBody(): Promise<ReadableStream<Uint8Array> | null> {
+    const response = await this.get();
+    return response.getBody();
+  }
 
-    responsePromise.getText = async (): Promise<string> => {
-      return basePromise.then(response => response.getText());
-    };
+  /**
+   * Execute the request and extract specific data using a selector function
+   * If no selector is provided, returns the full JSON response.
+   *
+   * @param selector - Optional function to extract and transform data
+   * @returns A promise that resolves to the selected data
+   *
+   * @example
+   * // Get full response
+   * const data = await request.getData();
+   *
+   * // Extract specific data
+   * const users = await request.getData(data => data.results.users);
+   */
+  async getData<T = unknown, R = T>(selector?: (data: T) => R): Promise<T | R> {
+    try {
+      const data = await this.getJson<T>();
 
-    responsePromise.getBlob = async (): Promise<Blob> => {
-      return basePromise.then(response => response.getBlob());
-    };
+      // If no selector is provided, return the raw JSON data
+      if (!selector) return data;
 
-    responsePromise.getArrayBuffer = async (): Promise<ArrayBuffer> => {
-      return basePromise.then(response => response.getArrayBuffer());
-    };
-
-    responsePromise.getBody = async (): Promise<ReadableStream<Uint8Array> | null> => {
-      return basePromise.then(response => response.getBody());
-    };
-
-    responsePromise.getData = async <T = unknown, R = T>(selector?: (data: T) => R): Promise<T | R> => {
-      try {
-        const data = await basePromise.then(response => response.getJson<T>());
-
-        // If no selector is provided, return the raw JSON data
-        if (!selector) return data;
-
-        // Apply the selector if provided
-        return selector(data);
-      } catch (error) {
-        // Always enhance the error with the original data
+      // Apply the selector if provided
+      return selector(data);
+    } catch (error) {
+      // Enhance selector errors with context
+      if (selector) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        const enhancedError = new Error(`Data selector failed: ${errorMessage}. Original data: ${JSON.stringify(await basePromise.then(response => response.getJson()), null, 2)}`);
+        const enhancedError = new Error(`Data selector failed: ${errorMessage}`);
 
         // Preserve the stack trace if available
         if (error instanceof Error && error.stack) {
@@ -533,9 +503,55 @@ export abstract class BaseRequest {
 
         throw enhancedError;
       }
-    };
 
-    return responsePromise;
+      throw error;
+    }
+  }
+
+  /**
+   * Apply CSRF protection headers based on configuration
+   */
+  private applyCsrfProtection(): void {
+    if (!this.autoApplyCsrfProtection) return;
+
+    const config = Config.getInstance();
+
+    // Apply anti-CSRF headers if enabled
+    if (config.isAntiCsrfEnabled()) {
+      this.withHeaders({
+        "X-Requested-With": "XMLHttpRequest",
+      });
+    }
+
+    // Apply global CSRF token if set
+    const globalToken = config.getCsrfToken();
+    if (globalToken) {
+      const headers = this.requestOptions.headers as Record<string, string>;
+      const csrfHeaderName = config.getCsrfHeaderName();
+      const hasLocalToken = this.hasHeader(headers, "X-CSRF-Token") || this.hasHeader(headers, csrfHeaderName);
+
+      if (!hasLocalToken) {
+        this.withHeaders({
+          [csrfHeaderName]: globalToken,
+        });
+      }
+    }
+
+    // Check for XSRF token in cookies and send it as a header
+    if (config.isAutoXsrfEnabled() && typeof document !== "undefined") {
+      const xsrfToken = CsrfUtils.getTokenFromCookie(config.getXsrfCookieName());
+      if (xsrfToken && CsrfUtils.isValidToken(xsrfToken)) {
+        const headers = this.requestOptions.headers as Record<string, string>;
+        const xsrfHeaderName = config.getXsrfHeaderName();
+        const hasLocalToken = this.hasHeader(headers, "X-XSRF-TOKEN") || this.hasHeader(headers, xsrfHeaderName);
+
+        if (!hasLocalToken) {
+          this.withHeaders({
+            [xsrfHeaderName]: xsrfToken,
+          });
+        }
+      }
+    }
   }
 
   /**
@@ -666,53 +682,5 @@ export abstract class BaseRequest {
         clearTimeout(timeoutId);
       }
     }
-  }
-
-  /**
-   * Executes a request using cache when possible
-   * @param url The formatted URL to send the request to
-   * @param fetchOptions The fetch options to use
-   * @param cacheKey The cache key for this request
-   */
-  private async executeWithCache(url: string, fetchOptions: RequestInit, cacheKey: string): Promise<ResponseWrapper> {
-    // Try to get from cache first
-    if (this.cacheManager) {
-      const cachedEntry = await this.cacheManager.get(cacheKey);
-
-      if (cachedEntry) {
-        // Create a synthetic Response object from cached data
-        const cachedResponse = new Response(JSON.stringify(cachedEntry.value), {
-          status: 200,
-          headers: new Headers(cachedEntry.headers || {}),
-        });
-        return new ResponseWrapper(cachedResponse);
-      }
-    }
-
-    // Not in cache, make the actual request
-    const response = await (!this.requestOptions.retries ? this.executeRequest(url, fetchOptions) : this.executeWithRetries(url, fetchOptions));
-
-    // Cache the successful response if caching is enabled
-    // Only cache successful responses
-    if (response.ok && this.cacheManager) {
-      // Clone the response so we don't consume it
-      try {
-        const responseData = await response.getJson();
-
-        // Extract headers to store in cache
-        const headers: Record<string, string> = {};
-        response.headers.forEach((value, key) => {
-          headers[key] = value;
-        });
-
-        // Store in cache
-        await this.cacheManager.set(cacheKey, responseData, headers);
-      } catch (error) {
-        // Failed to cache, but we can still return the response
-        console.warn("Failed to cache response:", error);
-      }
-    }
-
-    return response;
   }
 }
