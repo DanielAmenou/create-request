@@ -415,15 +415,6 @@ const request = create
   .withoutCsrfProtection(); // Or disable all automatic CSRF protection
 ```
 
-### Integrating with Backend Frameworks
-
-Most modern frameworks support CSRF protection out of the box. The library works seamlessly with:
-
-- **Laravel**: Automatically reads XSRF-TOKEN cookie and sends X-XSRF-TOKEN header
-- **Rails**: Works with the Rails CSRF token system
-- **Django**: Compatible with Django's CSRF middleware
-- **Express.js + csurf**: Works with the csurf middleware token pattern
-
 ## Performance Considerations
 
 create-request is designed to be lightweight and efficient:
