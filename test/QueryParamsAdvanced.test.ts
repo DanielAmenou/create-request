@@ -333,5 +333,38 @@ describe("Query Parameters Advanced", () => {
       assert.equal(parsedUrl.searchParams.get("new"), "param");
       assert.equal(parsedUrl.searchParams.get("another"), "value");
     });
+
+    it("should handle calling withQueryParams multiple times", async () => {
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = new GetRequest("https://api.example.com/test")
+        .withQueryParams({ page: 1, limit: 20 })
+        .withQueryParams({ sort: "name", order: "asc" })
+        .withQueryParams({ filter: "active" });
+
+      await request.get();
+
+      const [url] = FetchMock.mock.calls[0];
+      const parsedUrl = new URL(url as string);
+      assert.equal(parsedUrl.searchParams.get("page"), "1");
+      assert.equal(parsedUrl.searchParams.get("limit"), "20");
+      assert.equal(parsedUrl.searchParams.get("sort"), "name");
+      assert.equal(parsedUrl.searchParams.get("order"), "asc");
+      assert.equal(parsedUrl.searchParams.get("filter"), "active");
+    });
+
+    it("should append duplicate keys when calling withQueryParams multiple times", async () => {
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = new GetRequest("https://api.example.com/test")
+        .withQueryParams({ tag: "javascript" })
+        .withQueryParams({ tag: "typescript" })
+        .withQueryParams({ tag: "nodejs" });
+
+      await request.get();
+
+      const [url] = FetchMock.mock.calls[0];
+      const parsedUrl = new URL(url as string);
+      const tags = parsedUrl.searchParams.getAll("tag");
+      assert.deepEqual(tags, ["javascript", "typescript", "nodejs"]);
+    });
   });
 });
