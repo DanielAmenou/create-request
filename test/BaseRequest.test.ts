@@ -57,6 +57,86 @@ describe("BaseRequest", () => {
     });
   });
 
+  it("should ignore null values in headers", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest("https://api.example.com/test")
+      .withoutCsrfProtection()
+      .withHeaders({
+        "X-Valid-Header": "valid-value",
+        "X-Null-Header": null as any,
+        "X-Another-Valid": "another-value",
+      } as Record<string, string>);
+
+    // Act
+    await request.get();
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Valid-Header"], "valid-value");
+    assert.equal(headers["X-Another-Valid"], "another-value");
+    assert.equal(headers["X-Null-Header"], undefined);
+  });
+
+  it("should ignore undefined values in headers", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest("https://api.example.com/test")
+      .withoutCsrfProtection()
+      .withHeaders({
+        "X-Valid-Header": "valid-value",
+        "X-Undefined-Header": undefined as any,
+        "X-Another-Valid": "another-value",
+      } as Record<string, string>);
+
+    // Act
+    await request.get();
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Valid-Header"], "valid-value");
+    assert.equal(headers["X-Another-Valid"], "another-value");
+    assert.equal(headers["X-Undefined-Header"], undefined);
+  });
+
+  it("should ignore null value in withHeader", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest("https://api.example.com/test")
+      .withoutCsrfProtection()
+      .withHeader("X-Valid-Header", "valid-value")
+      .withHeader("X-Null-Header", null as any);
+
+    // Act
+    await request.get();
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Valid-Header"], "valid-value");
+    assert.equal(headers["X-Null-Header"], undefined);
+  });
+
+  it("should ignore undefined value in withHeader", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest("https://api.example.com/test")
+      .withoutCsrfProtection()
+      .withHeader("X-Valid-Header", "valid-value")
+      .withHeader("X-Undefined-Header", undefined as any);
+
+    // Act
+    await request.get();
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-Valid-Header"], "valid-value");
+    assert.equal(headers["X-Undefined-Header"], undefined);
+  });
+
   it("should handle query parameters correctly", async () => {
     // Arrange
     FetchMock.mockResponseOnce();

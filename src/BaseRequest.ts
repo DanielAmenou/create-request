@@ -42,9 +42,17 @@ export abstract class BaseRequest {
    * });
    */
   withHeaders(headers: Record<string, string>): this {
+    // Filter out null and undefined values
+    const filteredHeaders: Record<string, string> = {};
+    Object.entries(headers).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        filteredHeaders[key] = value;
+      }
+    });
+
     this.requestOptions.headers = {
       ...(this.requestOptions.headers as Record<string, string>),
-      ...headers,
+      ...filteredHeaders,
     };
     return this;
   }
@@ -60,7 +68,11 @@ export abstract class BaseRequest {
    * request.withHeader('Accept', 'application/json');
    */
   withHeader(key: string, value: string): this {
-    return this.withHeaders({ [key]: value });
+    // Ignore null and undefined values
+    if (value !== null && value !== undefined) {
+      return this.withHeaders({ [key]: value });
+    }
+    return this;
   }
 
   /**
