@@ -1,5 +1,5 @@
 import { type HttpMethod, type RedirectMode, type RequestMode, type RequestPriority, CredentialsPolicy } from "./enums.js";
-import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions, RequestInterceptor, ResponseInterceptor, ErrorInterceptor, RequestConfig } from "./types.js";
+import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions, RequestInterceptor, ResponseInterceptor, ErrorInterceptor, RequestConfig, Body } from "./types.js";
 import { ResponseWrapper } from "./ResponseWrapper.js";
 import { CookieUtils } from "./utils/CookieUtils.js";
 import { RequestError } from "./RequestError.js";
@@ -807,11 +807,14 @@ export abstract class BaseRequest {
 
     try {
       // Run request interceptors before making the request
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const extendedFetchOptions = fetchOptions as RequestInit & { priority?: RequestPriority | string };
       const requestConfig: RequestConfig = {
         url,
         method,
         headers: (fetchOptions.headers as Record<string, string>) || {},
-        body: fetchOptions.body as any,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        body: fetchOptions.body as Body | undefined,
         signal: fetchOptions.signal || undefined,
         credentials: fetchOptions.credentials,
         mode: fetchOptions.mode,
@@ -819,7 +822,7 @@ export abstract class BaseRequest {
         referrer: fetchOptions.referrer,
         referrerPolicy: fetchOptions.referrerPolicy,
         keepalive: fetchOptions.keepalive,
-        priority: (fetchOptions as any).priority,
+        priority: extendedFetchOptions.priority,
       };
 
       const interceptorResult = await this.runRequestInterceptors(requestConfig);
@@ -835,7 +838,8 @@ export abstract class BaseRequest {
       url = interceptorResult.url;
       fetchOptions.headers = interceptorResult.headers;
       if (interceptorResult.body !== undefined) {
-        fetchOptions.body = interceptorResult.body as any;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        fetchOptions.body = interceptorResult.body as BodyInit | null;
       }
       // Determine which signal to use for the fetch request
       let finalSignal: AbortSignal | undefined;
@@ -845,14 +849,16 @@ export abstract class BaseRequest {
           // External controller provided - need to combine signals
 
           // Use AbortSignal.any() if available
-          if (typeof (AbortSignal as any).any === "function") {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+          if (typeof (AbortSignal as { any?: (signals: AbortSignal[]) => AbortSignal }).any === "function") {
             timeoutController = new AbortController();
             timeoutId = setTimeout(() => {
               abortedByTimeout = true;
               timeoutController!.abort();
             }, this.requestOptions.timeout);
 
-            finalSignal = (AbortSignal as any).any([this.abortController.signal, timeoutController.signal]);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            finalSignal = (AbortSignal as unknown as { any: (signals: AbortSignal[]) => AbortSignal }).any([this.abortController.signal, timeoutController.signal]);
           }
           // Fallback: use AbortSignal.timeout if available
           else if (typeof AbortSignal.timeout === "function") {
@@ -867,8 +873,10 @@ export abstract class BaseRequest {
             timeoutSignal.addEventListener("abort", abortListener, { once: true });
 
             // Manually combine signals
-            if (typeof (AbortSignal as any).any === "function") {
-              finalSignal = (AbortSignal as any).any([this.abortController.signal, timeoutSignal]);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (typeof (AbortSignal as { any?: (signals: AbortSignal[]) => AbortSignal }).any === "function") {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              finalSignal = (AbortSignal as unknown as { any: (signals: AbortSignal[]) => AbortSignal }).any([this.abortController.signal, timeoutSignal]);
             } else {
               // Final fallback: propagate timeout abort to external controller
               timeoutController = new AbortController();

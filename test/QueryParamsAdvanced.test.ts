@@ -194,6 +194,7 @@ describe("Query Parameters Advanced", () => {
 
     it("should ignore undefined values in query params", async () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const request = new GetRequest("https://api.example.com/test").withQueryParams({
         valid: "value",
         undefinedValue: undefined,

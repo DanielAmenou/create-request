@@ -354,6 +354,7 @@ describe("BodyRequest", () => {
     it("should throw error for invalid variables (array)", () => {
       // Act & Assert
       assert.throws(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL("query { user { name } }", [] as any);
       }, /GraphQL variables must be an object/);
     });
@@ -361,6 +362,7 @@ describe("BodyRequest", () => {
     it("should throw error for invalid variables (null)", () => {
       // Act & Assert
       assert.throws(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL("query { user { name } }", null as any);
       }, /GraphQL variables must be an object/);
     });
@@ -440,6 +442,7 @@ describe("BodyRequest", () => {
 
       // Act & Assert
       assert.throws(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
       }, /Failed to stringify GraphQL body/);
     });
@@ -453,6 +456,7 @@ describe("BodyRequest", () => {
 
       // Act & Assert
       assert.throws(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
       }, /Failed to stringify GraphQL body/);
     });
@@ -466,6 +470,7 @@ describe("BodyRequest", () => {
         age: undefined, // This will be omitted during JSON.stringify
       } as any;
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
 
       // Act

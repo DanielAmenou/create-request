@@ -60,13 +60,11 @@ describe("BaseRequest", () => {
   it("should ignore null values in headers", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest("https://api.example.com/test")
-      .withoutCsrfProtection()
-      .withHeaders({
-        "X-Valid-Header": "valid-value",
-        "X-Null-Header": null as any,
-        "X-Another-Valid": "another-value",
-      } as Record<string, string>);
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withHeaders({
+      "X-Valid-Header": "valid-value",
+      "X-Null-Header": null as any,
+      "X-Another-Valid": "another-value",
+    } as Record<string, string>);
 
     // Act
     await request.get();
@@ -82,13 +80,11 @@ describe("BaseRequest", () => {
   it("should ignore undefined values in headers", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest("https://api.example.com/test")
-      .withoutCsrfProtection()
-      .withHeaders({
-        "X-Valid-Header": "valid-value",
-        "X-Undefined-Header": undefined as any,
-        "X-Another-Valid": "another-value",
-      } as Record<string, string>);
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withHeaders({
+      "X-Valid-Header": "valid-value",
+      "X-Undefined-Header": undefined as any,
+      "X-Another-Valid": "another-value",
+    } as Record<string, string>);
 
     // Act
     await request.get();
@@ -107,6 +103,7 @@ describe("BaseRequest", () => {
     const request = new GetRequest("https://api.example.com/test")
       .withoutCsrfProtection()
       .withHeader("X-Valid-Header", "valid-value")
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       .withHeader("X-Null-Header", null as any);
 
     // Act
@@ -125,6 +122,7 @@ describe("BaseRequest", () => {
     const request = new GetRequest("https://api.example.com/test")
       .withoutCsrfProtection()
       .withHeader("X-Valid-Header", "valid-value")
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       .withHeader("X-Undefined-Header", undefined as any);
 
     // Act

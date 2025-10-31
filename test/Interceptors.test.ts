@@ -829,12 +829,13 @@ describe("Interceptor Integration", () => {
         log.push("interceptor-1");
         return config;
       })
-      .withRequestInterceptor(config => {
+      .withRequestInterceptor(_config => {
         log.push("interceptor-2");
         throw new Error("Interceptor 2 failed");
       })
       .withRequestInterceptor(() => {
         log.push("interceptor-3"); // Should not be called
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return {} as any; // This won't be called, but satisfy type checker
       });
 

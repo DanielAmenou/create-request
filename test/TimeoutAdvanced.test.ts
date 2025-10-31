@@ -164,7 +164,7 @@ describe("Timeout Advanced", () => {
         assert.fail("Should have timed out");
       } catch (error) {
         assert(error instanceof RequestError, "Error should be RequestError");
-        const reqError = error as RequestError;
+        const reqError = error;
         // Both attempts timeout, so final error should be timeout
         assert.equal(reqError.isTimeout, true, "Should timeout after retries");
         // Verify retry mechanism works - onRetry callback should execute between attempts
