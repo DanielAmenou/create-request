@@ -431,5 +431,75 @@ describe("BodyRequest", () => {
         variables,
       });
     });
+
+    it("should throw error when variables contain circular reference", () => {
+      // Arrange
+      const query = "query { user { name } }";
+      const variables: any = { data: {} };
+      variables.data.self = variables.data; // Create circular reference
+
+      // Act & Assert
+      assert.throws(() => {
+        new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
+      }, /Failed to stringify GraphQL body/);
+    });
+
+    it("should throw error when variables contain non-serializable values", () => {
+      // Arrange
+      const query = "query { user { name } }";
+      // Create an object with a circular reference which will definitely fail to stringify
+      const variables: any = { data: {} };
+      variables.data.self = variables.data; // Create circular reference
+
+      // Act & Assert
+      assert.throws(() => {
+        new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
+      }, /Failed to stringify GraphQL body/);
+    });
+
+    it("should handle variables with undefined values (which get omitted)", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce();
+      const query = "query { user { name } }";
+      const variables = {
+        name: "John",
+        age: undefined, // This will be omitted during JSON.stringify
+      } as any;
+
+      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
+
+      // Act
+      await request.get();
+
+      // Assert
+      const [, options] = FetchMock.mock.calls[0];
+      const body = JSON.parse(options.body as string);
+      assert.equal(body.query, query.trim());
+      // undefined values are omitted by JSON.stringify
+      assert.equal(body.variables.name, "John");
+      assert.equal(body.variables.age, undefined);
+    });
+
+    it("should handle query with only whitespace after trim", () => {
+      // Act & Assert
+      assert.throws(() => {
+        new PostRequest("https://api.example.com/graphql").withGraphQL("   \n\t  ");
+      }, /GraphQL query must be a non-empty string/);
+    });
+
+    it("should handle query with newlines and tabs", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce();
+      const query = "query {\n  user {\n    name\n    email\n  }\n}";
+      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query);
+
+      // Act
+      await request.get();
+
+      // Assert
+      const [, options] = FetchMock.mock.calls[0];
+      const body = JSON.parse(options.body as string);
+      assert.equal(body.query, query);
+    });
   });
 });
