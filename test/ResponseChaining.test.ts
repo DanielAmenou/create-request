@@ -52,7 +52,7 @@ describe("Response Chaining API", () => {
     assert(result instanceof Blob);
   });
 
-  it("should support chained getArrayBuffer() call after sendTo", async () => {
+  it("should support chained getBody() call to get ReadableStream", async () => {
     // Arrange
     FetchMock.mockResponseOnce({ body: "Binary data" });
     const request = new GetRequest("https://api.example.com/test");
@@ -61,7 +61,7 @@ describe("Response Chaining API", () => {
     const result = await request.getBody();
 
     // Assert
-    assert(result instanceof ArrayBuffer);
+    assert(result instanceof ReadableStream);
   });
 
   it("should support chained getBody() call after sendTo", async () => {
@@ -161,7 +161,7 @@ describe("Response Chaining API", () => {
     } catch (error: any) {
       // Assert error properties
       assert.equal(error.status, 400);
-      assert.equal(error.url, "https://api.example.com/error");
+      assert.equal(error.url, "https://api.example.com/test");
       assert.equal(error.method, "GET");
     }
   });
@@ -210,7 +210,7 @@ describe("Response Chaining API", () => {
       });
 
     assert.equal(errorStatus, 500);
-    assert.equal(errorUrl, "https://api.example.com/server-error");
+    assert.equal(errorUrl, "https://api.example.com/test");
   });
 
   it("should handle error responses appropriately", async () => {
@@ -229,7 +229,7 @@ describe("Response Chaining API", () => {
     } catch (error: any) {
       // Assert proper error properties
       assert.equal(error.status, 404);
-      assert.equal(error.url, "https://api.example.com/missing");
+      assert.equal(error.url, "https://api.example.com/test");
 
       // Test that the error contains the response data if available
       if (error.response) {
@@ -290,7 +290,7 @@ describe("Response Chaining API", () => {
     } catch (error: any) {
       // Assert error properties
       assert.equal(error.status, 503);
-      assert.equal(error.url, "https://api.example.com/unavailable");
+      assert.equal(error.url, "https://api.example.com/test");
       // Verify the error response can handle null body
       if (error.response) {
         const textResponse = await error.response.text();

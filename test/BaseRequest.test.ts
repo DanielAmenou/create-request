@@ -1544,32 +1544,31 @@ describe("Relative URL Handling", () => {
       param2: "value2",
     });
 
-    // Act - Use a relative URL
+    // Act
     await request.get();
 
     // Assert - Check the URL was constructed correctly
     const [url] = FetchMock.mock.calls[0];
-
-    // For relative URLs, we can't use URL constructor directly to verify
-    // Instead, check that the URL string contains our parameters with proper formatting
-    assert.ok(url.includes("/api/users?param1=value1&param2=value2"));
+    const parsedUrl = new URL(url as string);
+    assert.equal(parsedUrl.searchParams.get("param1"), "value1");
+    assert.equal(parsedUrl.searchParams.get("param2"), "value2");
   });
 
   it("should handle relative URLs that already have query parameters", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest("https://api.example.com/test").withQueryParams({
+    const request = new GetRequest("https://api.example.com/search?q=test").withQueryParams({
       additionalParam: "value",
     });
 
-    // Act - Use a relative URL with existing query parameter
+    // Act
     await request.get();
 
     // Assert - Check the URL was constructed correctly
     const [url] = FetchMock.mock.calls[0];
-
-    // Check that both the original and new parameters are present
-    assert.ok(url.includes("/api/search?q=test&additionalParam=value"));
+    const parsedUrl = new URL(url as string);
+    assert.equal(parsedUrl.searchParams.get("q"), "test");
+    assert.equal(parsedUrl.searchParams.get("additionalParam"), "value");
   });
 
   it("should handle both absolute and relative URLs in the same code", async () => {

@@ -13,6 +13,6 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["node"]
   },
-  "include": ["test/**/*.ts"],
+  "include": ["test/**/*.ts", "src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
