@@ -37,7 +37,7 @@
 - 🔒 **CSRF Protection** - Built-in safeguards against cross-site request forgery
 - 🛑 **Request Cancellation** - Abort requests on demand with AbortController integration
 - 🔌 **Interceptors** - Global and per-request interceptors for requests, responses, and errors
-- 📊 **GraphQL Support** - Built-in GraphQL query and mutation helpers
+- 🔷 **GraphQL Support** - Built-in GraphQL query and mutation helpers
 
 ## Why create-request?
 
