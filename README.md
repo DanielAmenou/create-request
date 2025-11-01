@@ -716,7 +716,7 @@ This library works with all browsers that support the Fetch API:
 
 | Feature             | create-request | Fetch  | Axios   | SuperAgent | Got     | Ky     | node-fetch | Redaxios |
 | ------------------- | -------------- | ------ | ------- | ---------- | ------- | ------ | ---------- | -------- |
-| **Size (min+gzip)** | ~5.1KB         | Native | ~13.6KB | ~17.8KB    | ~17.8KB | ~3.4KB | ~7.7KB     | ~1KB     |
+| **Size (min+gzip)** | ~5.5KB         | Native | ~13.6KB | ~17.8KB    | ~17.8KB | ~3.4KB | ~7.7KB     | ~1KB     |
 | **Browser**         | Modern         | Modern | IE11+   | IE9+       | ❌ No   | Modern | ❌ No      | Modern   |
 | **Node.js**         | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
 | **HTTP/2**          | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |

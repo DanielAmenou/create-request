@@ -36,7 +36,7 @@
     "check": "concurrently \"npm run lint\" \"npm run test\" \"npx size-limit\"",
     "check:size": "npx size-limit",
     "test": "node --import tsx --test test/**/*.test.ts",
-    "test:coverage": "npm run test -- --experimental-test-coverage",
+    "test:coverage": "node --import tsx --experimental-test-coverage --test test/**/*.test.ts",
     "preversion": "npm run check",
     "prepublishOnly": "npm run build:all",
     "publish:beta": "npm version prerelease --preid=beta && git push origin --tags && npm publish --tag latest",
@@ -64,25 +64,25 @@
   "size-limit": [
     {
       "path": "dist/library/index.esm.js",
-      "limit": "6 KB",
+      "limit": "5.5 KB",
       "gzip": true,
       "name": "ESM Standard"
     },
     {
       "path": "dist/library/index.cjs",
-      "limit": "6 KB",
+      "limit": "5.5 KB",
       "gzip": true,
       "name": "CJS Standard"
     },
     {
       "path": "dist/library/index.esm.min.js",
-      "limit": "6 KB",
+      "limit": "5.5 KB",
       "gzip": true,
       "name": "ESM Minified"
     },
     {
       "path": "dist/library/index.min.cjs",
-      "limit": "6 KB",
+      "limit": "5.5 KB",
       "gzip": true,
       "name": "CJS Minified"
     }
