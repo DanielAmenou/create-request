@@ -30,7 +30,7 @@
     "lint": "eslint 'src/**/*.{js,ts,json}' 'test/**/*.{js,ts,json}'",
     "lint:fix": "eslint \"**/*.ts\" --ignore-path .eslintignore --fix",
     "format": "prettier --write \"**/*.{ts,js,json}\"",
-    "check": "concurrently \"npm run lint\" \"npm run test\" \"npx check:size\"",
+    "check": "concurrently \"npm run lint\" \"npm run test\" \"npm run check:size\"",
     "check:size": "npx size-limit",
     "test": "node --import tsx --test test/**/*.test.ts",
     "test:coverage": "node --import tsx --experimental-test-coverage --test test/**/*.test.ts",
