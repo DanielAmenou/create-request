@@ -127,6 +127,7 @@ import create, {
   CredentialsPolicy,
   RedirectMode,
   ReferrerPolicy,
+  SameSitePolicy,
 } from "create-request";
 
 // Configure request options
@@ -308,6 +309,29 @@ const userData = await create
 const fullData = await create.get("https://api.example.com/data").getData();
 ```
 
+### ResponseWrapper Properties
+
+When you use `getResponse()`, you get a `ResponseWrapper` object that provides convenient access to response properties and methods:
+
+```typescript
+const response = await create.get("https://api.example.com/users").getResponse();
+
+// Access response properties directly
+console.log(response.status); // HTTP status code (e.g., 200)
+console.log(response.statusText); // Status text (e.g., "OK")
+console.log(response.ok); // Boolean: true if status is 200-299
+console.log(response.headers); // Headers object
+console.log(response.url); // Request URL
+console.log(response.method); // HTTP method
+console.log(response.raw); // Raw Response object from fetch
+
+// Use wrapper methods for body parsing
+const json = await response.getJson();
+const text = await response.getText();
+const blob = await response.getBlob();
+const stream = response.getBody(); // ReadableStream or null
+```
+
 ### Error Handling
 
 All errors from requests are instances of `RequestError` with detailed information:
@@ -322,6 +346,7 @@ try {
   console.log(error.url); // Request URL
   console.log(error.method); // HTTP method
   console.log(error.isTimeout); // Whether it was a timeout
+  console.log(error.isAborted); // Whether it was aborted/cancelled
 
   // Access the original response if available
   if (error.response) {
@@ -673,10 +698,14 @@ You can configure CSRF settings globally for all requests:
 ```typescript
 // Configure CSRF settings for all requests
 create.config.setCsrfToken("your-csrf-token");
-create.config.setCsrfHeaderName("X-CSRF-Token"); // Default header name
-create.config.setXsrfCookieName("XSRF-TOKEN"); // Default cookie name
+create.config.setCsrfHeaderName("X-CSRF-Token"); // Default header name for CSRF token
+create.config.setXsrfCookieName("XSRF-TOKEN"); // Default cookie name to read from
+create.config.setXsrfHeaderName("X-XSRF-TOKEN"); // Default header name for XSRF token from cookie
 create.config.setEnableAntiCsrf(true); // Enable/disable X-Requested-With header
 create.config.setEnableAutoXsrf(true); // Enable/disable automatic cookie-to-header token
+
+// Reset all configuration to defaults
+create.config.reset();
 ```
 
 ### Per-Request CSRF Settings
@@ -686,7 +715,7 @@ You can also configure CSRF protection on individual requests:
 ```typescript
 // Configure CSRF for a specific request
 const request = create
-  .post()
+  .post("https://api.example.com/users")
   .withCsrfToken("request-specific-token") // Set a specific token
   .withAntiCsrfHeaders() // Explicitly add X-Requested-With header
   .withoutCsrfProtection(); // Or disable all automatic CSRF protection
