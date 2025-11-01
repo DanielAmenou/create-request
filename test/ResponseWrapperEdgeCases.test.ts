@@ -306,7 +306,7 @@ describe("ResponseWrapper Edge Cases", () => {
 
       try {
         // Try to get JSON twice after consuming in different format
-        await wrapper.getBody();
+        wrapper.getBody();
         await wrapper.getJson();
         assert.fail("Should have thrown error");
       } catch (error: any) {

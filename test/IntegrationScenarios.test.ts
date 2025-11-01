@@ -433,7 +433,10 @@ describe("Integration Scenarios", () => {
         },
       });
 
-      const userNames = await create.get("https://api.example.com/users").getData((data: any) => data.data.users.map((u: any) => u.name));
+      const userNames = await create.get("https://api.example.com/users").getData((data: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return data.data.users.map((u: any) => u.name);
+      });
 
       assert.deepEqual(userNames, ["John", "Jane"]);
     });

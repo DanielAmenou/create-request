@@ -292,9 +292,13 @@ describe("CsrfUtils Advanced Tests", () => {
     });
 
     it("should reject non-string types", () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       assert.equal(CsrfUtils.isValidToken(12345 as any), false);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       assert.equal(CsrfUtils.isValidToken(true as any), false);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       assert.equal(CsrfUtils.isValidToken({} as any), false);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       assert.equal(CsrfUtils.isValidToken([] as any), false);
     });
 

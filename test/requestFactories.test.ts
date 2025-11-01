@@ -189,7 +189,6 @@ describe("Request Factories", () => {
 
       assert.deepEqual(result, { success: true });
       const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
-      const headers = options.headers as Record<string, string>;
       // CSRF protection might be disabled, but test that factory works with config
       assert.ok(options.method === HttpMethod.GET);
     });

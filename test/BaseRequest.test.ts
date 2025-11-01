@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import { RequestMode, RedirectMode, SameSitePolicy, RequestPriority, CredentialsPolicy } from "../src/enums.js";
+import { SameSitePolicy } from "../src/enums.js";
 import create from "../src/index.js";
 import { RequestError } from "../src/RequestError.js";
 import { GetRequest } from "../src/requestMethods.js";

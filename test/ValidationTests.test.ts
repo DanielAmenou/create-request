@@ -111,7 +111,7 @@ describe("Request Validation", () => {
 
       // Act & Assert
       await assert.rejects(
-        async () => await request.getResponse(),
+        () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
           return error.message.includes("URL cannot be empty");
@@ -125,7 +125,7 @@ describe("Request Validation", () => {
 
       // Act & Assert
       await assert.rejects(
-        async () => await request.getResponse(),
+        () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
           return error.message.includes("URL cannot be empty");
@@ -171,7 +171,7 @@ describe("Request Validation", () => {
 
       // Act & Assert
       await assert.rejects(
-        async () => await request.getResponse(),
+        () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
           return error.message.includes("control chars");
@@ -185,7 +185,7 @@ describe("Request Validation", () => {
 
       // Act & Assert
       await assert.rejects(
-        async () => await request.getResponse(),
+        () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
           return error.message.includes("control chars");
@@ -199,7 +199,7 @@ describe("Request Validation", () => {
 
       // Act & Assert
       await assert.rejects(
-        async () => await request.getResponse(),
+        () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
           return error.message.includes("control chars");
@@ -262,7 +262,7 @@ describe("Request Validation", () => {
 
       // Act & Assert
       await assert.rejects(
-        async () => await request.getResponse(),
+        () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
           return error.message.includes("URL cannot be empty");
@@ -283,7 +283,7 @@ describe("Request Validation", () => {
 
       // Act & Assert
       await assert.rejects(
-        async () => await request.getResponse(),
+        () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
           return error.message.includes("URL cannot be empty");
@@ -297,7 +297,7 @@ describe("Request Validation", () => {
 
       // Act & Assert
       await assert.rejects(
-        async () => await request.getResponse(),
+        () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
           return error.message.includes("URL cannot be empty");
@@ -342,7 +342,7 @@ describe("Request Validation", () => {
 
       // Act & Assert
       await assert.rejects(
-        async () => await request.getResponse(),
+        () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
           return error.message.includes("control chars");
