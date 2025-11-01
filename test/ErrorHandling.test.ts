@@ -27,7 +27,7 @@ describe("Error Handling Tests", () => {
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert.equal(error.message, "Network error: Failed to connect");
+        assert.equal(error.message, "Failed to connect");
         assert.equal(error.url, "https://api.example.com/data");
         assert.equal(error.method, "GET");
       }
@@ -239,7 +239,7 @@ describe("Error Handling Tests", () => {
       } catch (error) {
         assert(error instanceof RequestError);
         assert.equal(error.isTimeout, true);
-        assert(error.message.includes("timed out after 100ms"));
+        assert(error.message.includes("Timeout: 100ms"));
       }
     });
 
@@ -269,7 +269,7 @@ describe("Error Handling Tests", () => {
         assert.fail("Request should have been aborted");
       } catch (error) {
         assert(error instanceof Error);
-        assert(error.name === "AbortError" || error.message.includes("aborted"));
+        assert(error.name === "AbortError" || error.message.includes("Aborted") || error.message.toLowerCase().includes("aborted"));
       }
     });
   });

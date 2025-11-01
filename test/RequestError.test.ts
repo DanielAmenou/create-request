@@ -35,7 +35,7 @@ describe("RequestError", () => {
     const error = RequestError.timeout("https://api.example.com", "GET", 5000);
 
     // Assert
-    assert.equal(error.message, "Request timed out after 5000ms");
+    assert.equal(error.message, "Timeout: 5000ms");
     assert.equal(error.url, "https://api.example.com");
     assert.equal(error.method, "GET");
     assert.equal(error.isTimeout, true);
@@ -49,7 +49,7 @@ describe("RequestError", () => {
     const error = RequestError.networkError("https://api.example.com", "GET", originalError);
 
     // Assert
-    assert.equal(error.message, "Network error: Connection failed");
+    assert.equal(error.message, "Connection failed");
     assert.equal(error.url, "https://api.example.com");
     assert.equal(error.method, "GET");
   });
@@ -63,7 +63,7 @@ describe("RequestError", () => {
     const error = RequestError.fromResponse(mockResponse, "https://api.example.com", "GET");
 
     // Assert
-    assert.equal(error.message, "Request failed with status 404");
+    assert.equal(error.message, "HTTP 404");
     assert.equal(error.url, "https://api.example.com");
     assert.equal(error.method, "GET");
     assert.equal(error.status, 404);

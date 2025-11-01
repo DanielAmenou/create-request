@@ -416,7 +416,7 @@ describe("BaseRequest", () => {
         assert(error instanceof RequestError);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
-        assert.equal(error.message, "Network error: Network error");
+        assert.equal(error.message, "Network error");
         return true;
       }
     );
@@ -621,7 +621,7 @@ describe("BaseRequest", () => {
       await requestPromise;
       assert.fail("Request should have been aborted");
     } catch (error: any) {
-      assert(error.name === "AbortError" || error.message.includes("aborted"));
+      assert(error.name === "AbortError" || error.message.includes("Aborted") || error.message.toLowerCase().includes("aborted"));
     }
   });
 

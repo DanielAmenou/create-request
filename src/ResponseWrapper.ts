@@ -68,19 +68,19 @@ export class ResponseWrapper {
         } catch (e) {
           const errorMessage = e instanceof Error ? e.message : String(e);
           if (this.url && this.method) {
-            throw new RequestError(`Cannot parse cached text as JSON: ${errorMessage}`, this.url, this.method, {
+            throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url, this.method, {
               response: this.response,
             });
           }
-          throw new Error(`Cannot parse cached text as JSON: ${errorMessage}`);
+          throw new Error(`Invalid JSON: ${errorMessage}`);
         }
       }
       if (this.url && this.method) {
-        throw new RequestError("Response body has already been consumed in a different format", this.url, this.method, {
+        throw new RequestError("Body already consumed", this.url, this.method, {
           response: this.response,
         });
       }
-      throw new Error("Response body has already been consumed in a different format");
+      throw new Error("Body already consumed");
     }
 
     this.bodyUsed = true;
@@ -91,7 +91,7 @@ export class ResponseWrapper {
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       if (this.url && this.method) {
-        throw new RequestError(`Failed to parse response as JSON: ${errorMessage}`, this.url, this.method, {
+        throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url, this.method, {
           status: this.response.status,
           response: this.response,
         });
@@ -131,7 +131,7 @@ export class ResponseWrapper {
         } catch (e) {
           const errorMessage = e instanceof Error ? e.message : String(e);
           if (this.url && this.method) {
-            throw new RequestError(`Failed to convert blob to text: ${errorMessage}`, this.url, this.method, {
+            throw new RequestError(`Cannot convert to text: ${errorMessage}`, this.url, this.method, {
               response: this.response,
             });
           }
@@ -140,11 +140,11 @@ export class ResponseWrapper {
       }
 
       if (this.url && this.method) {
-        throw new RequestError("Response body has already been consumed in a format that cannot be converted to text", this.url, this.method, {
+        throw new RequestError("Cannot convert to text", this.url, this.method, {
           response: this.response,
         });
       }
-      throw new Error("Response body has already been consumed in a format that cannot be converted to text");
+      throw new Error("Cannot convert to text");
     }
 
     this.bodyUsed = true;
@@ -154,7 +154,7 @@ export class ResponseWrapper {
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       if (this.url && this.method) {
-        throw new RequestError(`Failed to read response as text: ${errorMessage}`, this.url, this.method, {
+        throw new RequestError(`Read failed: ${errorMessage}`, this.url, this.method, {
           status: this.response.status,
           response: this.response,
         });
@@ -187,11 +187,11 @@ export class ResponseWrapper {
         return this.blobCache;
       }
       if (this.url && this.method) {
-        throw new RequestError("Response body has already been consumed in a format that cannot be converted to Blob", this.url, this.method, {
+        throw new RequestError("Cannot convert to Blob", this.url, this.method, {
           response: this.response,
         });
       }
-      throw new Error("Response body has already been consumed in a format that cannot be converted to Blob");
+      throw new Error("Cannot convert to Blob");
     }
 
     this.bodyUsed = true;
@@ -201,7 +201,7 @@ export class ResponseWrapper {
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       if (this.url && this.method) {
-        throw new RequestError(`Failed to read response as blob: ${errorMessage}`, this.url, this.method, {
+        throw new RequestError(`Read failed: ${errorMessage}`, this.url, this.method, {
           status: this.response.status,
           response: this.response,
         });
@@ -227,11 +227,11 @@ export class ResponseWrapper {
   getBody(): ReadableStream<Uint8Array> | null {
     if (this.bodyUsed) {
       if (this.url && this.method) {
-        throw new RequestError("Response body has already been consumed", this.url, this.method, {
+        throw new RequestError("Body already consumed", this.url, this.method, {
           response: this.response,
         });
       }
-      throw new Error("Response body has already been consumed");
+      throw new Error("Body already consumed");
     }
 
     this.bodyUsed = true;

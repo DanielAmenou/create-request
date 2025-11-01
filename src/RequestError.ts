@@ -40,26 +40,26 @@ export class RequestError extends Error {
    */
 
   static timeout(url: string, method: string, timeoutMs: number): RequestError {
-    return new RequestError(`Request timed out after ${timeoutMs}ms`, url, method, {
+    return new RequestError(`Timeout: ${timeoutMs}ms`, url, method, {
       isTimeout: true,
     });
   }
 
   static fromResponse(response: Response, url: string, method: string): RequestError {
-    return new RequestError(`Request failed with status ${response.status}`, url, method, {
+    return new RequestError(`HTTP ${response.status}`, url, method, {
       status: response.status,
       response,
     });
   }
 
   static networkError(url: string, method: string, originalError: Error): RequestError {
-    const error = new RequestError(`Network error: ${originalError.message}`, url, method);
+    const error = new RequestError(originalError.message, url, method);
     error.stack = originalError.stack;
     return error;
   }
 
   static abortError(url: string, method: string): RequestError {
-    return new RequestError("Request was aborted", url, method, {
+    return new RequestError("Aborted", url, method, {
       isAborted: true,
     });
   }

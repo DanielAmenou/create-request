@@ -148,7 +148,7 @@ describe("BodyRequest", () => {
     // Act & Assert
     assert.throws(() => {
       new PostRequest("https://api.example.com/test").withBody(circularObj as Body);
-    }, /Failed to stringify request body/);
+    }, /Stringify failed/);
   });
 
   it("should respect existing Content-Type header when using withBody", async () => {
@@ -341,14 +341,14 @@ describe("BodyRequest", () => {
       // Act & Assert
       assert.throws(() => {
         new PostRequest("https://api.example.com/graphql").withGraphQL("");
-      }, /GraphQL query must be a non-empty string/);
+      }, /Invalid GraphQL query/);
     });
 
     it("should throw error for whitespace-only query string", () => {
       // Act & Assert
       assert.throws(() => {
         new PostRequest("https://api.example.com/graphql").withGraphQL("   ");
-      }, /GraphQL query must be a non-empty string/);
+      }, /Invalid GraphQL query/);
     });
 
     it("should throw error for invalid variables (array)", () => {
@@ -356,7 +356,7 @@ describe("BodyRequest", () => {
       assert.throws(() => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL("query { user { name } }", [] as any);
-      }, /GraphQL variables must be an object/);
+      }, /Invalid GraphQL variables/);
     });
 
     it("should throw error for invalid variables (null)", () => {
@@ -364,7 +364,7 @@ describe("BodyRequest", () => {
       assert.throws(() => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL("query { user { name } }", null as any);
-      }, /GraphQL variables must be an object/);
+      }, /Invalid GraphQL variables/);
     });
 
     it("should respect existing Content-Type header when using withGraphQL", async () => {
@@ -444,7 +444,7 @@ describe("BodyRequest", () => {
       assert.throws(() => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
-      }, /Failed to stringify GraphQL body/);
+      }, /Stringify failed/);
     });
 
     it("should throw error when variables contain non-serializable values", () => {
@@ -458,7 +458,7 @@ describe("BodyRequest", () => {
       assert.throws(() => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
-      }, /Failed to stringify GraphQL body/);
+      }, /Stringify failed/);
     });
 
     it("should handle variables with undefined values (which get omitted)", async () => {
@@ -489,7 +489,7 @@ describe("BodyRequest", () => {
       // Act & Assert
       assert.throws(() => {
         new PostRequest("https://api.example.com/graphql").withGraphQL("   \n\t  ");
-      }, /GraphQL query must be a non-empty string/);
+      }, /Invalid GraphQL query/);
     });
 
     it("should handle query with newlines and tabs", async () => {

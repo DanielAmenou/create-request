@@ -215,7 +215,7 @@ describe("Request Factories", () => {
         await create.get("https://api.example.com/test").getJson();
         assert.fail("Should have thrown error");
       } catch (error: any) {
-        assert.ok(error.message.includes("status 500"));
+        assert.ok(error.message.includes("HTTP 500"));
       }
     });
 
@@ -236,7 +236,7 @@ describe("Request Factories", () => {
         await create.get("https://api.example.com/test").withTimeout(100).getJson();
         assert.fail("Should have timed out");
       } catch (error: any) {
-        assert.ok(error.isTimeout || error.message.includes("timeout") || error.message.includes("timed out"));
+        assert.ok(error.isTimeout || error.message.includes("Timeout") || error.message.toLowerCase().includes("timeout"));
       }
     });
   });

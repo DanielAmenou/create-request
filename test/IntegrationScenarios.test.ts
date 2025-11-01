@@ -225,7 +225,7 @@ describe("Integration Scenarios", () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error.message.includes("Custom:"));
-        assert.ok(error.message.includes("status 404"));
+        assert.ok(error.message.includes("HTTP 404"));
       }
     });
   });
@@ -363,7 +363,7 @@ describe("Integration Scenarios", () => {
         await request;
         assert.fail("Should have been aborted");
       } catch (error: any) {
-        assert.ok(error.isAborted || error.message.includes("aborted"));
+        assert.ok(error.isAborted || error.message.includes("Aborted") || error.message.toLowerCase().includes("aborted"));
       }
     });
 
@@ -378,7 +378,7 @@ describe("Integration Scenarios", () => {
         await request;
         assert.fail("Should have been aborted or timed out");
       } catch (error: any) {
-        assert.ok(error.isAborted || error.isTimeout || error.message.includes("aborted") || error.message.includes("timeout"));
+        assert.ok(error.isAborted || error.isTimeout || error.message.includes("Aborted") || error.message.toLowerCase().includes("aborted") || error.message.includes("Timeout") || error.message.toLowerCase().includes("timeout"));
       }
     });
   });

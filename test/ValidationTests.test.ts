@@ -174,7 +174,7 @@ describe("Request Validation", () => {
         async () => await request.get(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("contains control characters");
+          return error.message.includes("control chars");
         }
       );
     });
@@ -188,7 +188,7 @@ describe("Request Validation", () => {
         async () => await request.get(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("contains control characters");
+          return error.message.includes("control chars");
         }
       );
     });
@@ -202,7 +202,7 @@ describe("Request Validation", () => {
         async () => await request.get(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("contains control characters");
+          return error.message.includes("control chars");
         }
       );
     });
@@ -345,7 +345,7 @@ describe("Request Validation", () => {
         async () => await request.get(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("contains control characters");
+          return error.message.includes("control chars");
         }
       );
     });

@@ -230,7 +230,7 @@ describe("ResponseWrapper", () => {
     // Assert - now try to get JSON which should fail
     await assert.rejects(
       () => wrapper.getJson(), // Remove the extra await here
-      /Response body has already been consumed/
+      /Body already consumed/
     );
   });
 });

@@ -93,7 +93,7 @@ describe("ResponseWrapper Edge Cases", () => {
         wrapper.getBody();
         assert.fail("Should have thrown error");
       } catch (error: any) {
-        assert.ok(error instanceof RequestError || error.message.includes("already been consumed"));
+        assert.ok(error instanceof RequestError || error.message.includes("Body already consumed"));
       }
     });
   });
@@ -294,7 +294,7 @@ describe("ResponseWrapper Edge Cases", () => {
         await wrapper.getBlob();
         // Should still throw error, but might not be RequestError
       } catch (error: any) {
-        assert.ok(error.message.includes("consumed") || error.message.includes("already"));
+        assert.ok(error.message.includes("consumed") || error.message.includes("already") || error.message.includes("Cannot convert"));
       }
     });
 
@@ -371,7 +371,7 @@ describe("ResponseWrapper Edge Cases", () => {
         wrapper.getBody();
         assert.fail("Should have thrown error");
       } catch (error: any) {
-        assert.ok(error.message.includes("already been consumed"));
+        assert.ok(error.message.includes("Body already consumed"));
       }
     });
 
@@ -387,7 +387,7 @@ describe("ResponseWrapper Edge Cases", () => {
         wrapper.getBody();
         assert.fail("Should have thrown error");
       } catch (error: any) {
-        assert.ok(error.message.includes("already been consumed"));
+        assert.ok(error.message.includes("Body already consumed"));
       }
     });
   });

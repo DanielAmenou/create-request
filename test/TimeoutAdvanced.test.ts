@@ -28,7 +28,7 @@ describe("Timeout Advanced", () => {
       } catch (error) {
         assert(error instanceof RequestError);
         assert.equal(error.isTimeout, true);
-        assert.ok(error.message.includes("timed out"));
+        assert.ok(error.message.includes("Timeout"));
       }
     });
 
@@ -46,7 +46,7 @@ describe("Timeout Advanced", () => {
       } catch (error) {
         assert(error instanceof RequestError);
         assert.equal(error.isAborted, true);
-        assert.ok(error.message.includes("aborted"));
+        assert.ok(error.message.includes("Aborted") || error.message.toLowerCase().includes("aborted"));
       }
     });
 
@@ -221,7 +221,7 @@ describe("Timeout Advanced", () => {
       } catch (error) {
         assert(error instanceof RequestError);
         assert.equal(error.isTimeout, true);
-        assert.ok(error.message.includes("100ms") || error.message.includes("timed out"));
+        assert.ok(error.message.includes("100ms") || error.message.includes("Timeout"));
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
       }

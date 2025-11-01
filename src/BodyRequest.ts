@@ -38,7 +38,7 @@ export abstract class BodyRequest extends BaseRequest {
       try {
         JSON.stringify(body);
       } catch (error) {
-        throw new RequestError(`Failed to stringify request body: ${String(error)}`, this.url, this.method);
+        throw new RequestError(`Stringify failed: ${String(error)}`, this.url, this.method);
       }
     } else {
       this.bodyType = BodyType.BINARY;
@@ -65,7 +65,7 @@ export abstract class BodyRequest extends BaseRequest {
    */
   withGraphQL(query: string, variables?: Record<string, unknown>): this {
     if (typeof query !== "string" || query.trim().length === 0) {
-      throw new RequestError("GraphQL query must be a non-empty string", this.url, this.method);
+      throw new RequestError("Invalid GraphQL query", this.url, this.method);
     }
 
     const graphQLBody: { query: string; variables?: Record<string, unknown> } = {
@@ -74,7 +74,7 @@ export abstract class BodyRequest extends BaseRequest {
 
     if (variables !== undefined) {
       if (typeof variables !== "object" || variables === null || Array.isArray(variables)) {
-        throw new RequestError("GraphQL variables must be an object", this.url, this.method);
+        throw new RequestError("Invalid GraphQL variables", this.url, this.method);
       }
       graphQLBody.variables = variables;
     }
@@ -83,7 +83,7 @@ export abstract class BodyRequest extends BaseRequest {
     try {
       JSON.stringify(graphQLBody);
     } catch (error) {
-      throw new RequestError(`Failed to stringify GraphQL body: ${String(error)}`, this.url, this.method);
+      throw new RequestError(`Stringify failed: ${String(error)}`, this.url, this.method);
     }
 
     this.body = graphQLBody;

@@ -32,7 +32,7 @@ export abstract class BaseRequest {
   private validateUrl(url: string): void {
     if (!url?.trim()) throw new RequestError("URL cannot be empty", url, this.method);
     if (url.includes("\0") || url.includes("\r") || url.includes("\n")) {
-      throw new RequestError("Invalid URL: contains control characters", url, this.method);
+      throw new RequestError("Invalid URL (control chars)", url, this.method);
     }
     const trimmed = url.trim();
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
@@ -722,7 +722,7 @@ export abstract class BaseRequest {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         // Use RequestError when we have request context
-        throw new RequestError(`Request interceptor ${i + 1} failed: ${errorMessage}`, currentConfig.url, currentConfig.method);
+        throw new RequestError(`Interceptor failed: ${errorMessage}`, currentConfig.url, currentConfig.method);
       }
     }
 
@@ -750,10 +750,10 @@ export abstract class BaseRequest {
         const errorMessage = error instanceof Error ? error.message : String(error);
         // Use RequestError when we have response context (url/method from ResponseWrapper)
         if (currentResponse.url && currentResponse.method) {
-          throw new RequestError(`Response interceptor ${i + 1} failed: ${errorMessage}`, currentResponse.url, currentResponse.method);
+          throw new RequestError(`Interceptor failed: ${errorMessage}`, currentResponse.url, currentResponse.method);
         }
         // Fallback to generic Error if no context available (shouldn't happen in practice)
-        throw new Error(`Response interceptor ${i + 1} failed: ${errorMessage}`);
+        throw new Error(`Interceptor failed: ${errorMessage}`);
       }
     }
 
