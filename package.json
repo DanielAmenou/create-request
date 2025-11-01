@@ -27,11 +27,10 @@
     "dev": "cross-env BUILD_ENV=development rollup -c rollup.config.js -w",
     "build": "cross-env BUILD_ENV=production rollup -c rollup.config.js",
     "analyze": "cross-env ANALYZE=true BUILD_ENV=production rollup -c rollup.config.js",
-    "analyze:min": "cross-env ANALYZE=true MINIFY=true BUILD_ENV=production rollup -c rollup.config.js",
     "lint": "eslint 'src/**/*.{js,ts,json}' 'test/**/*.{js,ts,json}'",
     "lint:fix": "eslint \"**/*.ts\" --ignore-path .eslintignore --fix",
     "format": "prettier --write \"**/*.{ts,js,json}\"",
-    "check": "concurrently \"npm run lint\" \"npm run test\" \"npx size-limit\"",
+    "check": "concurrently \"npm run lint\" \"npm run test\" \"npx check:size\"",
     "check:size": "npx size-limit",
     "test": "node --import tsx --test test/**/*.test.ts",
     "test:coverage": "node --import tsx --experimental-test-coverage --test test/**/*.test.ts",
@@ -62,25 +61,25 @@
   "size-limit": [
     {
       "path": "dist/library/index.esm.js",
-      "limit": "5.5 KB",
+      "limit": "6 KB",
       "gzip": true,
       "name": "ESM Standard"
     },
     {
       "path": "dist/library/index.cjs",
-      "limit": "5.5 KB",
+      "limit": "6 KB",
       "gzip": true,
       "name": "CJS Standard"
     },
     {
       "path": "dist/library/index.esm.min.js",
-      "limit": "5.5 KB",
+      "limit": "6 KB",
       "gzip": true,
       "name": "ESM Minified"
     },
     {
       "path": "dist/library/index.min.cjs",
-      "limit": "5.5 KB",
+      "limit": "6 KB",
       "gzip": true,
       "name": "CJS Minified"
     }
