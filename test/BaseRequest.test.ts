@@ -269,6 +269,32 @@ describe("BaseRequest", () => {
     assert.equal(options.redirect, "error");
   });
 
+  it("should set redirect mode to FOLLOW", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest("https://api.example.com/test").withRedirect.FOLLOW();
+
+    // Act
+    await request.getResponse();
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    assert.equal(options.redirect, "follow");
+  });
+
+  it("should set redirect mode to MANUAL", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest("https://api.example.com/test").withRedirect.MANUAL();
+
+    // Act
+    await request.getResponse();
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    assert.equal(options.redirect, "manual");
+  });
+
   it("should set request mode", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
@@ -280,6 +306,45 @@ describe("BaseRequest", () => {
     // Assert
     const [, options] = FetchMock.mock.calls[0];
     assert.equal(options.mode, "cors");
+  });
+
+  it("should set request mode to NO_CORS", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest("https://api.example.com/test").withMode.NO_CORS();
+
+    // Act
+    await request.getResponse();
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    assert.equal(options.mode, "no-cors");
+  });
+
+  it("should set request mode to SAME_ORIGIN", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest("https://api.example.com/test").withMode.SAME_ORIGIN();
+
+    // Act
+    await request.getResponse();
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    assert.equal(options.mode, "same-origin");
+  });
+
+  it("should set request mode to NAVIGATE", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest("https://api.example.com/test").withMode.NAVIGATE();
+
+    // Act
+    await request.getResponse();
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    assert.equal(options.mode, "navigate");
   });
 
   it("should set request priority", async () => {
@@ -336,6 +401,21 @@ describe("BaseRequest", () => {
     });
   });
 
+  it("should set content type and chain correctly", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withContentType("application/json").withHeader("X-Test", "value");
+
+    // Act
+    await request.getResponse();
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["Content-Type"], "application/json");
+    assert.equal(headers["X-Test"], "value");
+  });
+
   it("should set authorization header", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
@@ -349,6 +429,21 @@ describe("BaseRequest", () => {
     assert.deepEqual(options.headers, {
       Authorization: "Bearer token123",
     });
+  });
+
+  it("should set authorization header and chain correctly", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce();
+    const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withAuthorization("Bearer token456").withHeader("X-Custom", "test");
+
+    // Act
+    await request.getResponse();
+
+    // Assert
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers.Authorization, "Bearer token456");
+    assert.equal(headers["X-Custom"], "test");
   });
 
   it("should set basic auth header", async () => {
