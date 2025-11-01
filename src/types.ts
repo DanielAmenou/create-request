@@ -67,7 +67,7 @@ export interface RequestOptions extends Omit<RequestInit, "signal" | "body" | "m
   timeout?: number;
   retries?: number;
   onRetry?: RetryCallback;
-  body?: any;
+  body?: Body;
   credentials?: CredentialsPolicy | RequestCredentials;
   mode?: RequestMode;
   redirect?: RedirectMode | RequestRedirect;

@@ -93,10 +93,20 @@ export abstract class BodyRequest extends BaseRequest {
     return this;
   }
 
+  /**
+   * Check if Content-Type header is already set (case-insensitive)
+   */
+  private hasContentType(): boolean {
+    const headers = this.requestOptions.headers;
+    if (typeof headers === "object" && headers !== null) {
+      const headersObj = headers as Record<string, string>;
+      return Object.keys(headersObj).some(header => header.toLowerCase() === "content-type");
+    }
+    return false;
+  }
+
   private setContentTypeIfNeeded(contentType: string): void {
-    // Only set if not already set
-    const headers = this.requestOptions.headers as Record<string, string>;
-    if (!Object.keys(headers).some(header => header.toLowerCase() === "content-type")) {
+    if (!this.hasContentType()) {
       this.withContentType(contentType);
     }
   }

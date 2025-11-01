@@ -29,6 +29,30 @@ export abstract class BaseRequest {
     this.url = url;
   }
 
+  /**
+   * Creates a fluent API for setting enum-based options
+   * Combines direct setter with convenience methods
+   */
+  private createFluentSetter<T extends string>(optionName: keyof RequestOptions, options: Record<string, T>): unknown {
+    const fluent: Record<string, () => BaseRequest> = {};
+
+    // Create convenience methods for each enum value
+    Object.entries(options).forEach(([key, value]) => {
+      fluent[key] = (): BaseRequest => {
+        (this.requestOptions as Record<string, unknown>)[optionName] = value;
+        return this;
+      };
+    });
+
+    // Create the callable setter
+    const callable = (value: T | string): BaseRequest => {
+      (this.requestOptions as Record<string, unknown>)[optionName] = value;
+      return this;
+    };
+
+    return Object.assign(callable, fluent);
+  }
+
   private validateUrl(url: string): void {
     if (!url?.trim()) throw new RequestError("URL cannot be empty", url, this.method);
     if (url.includes("\0") || url.includes("\r") || url.includes("\n")) {
@@ -66,7 +90,7 @@ export abstract class BaseRequest {
     });
 
     this.requestOptions.headers = {
-      ...(this.requestOptions.headers as Record<string, string>),
+      ...this.getHeadersRecord(),
       ...filteredHeaders,
     };
     return this;
@@ -154,27 +178,15 @@ export abstract class BaseRequest {
     OMIT: () => BaseRequest;
     SAME_ORIGIN: () => BaseRequest;
   } {
-    const fluent = {
-      INCLUDE: (): this => {
-        this.requestOptions.credentials = CredentialsPolicy.INCLUDE;
-        return this;
-      },
-      OMIT: (): this => {
-        this.requestOptions.credentials = CredentialsPolicy.OMIT;
-        return this;
-      },
-      SAME_ORIGIN: (): this => {
-        this.requestOptions.credentials = CredentialsPolicy.SAME_ORIGIN;
-        return this;
-      },
+    return this.createFluentSetter<CredentialsPolicy>("credentials", {
+      INCLUDE: CredentialsPolicy.INCLUDE,
+      OMIT: CredentialsPolicy.OMIT,
+      SAME_ORIGIN: CredentialsPolicy.SAME_ORIGIN,
+    }) as ((credentialsPolicy: CredentialsPolicy | string) => BaseRequest) & {
+      INCLUDE: () => BaseRequest;
+      OMIT: () => BaseRequest;
+      SAME_ORIGIN: () => BaseRequest;
     };
-
-    const callable = (credentialsPolicy: CredentialsPolicy | string): this => {
-      this.requestOptions.credentials = credentialsPolicy as CredentialsPolicy;
-      return this;
-    };
-
-    return Object.assign(callable, fluent);
   }
 
   /**
@@ -214,47 +226,25 @@ export abstract class BaseRequest {
     NO_REFERRER_WHEN_DOWNGRADE: () => BaseRequest;
     STRICT_ORIGIN_WHEN_CROSS_ORIGIN: () => BaseRequest;
   } {
-    const fluent = {
-      ORIGIN: (): this => {
-        this.requestOptions.referrerPolicy = ReferrerPolicy.ORIGIN;
-        return this;
-      },
-      UNSAFE_URL: (): this => {
-        this.requestOptions.referrerPolicy = ReferrerPolicy.UNSAFE_URL;
-        return this;
-      },
-      SAME_ORIGIN: (): this => {
-        this.requestOptions.referrerPolicy = ReferrerPolicy.SAME_ORIGIN;
-        return this;
-      },
-      NO_REFERRER: (): this => {
-        this.requestOptions.referrerPolicy = ReferrerPolicy.NO_REFERRER;
-        return this;
-      },
-      STRICT_ORIGIN: (): this => {
-        this.requestOptions.referrerPolicy = ReferrerPolicy.STRICT_ORIGIN;
-        return this;
-      },
-      ORIGIN_WHEN_CROSS_ORIGIN: (): this => {
-        this.requestOptions.referrerPolicy = ReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN;
-        return this;
-      },
-      NO_REFERRER_WHEN_DOWNGRADE: (): this => {
-        this.requestOptions.referrerPolicy = ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE;
-        return this;
-      },
-      STRICT_ORIGIN_WHEN_CROSS_ORIGIN: (): this => {
-        this.requestOptions.referrerPolicy = ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN;
-        return this;
-      },
+    return this.createFluentSetter<ReferrerPolicy>("referrerPolicy", {
+      ORIGIN: ReferrerPolicy.ORIGIN,
+      UNSAFE_URL: ReferrerPolicy.UNSAFE_URL,
+      SAME_ORIGIN: ReferrerPolicy.SAME_ORIGIN,
+      NO_REFERRER: ReferrerPolicy.NO_REFERRER,
+      STRICT_ORIGIN: ReferrerPolicy.STRICT_ORIGIN,
+      ORIGIN_WHEN_CROSS_ORIGIN: ReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN,
+      NO_REFERRER_WHEN_DOWNGRADE: ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE,
+      STRICT_ORIGIN_WHEN_CROSS_ORIGIN: ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN,
+    }) as ((policy: ReferrerPolicy | string) => BaseRequest) & {
+      ORIGIN: () => BaseRequest;
+      UNSAFE_URL: () => BaseRequest;
+      SAME_ORIGIN: () => BaseRequest;
+      NO_REFERRER: () => BaseRequest;
+      STRICT_ORIGIN: () => BaseRequest;
+      ORIGIN_WHEN_CROSS_ORIGIN: () => BaseRequest;
+      NO_REFERRER_WHEN_DOWNGRADE: () => BaseRequest;
+      STRICT_ORIGIN_WHEN_CROSS_ORIGIN: () => BaseRequest;
     };
-
-    const callable = (policy: ReferrerPolicy | string): this => {
-      this.requestOptions.referrerPolicy = policy as ReferrerPolicy;
-      return this;
-    };
-
-    return Object.assign(callable, fluent);
   }
 
   /**
@@ -269,27 +259,15 @@ export abstract class BaseRequest {
     ERROR: () => BaseRequest;
     MANUAL: () => BaseRequest;
   } {
-    const fluent = {
-      FOLLOW: (): this => {
-        this.requestOptions.redirect = RedirectMode.FOLLOW;
-        return this;
-      },
-      ERROR: (): this => {
-        this.requestOptions.redirect = RedirectMode.ERROR;
-        return this;
-      },
-      MANUAL: (): this => {
-        this.requestOptions.redirect = RedirectMode.MANUAL;
-        return this;
-      },
+    return this.createFluentSetter<RedirectMode>("redirect", {
+      FOLLOW: RedirectMode.FOLLOW,
+      ERROR: RedirectMode.ERROR,
+      MANUAL: RedirectMode.MANUAL,
+    }) as ((redirect: RedirectMode | string) => BaseRequest) & {
+      FOLLOW: () => BaseRequest;
+      ERROR: () => BaseRequest;
+      MANUAL: () => BaseRequest;
     };
-
-    const callable = (redirect: RedirectMode | string): this => {
-      this.requestOptions.redirect = redirect as RedirectMode;
-      return this;
-    };
-
-    return Object.assign(callable, fluent);
   }
 
   /**
@@ -314,27 +292,15 @@ export abstract class BaseRequest {
     LOW: () => BaseRequest;
     AUTO: () => BaseRequest;
   } {
-    const fluent = {
-      HIGH: (): this => {
-        this.requestOptions.priority = RequestPriority.HIGH;
-        return this;
-      },
-      LOW: (): this => {
-        this.requestOptions.priority = RequestPriority.LOW;
-        return this;
-      },
-      AUTO: (): this => {
-        this.requestOptions.priority = RequestPriority.AUTO;
-        return this;
-      },
+    return this.createFluentSetter<RequestPriority>("priority", {
+      HIGH: RequestPriority.HIGH,
+      LOW: RequestPriority.LOW,
+      AUTO: RequestPriority.AUTO,
+    }) as ((priority: RequestPriority | string) => BaseRequest) & {
+      HIGH: () => BaseRequest;
+      LOW: () => BaseRequest;
+      AUTO: () => BaseRequest;
     };
-
-    const callable = (priority: RequestPriority | string): this => {
-      this.requestOptions.priority = priority as RequestPriority;
-      return this;
-    };
-
-    return Object.assign(callable, fluent);
   }
 
   /**
@@ -386,31 +352,17 @@ export abstract class BaseRequest {
     SAME_ORIGIN: () => BaseRequest;
     NAVIGATE: () => BaseRequest;
   } {
-    const fluent = {
-      CORS: (): this => {
-        this.requestOptions.mode = RequestMode.CORS;
-        return this;
-      },
-      NO_CORS: (): this => {
-        this.requestOptions.mode = RequestMode.NO_CORS;
-        return this;
-      },
-      SAME_ORIGIN: (): this => {
-        this.requestOptions.mode = RequestMode.SAME_ORIGIN;
-        return this;
-      },
-      NAVIGATE: (): this => {
-        this.requestOptions.mode = RequestMode.NAVIGATE;
-        return this;
-      },
+    return this.createFluentSetter<RequestMode>("mode", {
+      CORS: RequestMode.CORS,
+      NO_CORS: RequestMode.NO_CORS,
+      SAME_ORIGIN: RequestMode.SAME_ORIGIN,
+      NAVIGATE: RequestMode.NAVIGATE,
+    }) as ((mode: RequestMode | string) => BaseRequest) & {
+      CORS: () => BaseRequest;
+      NO_CORS: () => BaseRequest;
+      SAME_ORIGIN: () => BaseRequest;
+      NAVIGATE: () => BaseRequest;
     };
-
-    const callable = (mode: RequestMode | string): this => {
-      this.requestOptions.mode = mode as RequestMode;
-      return this;
-    };
-
-    return Object.assign(callable, fluent);
   }
 
   /**
@@ -478,12 +430,23 @@ export abstract class BaseRequest {
   }
 
   /**
+   * Safely get headers as a Record<string, string>
+   * @returns The headers object
+   */
+  private getHeadersRecord(): Record<string, string> {
+    if (typeof this.requestOptions.headers === "object" && this.requestOptions.headers !== null) {
+      return this.requestOptions.headers as Record<string, string>;
+    }
+    return {};
+  }
+
+  /**
    * Helper function to check for header presence in a case-insensitive way
-   * @param headers Headers object
    * @param headerName Header name to check
    * @returns Boolean indicating if the header exists (case-insensitive)
    */
-  private hasHeader(headers: Record<string, string>, headerName: string): boolean {
+  private hasHeader(headerName: string): boolean {
+    const headers = this.getHeadersRecord();
     return Object.keys(headers).some(key => key.toLowerCase() === headerName.toLowerCase());
   }
 
@@ -499,8 +462,7 @@ export abstract class BaseRequest {
       return this;
     }
 
-    // Get current headers or initialize empty object
-    const currentHeaders = (this.requestOptions.headers as Record<string, string>) || {};
+    const currentHeaders = this.getHeadersRecord();
 
     // Get all existing cookie headers with different cases
     const cookieValues: string[] = [];
@@ -768,9 +730,8 @@ export abstract class BaseRequest {
     // Apply global CSRF token if set
     const globalToken = config.getCsrfToken();
     if (globalToken) {
-      const headers = this.requestOptions.headers as Record<string, string>;
       const csrfHeaderName = config.getCsrfHeaderName();
-      const hasLocalToken = this.hasHeader(headers, "X-CSRF-Token") || this.hasHeader(headers, csrfHeaderName);
+      const hasLocalToken = this.hasHeader("X-CSRF-Token") || this.hasHeader(csrfHeaderName);
 
       if (!hasLocalToken) {
         this.withHeaders({
@@ -783,9 +744,8 @@ export abstract class BaseRequest {
     if (config.isAutoXsrfEnabled() && typeof document !== "undefined") {
       const xsrfToken = CsrfUtils.getTokenFromCookie(config.getXsrfCookieName());
       if (xsrfToken && CsrfUtils.isValidToken(xsrfToken)) {
-        const headers = this.requestOptions.headers as Record<string, string>;
         const xsrfHeaderName = config.getXsrfHeaderName();
-        const hasLocalToken = this.hasHeader(headers, "X-XSRF-TOKEN") || this.hasHeader(headers, xsrfHeaderName);
+        const hasLocalToken = this.hasHeader("X-XSRF-TOKEN") || this.hasHeader(xsrfHeaderName);
 
         if (!hasLocalToken) {
           this.withHeaders({
@@ -963,173 +923,161 @@ export abstract class BaseRequest {
     return currentError;
   }
 
-  private async executeRequest(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
-    // Track resources that need cleanup
+  /**
+   * Helper to create an abort signal with timeout support
+   * Handles various AbortSignal API levels gracefully
+   */
+  private createAbortSignal(
+    timeoutMs: number | undefined,
+    externalController: AbortController | undefined
+  ): {
+    signal: AbortSignal | undefined;
+    cleanup: () => void;
+    wasTimeout: () => boolean;
+  } {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     let timeoutController: AbortController | undefined;
-    let abortListener: (() => void) | undefined;
+    let isTimeout = false;
 
-    // Flag to track if abort was caused by our timeout
-    let abortedByTimeout = false;
+    // No timeout - just use external controller
+    if (!timeoutMs) {
+      return {
+        signal: externalController?.signal,
+        cleanup: () => {},
+        wasTimeout: () => false,
+      };
+    }
 
-    // Extract method early for error handling
+    // Check if AbortSignal.any() is available (modern browsers)
+    const hasAbortSignalAny = typeof (AbortSignal as { any?: unknown }).any === "function";
+    const hasAbortSignalTimeout = typeof AbortSignal.timeout === "function";
+
+    // Create timeout signal
+    const createTimeoutSignal = (): AbortSignal => {
+      if (hasAbortSignalTimeout) {
+        const signal = AbortSignal.timeout(timeoutMs);
+        signal.addEventListener("abort", () => (isTimeout = true), { once: true });
+        return signal;
+      } else {
+        timeoutController = new AbortController();
+        timeoutId = setTimeout(() => {
+          isTimeout = true;
+          timeoutController!.abort();
+        }, timeoutMs);
+        return timeoutController.signal;
+      }
+    };
+
+    const timeoutSignal = createTimeoutSignal();
+
+    // Combine signals if we have both timeout and external controller
+    const finalSignal =
+      externalController && hasAbortSignalAny
+        ? (AbortSignal as unknown as { any: (signals: AbortSignal[]) => AbortSignal }).any([externalController.signal, timeoutSignal])
+        : externalController
+          ? this.combineSignalsManually(externalController.signal, timeoutSignal)
+          : timeoutSignal;
+
+    return {
+      signal: finalSignal,
+      cleanup: () => {
+        if (timeoutId !== undefined) clearTimeout(timeoutId);
+      },
+      wasTimeout: () => isTimeout,
+    };
+  }
+
+  /**
+   * Manually combine two abort signals for older environments
+   * Returns the first signal and listens to the second
+   */
+  private combineSignalsManually(signal1: AbortSignal, signal2: AbortSignal): AbortSignal {
+    // If either is already aborted, use that one
+    if (signal1.aborted) return signal1;
+    if (signal2.aborted) return signal2;
+
+    // Use a controller to create a combined signal
+    const controller = new AbortController();
+
+    const abort = () => controller.abort();
+    signal1.addEventListener("abort", abort, { once: true });
+    signal2.addEventListener("abort", abort, { once: true });
+
+    return controller.signal;
+  }
+
+  /**
+   * Convert fetchOptions to RequestConfig with proper typing
+   */
+  private createRequestConfig(url: string, fetchOptions: RequestInit): RequestConfig {
     const method = typeof fetchOptions.method === "string" ? fetchOptions.method : "GET";
+    const headers = this.getHeadersRecord();
+    const extendedOptions = fetchOptions as RequestInit & { priority?: RequestPriority | string };
+
+    return {
+      url,
+      method,
+      headers,
+      body: fetchOptions.body as Body | undefined,
+      signal: fetchOptions.signal || undefined,
+      credentials: fetchOptions.credentials,
+      mode: fetchOptions.mode,
+      redirect: fetchOptions.redirect,
+      referrer: fetchOptions.referrer,
+      referrerPolicy: fetchOptions.referrerPolicy,
+      keepalive: fetchOptions.keepalive,
+      priority: extendedOptions.priority,
+    };
+  }
+
+  /**
+   * Apply interceptor results back to fetchOptions
+   */
+  private applyRequestConfig(config: RequestConfig, fetchOptions: RequestInit): void {
+    fetchOptions.headers = config.headers;
+    if (config.body !== undefined) {
+      fetchOptions.body = config.body as BodyInit | null;
+    }
+  }
+
+  private async executeRequest(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
+    const method = typeof fetchOptions.method === "string" ? fetchOptions.method : "GET";
+
+    // Setup abort signal with timeout
+    const abortSignal = this.createAbortSignal(this.requestOptions.timeout, this.abortController);
 
     try {
       // Run request interceptors before making the request
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const extendedFetchOptions = fetchOptions as RequestInit & { priority?: RequestPriority | string };
-      const requestConfig: RequestConfig = {
-        url,
-        method,
-        headers: (fetchOptions.headers as Record<string, string>) || {},
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        body: fetchOptions.body as Body | undefined,
-        signal: fetchOptions.signal || undefined,
-        credentials: fetchOptions.credentials,
-        mode: fetchOptions.mode,
-        redirect: fetchOptions.redirect,
-        referrer: fetchOptions.referrer,
-        referrerPolicy: fetchOptions.referrerPolicy,
-        keepalive: fetchOptions.keepalive,
-        priority: extendedFetchOptions.priority,
-      };
-
+      const requestConfig = this.createRequestConfig(url, fetchOptions);
       const interceptorResult = await this.runRequestInterceptors(requestConfig);
 
       // If interceptor returned a Response, short-circuit and wrap it
       if (interceptorResult instanceof Response) {
         const wrappedResponse = new ResponseWrapper(interceptorResult, this.url, this.method);
-        // Still run response interceptors
         return await this.runResponseInterceptors(wrappedResponse);
       }
 
       // Update fetchOptions with interceptor modifications
       url = interceptorResult.url;
-
-      // Validate the final URL after interceptors may have modified it
       this.validateUrl(url);
 
-      fetchOptions.headers = interceptorResult.headers;
-      if (interceptorResult.body !== undefined) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        fetchOptions.body = interceptorResult.body as BodyInit | null;
-      }
-      // Determine which signal to use for the fetch request
-      let finalSignal: AbortSignal | undefined;
+      this.applyRequestConfig(interceptorResult, fetchOptions);
 
-      if (this.requestOptions.timeout) {
-        if (this.abortController) {
-          // External controller provided - need to combine signals
+      // Set the combined abort signal
+      fetchOptions.signal = abortSignal.signal;
 
-          // Use AbortSignal.any() if available
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-          if (typeof (AbortSignal as { any?: (signals: AbortSignal[]) => AbortSignal }).any === "function") {
-            timeoutController = new AbortController();
-            timeoutId = setTimeout(() => {
-              abortedByTimeout = true;
-              timeoutController!.abort();
-            }, this.requestOptions.timeout);
-
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            finalSignal = (AbortSignal as unknown as { any: (signals: AbortSignal[]) => AbortSignal }).any([this.abortController.signal, timeoutController.signal]);
-          }
-          // Fallback: use AbortSignal.timeout if available
-          else if (typeof AbortSignal.timeout === "function") {
-            const timeoutSignal = AbortSignal.timeout(this.requestOptions.timeout);
-
-            // Listen for timeout abort
-            abortListener = () => {
-              if (!this.abortController!.signal.aborted) {
-                abortedByTimeout = true;
-              }
-            };
-            timeoutSignal.addEventListener("abort", abortListener, { once: true });
-
-            // Manually combine signals
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            if (typeof (AbortSignal as { any?: (signals: AbortSignal[]) => AbortSignal }).any === "function") {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-              finalSignal = (AbortSignal as unknown as { any: (signals: AbortSignal[]) => AbortSignal }).any([this.abortController.signal, timeoutSignal]);
-            } else {
-              // Final fallback: propagate timeout abort to external controller
-              timeoutController = new AbortController();
-              timeoutId = setTimeout(() => {
-                abortedByTimeout = true;
-                timeoutController!.abort();
-              }, this.requestOptions.timeout);
-
-              finalSignal = timeoutController.signal;
-
-              // Also listen to external controller
-              const externalAbortListener = () => {
-                if (!timeoutController!.signal.aborted) {
-                  timeoutController!.abort();
-                }
-              };
-              this.abortController.signal.addEventListener("abort", externalAbortListener, { once: true });
-            }
-          }
-          // Last resort fallback for older environments
-          else {
-            timeoutController = new AbortController();
-            timeoutId = setTimeout(() => {
-              abortedByTimeout = true;
-              timeoutController!.abort();
-            }, this.requestOptions.timeout);
-
-            finalSignal = timeoutController.signal;
-
-            // Propagate external abort to timeout controller
-            const externalAbortListener = () => {
-              if (!timeoutController!.signal.aborted) {
-                timeoutController!.abort();
-              }
-            };
-            this.abortController.signal.addEventListener("abort", externalAbortListener, { once: true });
-          }
-        } else {
-          // No external controller - simple timeout case
-          if (typeof AbortSignal.timeout === "function") {
-            const timeoutSignal = AbortSignal.timeout(this.requestOptions.timeout);
-            abortListener = () => {
-              abortedByTimeout = true;
-            };
-            timeoutSignal.addEventListener("abort", abortListener, { once: true });
-            finalSignal = timeoutSignal;
-          } else {
-            timeoutController = new AbortController();
-            timeoutId = setTimeout(() => {
-              abortedByTimeout = true;
-              timeoutController!.abort();
-            }, this.requestOptions.timeout);
-            finalSignal = timeoutController.signal;
-          }
-        }
-      } else {
-        // No timeout - just use external controller if provided
-        finalSignal = this.abortController?.signal;
-      }
-
-      // Set the final signal
-      fetchOptions.signal = finalSignal;
-
+      // Execute fetch
       let response: Response;
-
       try {
         response = await fetch(url, fetchOptions);
       } catch (error) {
-        // Check if this is an abort error that was specifically caused by our timeout
-        if (error instanceof DOMException && error.name === "AbortError" && abortedByTimeout) {
-          throw RequestError.timeout(url, method, this.requestOptions.timeout!);
-        }
-
-        // Check if this is a user-triggered abort (not timeout)
-        if (error instanceof DOMException && error.name === "AbortError" && !abortedByTimeout) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          if (abortSignal.wasTimeout()) {
+            throw RequestError.timeout(url, method, this.requestOptions.timeout!);
+          }
           throw RequestError.abortError(url, method);
         }
 
-        // Otherwise it's a network error
         const errorObj = error instanceof Error ? error : new Error(String(error));
         throw RequestError.networkError(url, method, errorObj);
       }
@@ -1138,7 +1086,6 @@ export abstract class BaseRequest {
         throw RequestError.fromResponse(response, url, method);
       }
 
-      // Return a wrapped response and run response interceptors
       const wrappedResponse = new ResponseWrapper(response, url, method);
       return await this.runResponseInterceptors(wrappedResponse);
     } catch (error) {
@@ -1159,15 +1106,9 @@ export abstract class BaseRequest {
         return interceptorResult;
       }
 
-      // Otherwise throw the (possibly modified) error
       throw interceptorResult;
     } finally {
-      // Cleanup: clear timeout and remove all event listeners
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId);
-      }
-      // Note: Event listeners with { once: true } are automatically removed after firing
-      // Controllers are garbage collected when no longer referenced
+      abortSignal.cleanup();
     }
   }
 }
