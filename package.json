@@ -2,7 +2,7 @@
   "name": "create-request",
   "version": "0.0.1-beta.23",
   "description": "A modern, chainable wrapper for fetch with automatic retries, timeouts, comprehensive error handling, and first-class TypeScript support",
-  "main": "dist/library/index.js",
+  "main": "dist/library/index.cjs",
   "module": "dist/library/index.esm.js",
   "types": "dist/library/index.d.ts",
   "sideEffects": false,
@@ -17,8 +17,8 @@
         "production": "./dist/library/index.esm.min.js"
       },
       "require": {
-        "default": "./dist/library/index.js",
-        "production": "./dist/library/index.min.js"
+        "default": "./dist/library/index.cjs",
+        "production": "./dist/library/index.min.cjs"
       },
       "types": "./dist/library/index.d.ts"
     }
@@ -66,7 +66,7 @@
       "name": "ESM Standard"
     },
     {
-      "path": "dist/library/index.js",
+      "path": "dist/library/index.cjs",
       "limit": "6 KB",
       "gzip": true,
       "name": "CJS Standard"
@@ -78,7 +78,7 @@
       "name": "ESM Minified"
     },
     {
-      "path": "dist/library/index.min.js",
+      "path": "dist/library/index.min.cjs",
       "limit": "6 KB",
       "gzip": true,
       "name": "CJS Minified"

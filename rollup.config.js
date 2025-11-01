@@ -143,7 +143,7 @@ configs.push({
   ...cjsBaseConfig,
   output: {
     ...cjsBaseConfig.output,
-    file: pkg.main,
+    file: pkg.main.replace(".js", ".cjs"),
   },
   plugins: [
     cleaner({
@@ -171,7 +171,7 @@ if (shouldMinify || !isDev) {
     ...cjsBaseConfig,
     output: {
       ...cjsBaseConfig.output,
-      file: pkg.main.replace(".js", ".min.js"),
+      file: pkg.main.replace(".js", ".min.cjs"),
       compact: true,
     },
     plugins: [...cjsBaseConfig.plugins, terser(umdTerserConfig), ...getVisualizerPlugin("cjs-min-bundle-analysis.html")],
