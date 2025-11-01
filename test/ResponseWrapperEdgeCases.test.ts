@@ -429,6 +429,7 @@ describe("ResponseWrapper Edge Cases", () => {
       // Create a custom blob-like object that throws when text() is called
       class FailingBlob extends Blob {
         async text(): Promise<string> {
+          await Promise.resolve(); // Satisfy linter require-await rule
           throw new Error("Blob text conversion failed");
         }
       }
@@ -442,8 +443,7 @@ describe("ResponseWrapper Edge Cases", () => {
       });
 
       // Override the blob method to return our failing blob
-      const originalBlob = mockResponse.blob.bind(mockResponse);
-      mockResponse.blob = async () => failingBlob;
+      mockResponse.blob = () => Promise.resolve(failingBlob);
 
       const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET");
 

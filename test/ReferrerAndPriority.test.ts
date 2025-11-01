@@ -50,56 +50,56 @@ describe("Referrer Policy and Priority", () => {
       FetchMock.mockResponseOnce();
       const request1 = new GetRequest("https://api.example.com/test").withReferrerPolicy.ORIGIN();
       await request1.getResponse();
-      let [, options1] = FetchMock.mock.calls[0] as [string, RequestInit];
+      const [, options1] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options1.referrerPolicy, ReferrerPolicy.ORIGIN);
 
       FetchMock.reset();
       FetchMock.mockResponseOnce();
       const request2 = new GetRequest("https://api.example.com/test").withReferrerPolicy.UNSAFE_URL();
       await request2.getResponse();
-      let [, options2] = FetchMock.mock.calls[0] as [string, RequestInit];
+      const [, options2] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options2.referrerPolicy, ReferrerPolicy.UNSAFE_URL);
 
       FetchMock.reset();
       FetchMock.mockResponseOnce();
       const request3 = new GetRequest("https://api.example.com/test").withReferrerPolicy.SAME_ORIGIN();
       await request3.getResponse();
-      let [, options3] = FetchMock.mock.calls[0] as [string, RequestInit];
+      const [, options3] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options3.referrerPolicy, ReferrerPolicy.SAME_ORIGIN);
 
       FetchMock.reset();
       FetchMock.mockResponseOnce();
       const request4 = new GetRequest("https://api.example.com/test").withReferrerPolicy.NO_REFERRER();
       await request4.getResponse();
-      let [, options4] = FetchMock.mock.calls[0] as [string, RequestInit];
+      const [, options4] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options4.referrerPolicy, ReferrerPolicy.NO_REFERRER);
 
       FetchMock.reset();
       FetchMock.mockResponseOnce();
       const request5 = new GetRequest("https://api.example.com/test").withReferrerPolicy.STRICT_ORIGIN();
       await request5.getResponse();
-      let [, options5] = FetchMock.mock.calls[0] as [string, RequestInit];
+      const [, options5] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options5.referrerPolicy, ReferrerPolicy.STRICT_ORIGIN);
 
       FetchMock.reset();
       FetchMock.mockResponseOnce();
       const request6 = new GetRequest("https://api.example.com/test").withReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN();
       await request6.getResponse();
-      let [, options6] = FetchMock.mock.calls[0] as [string, RequestInit];
+      const [, options6] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options6.referrerPolicy, ReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN);
 
       FetchMock.reset();
       FetchMock.mockResponseOnce();
       const request7 = new GetRequest("https://api.example.com/test").withReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE();
       await request7.getResponse();
-      let [, options7] = FetchMock.mock.calls[0] as [string, RequestInit];
+      const [, options7] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options7.referrerPolicy, ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE);
 
       FetchMock.reset();
       FetchMock.mockResponseOnce();
       const request8 = new GetRequest("https://api.example.com/test").withReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN();
       await request8.getResponse();
-      let [, options8] = FetchMock.mock.calls[0] as [string, RequestInit];
+      const [, options8] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options8.referrerPolicy, ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN);
     });
 
