@@ -53,8 +53,49 @@ export class RequestError extends Error {
   }
 
   static networkError(url: string, method: string, originalError: Error): RequestError {
-    const error = new RequestError(originalError.message, url, method);
-    error.stack = originalError.stack;
+    // Provide more descriptive error messages for common network errors
+    let message = originalError.message;
+
+    // Check for Node.js error codes (e.g., from undici/dns errors)
+    const errorCode = (originalError as Error & { code?: string }).code;
+    const stack = originalError.stack || "";
+
+    // If the error message is generic "fetch failed", provide more context
+    if (message === "fetch failed" || message === "Failed to fetch") {
+      // Check for DNS resolution errors
+      const isDnsError =
+        errorCode === "ENOTFOUND" ||
+        errorCode === "EAI_AGAIN" ||
+        errorCode === "EAI_NODATA" ||
+        stack.includes("getaddrinfo") ||
+        stack.includes("ENOTFOUND") ||
+        stack.includes("EAI_AGAIN");
+
+      // Check for connection errors
+      const isConnectionError =
+        errorCode === "ECONNREFUSED" || errorCode === "ECONNRESET" || errorCode === "ETIMEDOUT" || stack.includes("ECONNREFUSED") || stack.includes("connect");
+
+      if (isDnsError) {
+        message = `Network error: Unable to resolve hostname for ${url}`;
+      } else if (isConnectionError) {
+        message = `Network error: Connection refused for ${url}`;
+      } else {
+        message = `Network error: Failed to fetch ${url}`;
+      }
+    }
+
+    const error = new RequestError(message, url, method);
+
+    // Create a proper RequestError stack trace, but append the original stack for debugging
+    // This way Node.js will show "RequestError: ..." instead of "TypeError: ..."
+    if (originalError.stack) {
+      // Get the current stack (which will start with RequestError)
+      const currentStack = error.stack || "";
+
+      // Append the original error's stack as "Caused by:" for debugging context
+      error.stack = `${currentStack}\n\nCaused by: ${originalError.stack}`;
+    }
+
     return error;
   }
 

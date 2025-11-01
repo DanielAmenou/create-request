@@ -48,6 +48,50 @@ describe("Error Handling Tests", () => {
       }
     });
 
+    it("should handle generic 'fetch failed' TypeError with descriptive message", async () => {
+      // Arrange - Simulate Node.js/undici behavior where fetch throws TypeError("fetch failed")
+      const fetchError = new TypeError("fetch failed");
+      // Simulate DNS error code that would appear in real Node.js errors
+      (fetchError as Error & { code?: string }).code = "ENOTFOUND";
+      fetchError.stack = "TypeError: fetch failed\n    at node:internal/deps/undici/undici:13510:13";
+      FetchMock.mockErrorOnce(fetchError);
+      const request = create.get("https://jsonplaceholder.typicode.wrong-url.com/posts/1");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        assert(error instanceof RequestError);
+        assert.equal(error.name, "RequestError");
+        assert(error.message.includes("Network error"));
+        assert(error.message.includes("Unable to resolve hostname"));
+        assert(error.message.includes("https://jsonplaceholder.typicode.wrong-url.com/posts/1"));
+        assert.equal(error.url, "https://jsonplaceholder.typicode.wrong-url.com/posts/1");
+        assert.equal(error.method, "GET");
+      }
+    });
+
+    it("should handle 'fetch failed' TypeError without error code (fallback message)", async () => {
+      // Arrange - Simulate generic fetch failure without specific error code
+      const fetchError = new TypeError("fetch failed");
+      fetchError.stack = "TypeError: fetch failed\n    at node:internal/deps/undici/undici:13510:13";
+      FetchMock.mockErrorOnce(fetchError);
+      const request = create.get("https://example.wrong-url.com/data");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        assert(error instanceof RequestError);
+        assert.equal(error.name, "RequestError");
+        assert(error.message.includes("Network error"));
+        assert(error.message.includes("Failed to fetch"));
+        assert(error.message.includes("https://example.wrong-url.com/data"));
+      }
+    });
+
     it("should provide original error stack in network errors", async () => {
       // Arrange
       const originalError = new Error("Original error message");
@@ -60,7 +104,9 @@ describe("Error Handling Tests", () => {
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert.equal(error.stack, originalError.stack);
+        // The stack should include the original error's stack in "Caused by:" section
+        assert(error.stack?.includes("Caused by:"));
+        assert(error.stack?.includes(originalError.stack || ""));
       }
     });
   });
