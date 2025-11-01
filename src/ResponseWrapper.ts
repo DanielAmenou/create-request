@@ -237,4 +237,54 @@ export class ResponseWrapper {
     this.bodyUsed = true;
     return this.response.body;
   }
+
+  /**
+   * Extract specific data using a selector function
+   * If no selector is provided, returns the full JSON response.
+   *
+   * @param selector - Optional function to extract and transform data
+   * @returns A promise that resolves to the selected data
+   *
+   * @example
+   * // Get full response
+   * const data = await response.getData();
+   *
+   * // Extract specific data
+   * const users = await response.getData(data => data.results.users);
+   */
+  async getData<T = unknown, R = T>(selector?: (data: T) => R): Promise<T | R> {
+    try {
+      const data = await this.getJson<T>();
+
+      // If no selector is provided, return the raw JSON data
+      if (!selector) return data;
+
+      // Apply the selector if provided
+      return selector(data);
+    } catch (error) {
+      // If it's already a RequestError, re-throw it
+      if (error instanceof RequestError) {
+        throw error;
+      }
+
+      // Enhance selector errors with context
+      if (selector) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (this.url && this.method) {
+          throw new RequestError(`Data selector failed: ${errorMessage}`, this.url, this.method, {
+            response: this.response,
+          });
+        }
+        throw new Error(`Data selector failed: ${errorMessage}`);
+      }
+
+      // If we get here and it's not a RequestError, wrap it
+      // This should rarely happen as getJson() should throw RequestError
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      if (this.url && this.method) {
+        throw RequestError.networkError(this.url, this.method, errorObj);
+      }
+      throw errorObj;
+    }
+  }
 }

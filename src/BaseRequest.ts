@@ -685,31 +685,8 @@ export abstract class BaseRequest {
    * const users = await request.getData(data => data.results.users);
    */
   async getData<T = unknown, R = T>(selector?: (data: T) => R): Promise<T | R> {
-    try {
-      const data = await this.getJson<T>();
-
-      // If no selector is provided, return the raw JSON data
-      if (!selector) return data;
-
-      // Apply the selector if provided
-      return selector(data);
-    } catch (error) {
-      // If it's already a RequestError, re-throw it
-      if (error instanceof RequestError) {
-        throw error;
-      }
-
-      // Enhance selector errors with context
-      if (selector) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new RequestError(`Data selector failed: ${errorMessage}`, this.url, this.method);
-      }
-
-      // If we get here and it's not a RequestError, wrap it
-      // This should rarely happen as ResponseWrapper methods should throw RequestError
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      throw RequestError.networkError(this.url, this.method, errorObj);
-    }
+    const response = await this.getResponse();
+    return response.getData<T, R>(selector);
   }
 
   /**
