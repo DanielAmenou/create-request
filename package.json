@@ -37,9 +37,9 @@
     "preversion": "npm run check",
     "prepublishOnly": "npm run build",
     "publish:beta": "npm version prerelease --preid=beta && git push origin --tags && npm publish --tag latest",
-    "disabled:publish:patch": "npm version patch && git push origin --tags && npm publish",
-    "disabled:publish:minor": "npm version minor && git push origin --tags && npm publish",
-    "disabled:publish:major": "npm version major && git push origin --tags && npm publish"
+    "publish:patch": "npm version patch && git push origin --tags && npm publish",
+    "publish:minor": "npm version minor && git push origin --tags && npm publish",
+    "publish:major": "npm version major && git push origin --tags && npm publish"
   },
   "keywords": [
     "fetch",
@@ -57,6 +57,10 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/DanielAmenou/create-request.git"
+  },
+  "homepage": "https://github.com/DanielAmenou/create-request#readme",
+  "bugs": {
+    "url": "https://github.com/DanielAmenou/create-request/issues"
   },
   "size-limit": [
     {
