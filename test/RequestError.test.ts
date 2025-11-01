@@ -39,6 +39,9 @@ describe("RequestError", () => {
     assert.equal(error.url, "https://api.example.com");
     assert.equal(error.method, "GET");
     assert.equal(error.isTimeout, true);
+    // Timeout errors don't have status or response because the request was aborted before receiving a response
+    assert.equal(error.status, undefined);
+    assert.equal(error.response, undefined);
   });
 
   it("should create a network error RequestError", () => {
@@ -52,6 +55,66 @@ describe("RequestError", () => {
     assert.equal(error.message, "Connection failed");
     assert.equal(error.url, "https://api.example.com");
     assert.equal(error.method, "GET");
+    assert.equal(error.isTimeout, undefined);
+  });
+
+  it("should detect TimeoutError from Node.js/undici and set isTimeout", () => {
+    // Arrange - Simulate Node.js/undici TimeoutError
+    const timeoutError = new Error("The operation was aborted due to timeout");
+    timeoutError.name = "TimeoutError";
+
+    // Act
+    const error = RequestError.networkError("https://api.example.com", "GET", timeoutError);
+
+    // Assert
+    assert.equal(error.isTimeout, true);
+    assert.ok(error.message.includes("timeout") || error.message.includes("Timeout"));
+  });
+
+  it("should detect timeout errors from error message", () => {
+    // Arrange
+    const timeoutError = new Error("Request timeout");
+
+    // Act
+    const error = RequestError.networkError("https://api.example.com", "GET", timeoutError);
+
+    // Assert
+    assert.equal(error.isTimeout, true);
+  });
+
+  it("should detect timeout errors with 'aborted due to timeout' message", () => {
+    // Arrange
+    const timeoutError = new Error("The operation was aborted due to timeout");
+
+    // Act
+    const error = RequestError.networkError("https://api.example.com", "GET", timeoutError);
+
+    // Assert
+    assert.equal(error.isTimeout, true);
+  });
+
+  it("should detect timeout errors with ETIMEDOUT error code", () => {
+    // Arrange
+    const timeoutError = new Error("Connection timeout") as Error & { code?: string };
+    timeoutError.code = "ETIMEDOUT";
+
+    // Act
+    const error = RequestError.networkError("https://api.example.com", "GET", timeoutError);
+
+    // Assert
+    assert.equal(error.isTimeout, true);
+  });
+
+  it("should not set isTimeout for non-timeout network errors", () => {
+    // Arrange
+    const networkError = new Error("Connection failed");
+    networkError.name = "Error";
+
+    // Act
+    const error = RequestError.networkError("https://api.example.com", "GET", networkError);
+
+    // Assert
+    assert.equal(error.isTimeout, undefined);
   });
 
   it("should create a RequestError from Response", () => {

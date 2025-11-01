@@ -58,7 +58,18 @@ export class RequestError extends Error {
 
     // Check for Node.js error codes (e.g., from undici/dns errors)
     const errorCode = (originalError as Error & { code?: string }).code;
+    const errorName = originalError.name;
     const stack = originalError.stack || "";
+    const errorMessageLower = message.toLowerCase();
+
+    // Check for timeout errors (Node.js/undici TimeoutError)
+    const isTimeoutError =
+      errorName === "TimeoutError" ||
+      errorMessageLower.includes("timeout") ||
+      errorMessageLower.includes("aborted due to timeout") ||
+      errorCode === "ETIMEDOUT" ||
+      stack.includes("TimeoutError") ||
+      stack.includes("timeout");
 
     // If the error message is generic "fetch failed", provide more context
     if (message === "fetch failed" || message === "Failed to fetch") {
@@ -71,11 +82,12 @@ export class RequestError extends Error {
         stack.includes("ENOTFOUND") ||
         stack.includes("EAI_AGAIN");
 
-      // Check for connection errors
-      const isConnectionError =
-        errorCode === "ECONNREFUSED" || errorCode === "ECONNRESET" || errorCode === "ETIMEDOUT" || stack.includes("ECONNREFUSED") || stack.includes("connect");
+      // Check for connection errors (but not timeout errors)
+      const isConnectionError = !isTimeoutError && (errorCode === "ECONNREFUSED" || errorCode === "ECONNRESET" || stack.includes("ECONNREFUSED") || stack.includes("connect"));
 
-      if (isDnsError) {
+      if (isTimeoutError) {
+        message = `Network error: Request timeout for ${url}`;
+      } else if (isDnsError) {
         message = `Network error: Unable to resolve hostname for ${url}`;
       } else if (isConnectionError) {
         message = `Network error: Connection refused for ${url}`;
@@ -84,7 +96,9 @@ export class RequestError extends Error {
       }
     }
 
-    const error = new RequestError(message, url, method);
+    const error = new RequestError(message, url, method, {
+      ...(isTimeoutError ? { isTimeout: true } : {}),
+    });
 
     // Create a proper RequestError stack trace, but append the original stack for debugging
     // This way Node.js will show "RequestError: ..." instead of "TypeError: ..."

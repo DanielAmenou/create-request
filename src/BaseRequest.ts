@@ -1048,6 +1048,7 @@ export abstract class BaseRequest {
       try {
         response = await fetch(url, fetchOptions);
       } catch (error) {
+        // Check if it's an abort error (DOMException in browsers, or AbortSignal abort)
         if (error instanceof DOMException && error.name === "AbortError") {
           if (abortSignal.wasTimeout()) {
             throw RequestError.timeout(url, method, this.requestOptions.timeout!);
@@ -1055,7 +1056,18 @@ export abstract class BaseRequest {
           throw RequestError.abortError(url, method);
         }
 
+        // Check for Node.js/undici TimeoutError
         const errorObj = error instanceof Error ? error : new Error(String(error));
+        const errorName = errorObj.name;
+        const errorMessage = errorObj.message.toLowerCase();
+
+        // Detect timeout errors from Node.js/undici (TimeoutError)
+        const isTimeoutError = errorName === "TimeoutError" || errorMessage.includes("timeout") || errorMessage.includes("aborted due to timeout") || abortSignal.wasTimeout();
+
+        if (isTimeoutError && this.requestOptions.timeout) {
+          throw RequestError.timeout(url, method, this.requestOptions.timeout);
+        }
+
         throw RequestError.networkError(url, method, errorObj);
       }
 

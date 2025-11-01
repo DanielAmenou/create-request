@@ -289,6 +289,28 @@ describe("Error Handling Tests", () => {
       }
     });
 
+    it("should detect TimeoutError from Node.js/undici and set isTimeout", async () => {
+      // Arrange - Simulate what happens when undici throws a TimeoutError
+      const timeoutError = new Error("The operation was aborted due to timeout");
+      timeoutError.name = "TimeoutError";
+      FetchMock.mockErrorOnce(timeoutError);
+      const request = create.get("https://api.example.com/data").withTimeout(5000);
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed with timeout");
+      } catch (error) {
+        assert(error instanceof RequestError);
+        assert.equal(error.isTimeout, true, "isTimeout should be set to true");
+        assert.equal(error.url, "https://api.example.com/data");
+        assert.equal(error.method, "GET");
+        // Timeout errors don't have status or response because the request was aborted before receiving a response
+        assert.equal(error.status, undefined, "status should be undefined for timeout errors");
+        assert.equal(error.response, undefined, "response should be undefined for timeout errors");
+      }
+    });
+
     it("should handle timeout when processing large responses", async () => {
       // Arrange - Mock a response that arrives on time but takes time to process
       const largeData = { data: Array(1000000).fill("x") }; // Large object
