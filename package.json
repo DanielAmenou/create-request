@@ -54,6 +54,9 @@
   ],
   "author": "Daniel Amenou <amenou.daniel@gmail.com>",
   "license": "MIT",
+  "engines": {
+    "node": ">=18.3.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/DanielAmenou/create-request.git"
