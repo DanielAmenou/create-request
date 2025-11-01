@@ -29,6 +29,21 @@ export abstract class BaseRequest {
     this.url = url;
   }
 
+  private validateUrl(url: string): void {
+    if (!url?.trim()) throw new RequestError("URL cannot be empty", url, this.method);
+    if (url.includes("\0") || url.includes("\r") || url.includes("\n")) {
+      throw new RequestError("Invalid URL: contains control characters", url, this.method);
+    }
+    const trimmed = url.trim();
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      try {
+        new URL(trimmed);
+      } catch {
+        throw new RequestError(`Invalid URL: ${trimmed}`, trimmed, this.method);
+      }
+    }
+  }
+
   /**
    * Add multiple HTTP headers to the request
    *
@@ -836,6 +851,10 @@ export abstract class BaseRequest {
 
       // Update fetchOptions with interceptor modifications
       url = interceptorResult.url;
+
+      // Validate the final URL after interceptors may have modified it
+      this.validateUrl(url);
+
       fetchOptions.headers = interceptorResult.headers;
       if (interceptorResult.body !== undefined) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
