@@ -22,7 +22,7 @@ describe("Request Methods", () => {
     const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
@@ -35,7 +35,7 @@ describe("Request Methods", () => {
     const request = new PostRequest("https://api.example.com/test");
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -48,7 +48,7 @@ describe("Request Methods", () => {
     const request = new PutRequest("https://api.example.com/test");
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -61,7 +61,7 @@ describe("Request Methods", () => {
     const request = new DeleteRequest("https://api.example.com/test");
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -74,7 +74,7 @@ describe("Request Methods", () => {
     const request = new PatchRequest("https://api.example.com/test");
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -87,7 +87,7 @@ describe("Request Methods", () => {
     const request = new HeadRequest("https://api.example.com/test");
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -100,7 +100,7 @@ describe("Request Methods", () => {
     const request = new OptionsRequest("https://api.example.com/test");
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];

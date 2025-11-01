@@ -23,7 +23,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -40,7 +40,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -56,7 +56,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -135,7 +135,7 @@ describe("Error Handling Tests", () => {
     //   const request = create.get("https://api.example.com/data");
 
     //   // Act
-    //   const response = await request.get();
+    //   const response = await request.getResponse();
 
     //   // Get the body stream first
     //   //const body = response.getBody();
@@ -164,7 +164,7 @@ describe("Error Handling Tests", () => {
       // Act & Assert
       let errorCaught = false;
       await request
-        .get()
+        .getResponse()
         .then(() => {
           assert.fail("This should not be called on error");
         })
@@ -187,7 +187,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       const result = await request
-        .get()
+        .getResponse()
         .then(() => "Success")
         .catch(() => "Error handled");
 
@@ -207,7 +207,7 @@ describe("Error Handling Tests", () => {
       let errorCaught = false;
 
       await request
-        .get()
+        .getResponse()
         .then(() => {
           assert.fail("Then clause should not execute");
         })
@@ -234,7 +234,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have timed out");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -258,7 +258,7 @@ describe("Error Handling Tests", () => {
       const request = create.get("https://api.example.com/data").withAbortController(controller);
 
       // Act
-      const responsePromise = request.get();
+      const responsePromise = request.getResponse();
 
       // Abort after the response starts but before processing completes
       setTimeout(() => controller.abort(), 50);
@@ -293,7 +293,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed after retries");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -318,7 +318,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         // Request should fail without infinite retries
@@ -453,7 +453,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -481,7 +481,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -500,7 +500,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -519,7 +519,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -538,7 +538,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -558,7 +558,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -609,7 +609,7 @@ describe("Error Handling Tests", () => {
       let errorMessage = "";
 
       await request
-        .get()
+        .getResponse()
         .then(response => response.getJson())
         .then(() => {
           assert.fail("This should not be called");
@@ -634,7 +634,7 @@ describe("Error Handling Tests", () => {
       const request = create.get("https://api.example.com/data");
 
       // Act & Assert - should still parse JSON correctly
-      const response = await request.get();
+      const response = await request.getResponse();
       const result = await response.getJson();
       assert.deepEqual(result, { data: "test" });
     });
@@ -647,7 +647,7 @@ describe("Error Handling Tests", () => {
       // Act & Assert - URL with spaces, unicode and special chars
       try {
         // URL with spaces and special characters
-        await request.get();
+        await request.getResponse();
         // If this doesn't throw, it's good
       } catch (error) {
         // Fix typing of the error object
@@ -671,7 +671,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -701,7 +701,7 @@ describe("Error Handling Tests", () => {
 
       // Act & Assert - first request
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -710,7 +710,7 @@ describe("Error Handling Tests", () => {
 
       // Second request with same object
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);

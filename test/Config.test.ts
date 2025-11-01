@@ -113,7 +113,7 @@ describe("Config with CSRF", () => {
 
     // Make a request - it should not have CSRF headers
     const request = new GetRequest("https://api.example.com/test");
-    await request.get();
+    await request.getResponse();
 
     // Check request headers
     const [, options] = FetchMock.mock.calls[0];
@@ -123,7 +123,7 @@ describe("Config with CSRF", () => {
     // Now enable CSRF and try again
     config.setEnableAntiCsrf(true);
     const request2 = new GetRequest("https://api.example.com/test");
-    await request2.get();
+    await request2.getResponse();
 
     // Second request should have the header
     const [, options2] = FetchMock.mock.calls[1];

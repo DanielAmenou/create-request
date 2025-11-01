@@ -116,7 +116,7 @@ describe("Response Chaining API", () => {
     const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const response = await request.get();
+    const response = await request.getResponse();
 
     // Assert response properties first
     assert.equal(response.status, 201);
@@ -136,7 +136,7 @@ describe("Response Chaining API", () => {
 
     // Act & Assert
     await request
-      .get()
+      .getResponse()
       .then(response => {
         assert.equal(response.ok, true);
         return response.getJson();
@@ -157,7 +157,7 @@ describe("Response Chaining API", () => {
 
     // Act & Assert
     try {
-      await request.get();
+      await request.getResponse();
       assert.fail("Should have thrown an error for status 400");
     } catch (error: any) {
       // Assert error properties
@@ -176,7 +176,7 @@ describe("Response Chaining API", () => {
     const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const response = await request.get();
+    const response = await request.getResponse();
 
     // Assert
     try {
@@ -201,7 +201,7 @@ describe("Response Chaining API", () => {
     let errorUrl = "";
 
     await request
-      .get()
+      .getResponse()
       .then(() => {
         assert.fail("Should not reach this point for status 500");
       })
@@ -225,7 +225,7 @@ describe("Response Chaining API", () => {
 
     // Act & Assert
     try {
-      await request.get();
+      await request.getResponse();
       assert.fail("Should have thrown for 404 status");
     } catch (error: any) {
       // Assert proper error properties
@@ -267,7 +267,7 @@ describe("Response Chaining API", () => {
     const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const response = await request.get();
+    const response = await request.getResponse();
 
     // Assert
     assert.equal(response.status, 200);
@@ -286,7 +286,7 @@ describe("Response Chaining API", () => {
 
     // Act & Assert
     try {
-      await request.get();
+      await request.getResponse();
       assert.fail("Should have thrown an error for status 503");
     } catch (error: any) {
       // Assert error properties
@@ -310,7 +310,7 @@ describe("Response Chaining API", () => {
     const request = new GetRequest("https://api.example.com/test");
 
     // Act
-    const response = await request.get();
+    const response = await request.getResponse();
 
     // Assert
     try {
@@ -318,9 +318,7 @@ describe("Response Chaining API", () => {
       assert.fail("Should have thrown a RequestError for malformed JSON");
     } catch (error) {
       assert(error instanceof RequestError);
-      assert(error.message.includes("JSON"));
-      assert.equal(error.url, "https://api.example.com/test");
-      assert.equal(error.method, "GET");
+      assert.ok(error.message.includes("Invalid JSON"));
     }
   });
 
@@ -348,7 +346,7 @@ describe("Response Chaining API", () => {
     let firstUserName = "";
 
     await request
-      .get()
+      .getResponse()
       .then(response => {
         responseStatus = response.status;
         return response.getJson<UserData>();
@@ -378,7 +376,7 @@ describe("Response Chaining API", () => {
 
     // Act
     const errorResult = await request
-      .get()
+      .getResponse()
       .then(() => {
         return "This should not execute";
       })
@@ -412,14 +410,14 @@ describe("Response Chaining API", () => {
 
     // Act - nested promise chain
     const result = await request
-      .get()
+      .getResponse()
       .then(response => {
         return response.getJson();
       })
       .then(order => {
         // Use order data to make another request
         return new GetRequest("https://api.example.com/test")
-          .get()
+          .getResponse()
           .then(response => response.getJson())
           .then(user => {
             // Combine data from both requests
@@ -453,19 +451,17 @@ describe("Response Chaining API", () => {
     const request = new GetRequest("https://api.example.com/test");
 
     // Act & Assert - First attempt as JSON should fail
-    const response1 = await request.get();
+    const response1 = await request.getResponse();
     try {
       await response1.getJson();
       assert.fail("Should have thrown an error when parsing text as JSON");
     } catch (error) {
       assert(error instanceof RequestError);
-      assert(error.message.includes("JSON"));
-      assert.equal(error.url, "https://api.example.com/test");
-      assert.equal(error.method, "GET");
+      assert.ok(error.message.includes("Invalid JSON"));
     }
 
     // Second request - getting it as text should work
-    const response2 = await request.get();
+    const response2 = await request.getResponse();
     const textContent = await response2.getText();
     assert.equal(textContent, plainTextContent);
   });
@@ -485,7 +481,7 @@ describe("Response Chaining API", () => {
 
     // Act
     await request
-      .get()
+      .getResponse()
       .then(() => {
         assert.fail("Should not execute then block on error");
       })

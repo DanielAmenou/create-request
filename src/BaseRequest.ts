@@ -603,10 +603,10 @@ export abstract class BaseRequest {
    * @returns A promise that resolves to the ResponseWrapper
    *
    * @example
-   * const response = await request.get();
+   * const response = await request.getResponse();
    * console.log(response.status);
    */
-  async get(): Promise<ResponseWrapper> {
+  async getResponse(): Promise<ResponseWrapper> {
     const url = this.formatUrlWithQueryParams(this.url);
     this.applyCsrfProtection();
 
@@ -627,7 +627,7 @@ export abstract class BaseRequest {
    * const users = await request.getJson<User[]>();
    */
   async getJson<T = unknown>(): Promise<T> {
-    const response = await this.get();
+    const response = await this.getResponse();
     return response.getJson<T>();
   }
 
@@ -640,7 +640,7 @@ export abstract class BaseRequest {
    * const text = await request.getText();
    */
   async getText(): Promise<string> {
-    const response = await this.get();
+    const response = await this.getResponse();
     return response.getText();
   }
 
@@ -653,7 +653,7 @@ export abstract class BaseRequest {
    * const blob = await request.getBlob();
    */
   async getBlob(): Promise<Blob> {
-    const response = await this.get();
+    const response = await this.getResponse();
     return response.getBlob();
   }
 
@@ -666,7 +666,7 @@ export abstract class BaseRequest {
    * const stream = await request.getBody();
    */
   async getBody(): Promise<ReadableStream<Uint8Array> | null> {
-    const response = await this.get();
+    const response = await this.getResponse();
     return response.getBody();
   }
 

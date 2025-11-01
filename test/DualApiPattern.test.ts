@@ -22,7 +22,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withPriority("high");
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.priority, "high");
@@ -32,7 +32,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withPriority(RequestPriority.HIGH);
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.priority, RequestPriority.HIGH);
@@ -42,7 +42,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withPriority.HIGH();
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.priority, RequestPriority.HIGH);
@@ -54,7 +54,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withMode("cors");
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.mode, "cors");
@@ -64,7 +64,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withMode(RequestMode.CORS);
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.mode, RequestMode.CORS);
@@ -74,7 +74,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withMode.CORS();
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.mode, RequestMode.CORS);
@@ -86,7 +86,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withRedirect("follow");
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.redirect, "follow");
@@ -96,7 +96,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withRedirect(RedirectMode.FOLLOW);
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.redirect, RedirectMode.FOLLOW);
@@ -106,7 +106,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withRedirect.FOLLOW();
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.redirect, RedirectMode.FOLLOW);
@@ -118,7 +118,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withCredentials("include");
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.credentials, "include");
@@ -128,7 +128,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withCredentials(CredentialsPolicy.INCLUDE);
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.credentials, CredentialsPolicy.INCLUDE);
@@ -138,7 +138,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withCredentials.INCLUDE();
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.credentials, CredentialsPolicy.INCLUDE);
@@ -150,7 +150,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withReferrerPolicy("no-referrer");
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.referrerPolicy, "no-referrer");
@@ -160,7 +160,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withReferrerPolicy(ReferrerPolicy.NO_REFERRER);
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.referrerPolicy, ReferrerPolicy.NO_REFERRER);
@@ -170,7 +170,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withReferrerPolicy.NO_REFERRER();
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.referrerPolicy, ReferrerPolicy.NO_REFERRER);
@@ -182,7 +182,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", () => {
       FetchMock.mockResponseOnce();
       const request = new GetRequest("https://api.example.com/test").withPriority("high").withMode.CORS().withRedirect(RedirectMode.FOLLOW).withCredentials.INCLUDE();
 
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
       assert.equal(options.priority, "high");

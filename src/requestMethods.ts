@@ -25,7 +25,7 @@ export class GetRequest extends BaseRequest {
  *
  * @example
  * const request = new HeadRequest('/api/users/123');
- * const response = await request.get();
+ * const response = await request.getResponse();
  */
 export class HeadRequest extends BaseRequest {
   protected method: HttpMethod = HttpMethod.HEAD;
@@ -41,7 +41,7 @@ export class HeadRequest extends BaseRequest {
  *
  * @example
  * const request = new OptionsRequest('/api/users');
- * const response = await request.get();
+ * const response = await request.getResponse();
  */
 export class OptionsRequest extends BaseRequest {
   protected method: HttpMethod = HttpMethod.OPTIONS;

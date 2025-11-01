@@ -23,7 +23,7 @@ describe("Timeout Advanced", () => {
       const request = new GetRequest("https://api.example.com/test").withTimeout(100);
 
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Should have timed out");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -41,7 +41,7 @@ describe("Timeout Advanced", () => {
       setTimeout(() => controller.abort(), 100);
 
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Should have been aborted");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -56,7 +56,7 @@ describe("Timeout Advanced", () => {
       const request = new GetRequest("https://api.example.com/test").withTimeout(100).withAbortController(controller);
 
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Should have timed out");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -80,7 +80,7 @@ describe("Timeout Advanced", () => {
       const request = new GetRequest("https://api.example.com/test").withTimeout(100);
 
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Should have timed out");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -101,7 +101,7 @@ describe("Timeout Advanced", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
       const request = new GetRequest("https://api.example.com/test").withTimeout(5000);
 
-      await request.get();
+      await request.getResponse();
 
       // Wait a bit to ensure timeout would have fired if not cleaned up
       await wait(100);
@@ -115,7 +115,7 @@ describe("Timeout Advanced", () => {
       const request = new GetRequest("https://api.example.com/test").withTimeout(5000);
 
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Should have failed");
       } catch (error) {
         assert(error instanceof RequestError || error instanceof Error);
@@ -136,7 +136,7 @@ describe("Timeout Advanced", () => {
       const request = new GetRequest("https://api.example.com/test").withTimeout(100).withRetries(1);
 
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Should have timed out");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -160,7 +160,7 @@ describe("Timeout Advanced", () => {
         });
 
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Should have timed out");
       } catch (error) {
         assert(error instanceof RequestError, "Error should be RequestError");
@@ -179,7 +179,7 @@ describe("Timeout Advanced", () => {
       const request = new GetRequest("https://api.example.com/test").withTimeout(10);
 
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Should have timed out");
       } catch (error) {
         assert(error instanceof RequestError);
@@ -191,7 +191,7 @@ describe("Timeout Advanced", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
       const request = new GetRequest("https://api.example.com/test").withTimeout(10000);
 
-      const response = await request.get();
+      const response = await request.getResponse();
       const data = await response.getJson();
 
       assert.deepEqual(data, { success: true });
@@ -203,7 +203,7 @@ describe("Timeout Advanced", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
       const request = new GetRequest("https://api.example.com/test").withTimeout(5000);
 
-      const response = await request.get();
+      const response = await request.getResponse();
       const data = await response.getJson();
 
       assert.deepEqual(data, { success: true });
@@ -216,7 +216,7 @@ describe("Timeout Advanced", () => {
       const request = new GetRequest("https://api.example.com/test").withTimeout(100);
 
       try {
-        await request.get();
+        await request.getResponse();
         assert.fail("Should have timed out");
       } catch (error) {
         assert(error instanceof RequestError);

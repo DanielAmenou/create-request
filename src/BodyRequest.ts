@@ -115,7 +115,7 @@ export abstract class BodyRequest extends BaseRequest {
    * Execute the request and return the ResponseWrapper
    * Overrides the base implementation to add body handling
    */
-  async get(): Promise<ResponseWrapper> {
+  async getResponse(): Promise<ResponseWrapper> {
     if (this.body !== undefined) {
       // Remove previous body if it exists
       if (this.requestOptions.body) delete this.requestOptions.body;
@@ -128,6 +128,6 @@ export abstract class BodyRequest extends BaseRequest {
       }
     }
 
-    return super.get();
+    return super.getResponse();
   }
 }

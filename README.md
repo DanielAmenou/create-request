@@ -291,7 +291,7 @@ const merged = create
 
 ```typescript
 // Get the full response
-const response = await create.get("https://api.example.com/endpoint").get();
+const response = await create.get("https://api.example.com/endpoint").getResponse();
 
 // With direct data extraction
 const jsonData = await create.get("https://api.example.com/endpoint").getJson();

@@ -26,7 +26,7 @@ describe("BodyRequest", () => {
     const request = new PostRequest("https://api.example.com/test").withBody(data);
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -43,7 +43,7 @@ describe("BodyRequest", () => {
     const request = new PostRequest("https://api.example.com/test").withBody(textContent);
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -61,7 +61,7 @@ describe("BodyRequest", () => {
     const request = new PostRequest("https://api.example.com/test").withBody(formData);
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -86,7 +86,7 @@ describe("BodyRequest", () => {
     const request = new PostRequest("https://api.example.com/test").withBody(blob);
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -104,7 +104,7 @@ describe("BodyRequest", () => {
     const request = new PostRequest("https://api.example.com/test").withBody(params);
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -119,7 +119,7 @@ describe("BodyRequest", () => {
     const request = new PostRequest("https://api.example.com/test").withBody(buffer);
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -133,7 +133,7 @@ describe("BodyRequest", () => {
     const request = new PostRequest("https://api.example.com/test").withBody(null);
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -158,7 +158,7 @@ describe("BodyRequest", () => {
     const request = new PostRequest("https://api.example.com/test").withHeaders({ "Content-Type": "application/vnd.custom+json" }).withBody(data);
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -180,7 +180,7 @@ describe("BodyRequest", () => {
       .withBody({ test: true });
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert
     const [, options] = FetchMock.mock.calls[0];
@@ -200,10 +200,10 @@ describe("BodyRequest", () => {
     const request = new PostRequest("https://api.example.com/test").withBody(data);
 
     // Act - Send first request
-    await request.get();
+    await request.getResponse();
 
     // Send second request with same instance
-    await request.get();
+    await request.getResponse();
 
     // Assert - Both requests should have the body
     assert.equal(FetchMock.mock.calls.length, 2);
@@ -223,11 +223,11 @@ describe("BodyRequest", () => {
     const request = new PostRequest("https://api.example.com/test").withBody({ id: 1, name: "First User" });
 
     // Act - Send first request
-    await request.get();
+    await request.getResponse();
 
     // Change body and send second request
     request.withBody({ id: 2, name: "Second User" });
-    await request.get();
+    await request.getResponse();
 
     // Assert
     assert.equal(FetchMock.mock.calls.length, 2);
@@ -248,7 +248,7 @@ describe("BodyRequest", () => {
     const request = new PostRequest("https://api.example.com/test").withHeaders({ "content-TYPE": "application/json" }).withBody(data);
 
     // Act
-    await request.get();
+    await request.getResponse();
 
     // Assert - The content-type header should remain as provided
     const [, options] = FetchMock.mock.calls[0];
@@ -267,7 +267,7 @@ describe("BodyRequest", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query);
 
       // Act
-      await request.get();
+      await request.getResponse();
 
       // Assert
       const [, options] = FetchMock.mock.calls[0];
@@ -286,7 +286,7 @@ describe("BodyRequest", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
 
       // Act
-      await request.get();
+      await request.getResponse();
 
       // Assert
       const [, options] = FetchMock.mock.calls[0];
@@ -308,7 +308,7 @@ describe("BodyRequest", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(mutation, variables);
 
       // Act
-      await request.get();
+      await request.getResponse();
 
       // Assert
       const [, options] = FetchMock.mock.calls[0];
@@ -329,7 +329,7 @@ describe("BodyRequest", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query);
 
       // Act
-      await request.get();
+      await request.getResponse();
 
       // Assert
       const [, options] = FetchMock.mock.calls[0];
@@ -374,7 +374,7 @@ describe("BodyRequest", () => {
       const request = new PostRequest("https://api.example.com/graphql").withHeaders({ "Content-Type": "application/vnd.graphql+json" }).withGraphQL(query);
 
       // Act
-      await request.get();
+      await request.getResponse();
 
       // Assert
       const [, options] = FetchMock.mock.calls[0];
@@ -392,7 +392,7 @@ describe("BodyRequest", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query).withBearerToken("token123").withHeader("X-Custom", "value");
 
       // Act
-      await request.get();
+      await request.getResponse();
 
       // Assert
       const [, options] = FetchMock.mock.calls[0];
@@ -423,7 +423,7 @@ describe("BodyRequest", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
 
       // Act
-      await request.get();
+      await request.getResponse();
 
       // Assert
       const [, options] = FetchMock.mock.calls[0];
@@ -474,7 +474,7 @@ describe("BodyRequest", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
 
       // Act
-      await request.get();
+      await request.getResponse();
 
       // Assert
       const [, options] = FetchMock.mock.calls[0];
@@ -499,7 +499,7 @@ describe("BodyRequest", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query);
 
       // Act
-      await request.get();
+      await request.getResponse();
 
       // Assert
       const [, options] = FetchMock.mock.calls[0];

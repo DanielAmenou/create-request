@@ -88,7 +88,7 @@ export function patch(url: string): PatchRequest {
  *
  * @example
  * const request = head('/api/users/123');
- * const response = await request.get();
+ * const response = await request.getResponse();
  * console.log(response.headers.get('Last-Modified'));
  */
 export function head(url: string): HeadRequest {
@@ -104,7 +104,7 @@ export function head(url: string): HeadRequest {
  *
  * @example
  * const request = options('/api/users');
- * const response = await request.get();
+ * const response = await request.getResponse();
  * console.log(response.headers.get('Allow'));
  */
 export function options(url: string): OptionsRequest {

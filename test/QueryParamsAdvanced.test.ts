@@ -23,7 +23,7 @@ describe("Query Parameters Advanced", () => {
         tags: ["javascript", "typescript", "node"],
       });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -38,7 +38,7 @@ describe("Query Parameters Advanced", () => {
         categories: ["frontend", "backend"],
       });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -52,7 +52,7 @@ describe("Query Parameters Advanced", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
       const request = new GetRequest("https://api.example.com/test").withQueryParam("tags", ["single"]);
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -67,7 +67,7 @@ describe("Query Parameters Advanced", () => {
         other: "value",
       });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -86,7 +86,7 @@ describe("Query Parameters Advanced", () => {
         path: "/api/users",
       });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -102,7 +102,7 @@ describe("Query Parameters Advanced", () => {
         description: "Описание",
       });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -117,7 +117,7 @@ describe("Query Parameters Advanced", () => {
         phrase: "test phrase with spaces",
       });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -132,7 +132,7 @@ describe("Query Parameters Advanced", () => {
         encoded: "value%20with%20encoding",
       });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -151,7 +151,7 @@ describe("Query Parameters Advanced", () => {
         price: 99.99,
       });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -167,7 +167,7 @@ describe("Query Parameters Advanced", () => {
         verified: false,
       });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -183,7 +183,7 @@ describe("Query Parameters Advanced", () => {
         other: "other",
       });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -201,7 +201,7 @@ describe("Query Parameters Advanced", () => {
         other: "other",
       } as any);
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -216,7 +216,7 @@ describe("Query Parameters Advanced", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
       const request = new GetRequest("https://api.example.com/test").withQueryParam("key", "value");
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -227,7 +227,7 @@ describe("Query Parameters Advanced", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
       const request = new GetRequest("https://api.example.com/test").withQueryParam("page", 42);
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -238,7 +238,7 @@ describe("Query Parameters Advanced", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
       const request = new GetRequest("https://api.example.com/test").withQueryParam("active", true);
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -249,7 +249,7 @@ describe("Query Parameters Advanced", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
       const request = new GetRequest("https://api.example.com/test").withQueryParam("valid", "value").withQueryParam("nullValue", null as string | null);
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -261,7 +261,7 @@ describe("Query Parameters Advanced", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
       const request = new GetRequest("https://api.example.com/test").withQueryParam("tags", ["a", "b", "c"]);
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -278,7 +278,7 @@ describe("Query Parameters Advanced", () => {
         .withQueryParam("sort", "name")
         .withQueryParam("order", ["asc", "desc"]);
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -294,7 +294,7 @@ describe("Query Parameters Advanced", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
       const request = new GetRequest("https://api.example.com/test").withQueryParam("long", longValue);
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -310,7 +310,7 @@ describe("Query Parameters Advanced", () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const request = new GetRequest("https://api.example.com/test").withQueryParams(params as Record<string, string | string[] | number | boolean | null | undefined>);
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -326,7 +326,7 @@ describe("Query Parameters Advanced", () => {
         another: "value",
       });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -342,7 +342,7 @@ describe("Query Parameters Advanced", () => {
         .withQueryParams({ sort: "name", order: "asc" })
         .withQueryParams({ filter: "active" });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);
@@ -360,7 +360,7 @@ describe("Query Parameters Advanced", () => {
         .withQueryParams({ tag: "typescript" })
         .withQueryParams({ tag: "nodejs" });
 
-      await request.get();
+      await request.getResponse();
 
       const [url] = FetchMock.mock.calls[0];
       const parsedUrl = new URL(url as string);

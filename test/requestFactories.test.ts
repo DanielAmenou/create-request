@@ -46,7 +46,7 @@ describe("Request Factories", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
 
       const request = create.post("https://api.example.com/test");
-      await request.withBody({ data: "test" }).get();
+      await request.withBody({ data: "test" }).getResponse();
 
       const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options.method, HttpMethod.POST);
@@ -55,7 +55,7 @@ describe("Request Factories", () => {
     it("should send JSON body", async () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
 
-      await create.post("https://api.example.com/test").withBody({ name: "John" }).get();
+      await create.post("https://api.example.com/test").withBody({ name: "John" }).getResponse();
 
       const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
       const body = JSON.parse(options.body as string);
@@ -70,7 +70,7 @@ describe("Request Factories", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
 
       const request = create.put("https://api.example.com/test");
-      await request.withBody({ data: "test" }).get();
+      await request.withBody({ data: "test" }).getResponse();
 
       const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options.method, HttpMethod.PUT);
@@ -79,7 +79,7 @@ describe("Request Factories", () => {
     it("should send body with PUT request", async () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
 
-      await create.put("https://api.example.com/test").withBody({ id: 1, name: "Updated" }).get();
+      await create.put("https://api.example.com/test").withBody({ id: 1, name: "Updated" }).getResponse();
 
       const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
       const body = JSON.parse(options.body as string);
@@ -92,7 +92,7 @@ describe("Request Factories", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
 
       const request = create.patch("https://api.example.com/test");
-      await request.withBody({ name: "Updated" }).get();
+      await request.withBody({ name: "Updated" }).getResponse();
 
       const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options.method, HttpMethod.PATCH);
@@ -104,7 +104,7 @@ describe("Request Factories", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
 
       const request = create.del("https://api.example.com/test");
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options.method, HttpMethod.DELETE);
@@ -124,7 +124,7 @@ describe("Request Factories", () => {
       FetchMock.mockResponseOnce({ status: 200 });
 
       const request = create.head("https://api.example.com/test");
-      const response = await request.get();
+      const response = await request.getResponse();
 
       assert.equal(response.status, 200);
       const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
@@ -137,7 +137,7 @@ describe("Request Factories", () => {
       FetchMock.mockResponseOnce({ status: 200 });
 
       const request = create.options("https://api.example.com/test");
-      await request.get();
+      await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(options.method, HttpMethod.OPTIONS);
@@ -172,7 +172,7 @@ describe("Request Factories", () => {
           request.withBody({ data: "test" });
         }
 
-        await request.get();
+        await request.getResponse();
 
         const [, options] = FetchMock.mock.calls[FetchMock.mock.calls.length - 1] as [string, RequestInit];
         assert.equal(options.method, method);

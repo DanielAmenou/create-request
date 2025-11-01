@@ -352,7 +352,7 @@ describe("Integration Scenarios", () => {
 
       const controller = new AbortController();
 
-      const request = create.get("https://api.example.com/test").withAbortController(controller).get();
+      const request = create.get("https://api.example.com/test").withAbortController(controller).getResponse();
 
       // Abort after a short delay
       setTimeout(() => {
@@ -371,7 +371,7 @@ describe("Integration Scenarios", () => {
       const controller = new AbortController();
       FetchMock.mockDelayedResponseOnce(1000, { body: { success: true } });
 
-      const request = create.get("https://api.example.com/test").withAbortController(controller).withTimeout(200).get();
+      const request = create.get("https://api.example.com/test").withAbortController(controller).withTimeout(200).getResponse();
 
       // Both timeout and manual abort can happen
       try {
@@ -450,7 +450,7 @@ describe("Integration Scenarios", () => {
     it("should handle multiple response format requests", async () => {
       FetchMock.mockResponseOnce({ body: { data: "test" } });
 
-      const response = await create.get("https://api.example.com/test").get();
+      const response = await create.get("https://api.example.com/test").getResponse();
       const json = await response.getJson();
       const text = await response.getText();
 

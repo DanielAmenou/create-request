@@ -793,7 +793,7 @@ describe("Interceptor Integration", () => {
 
     // Act & Assert
     try {
-      await request.get();
+      await request.getResponse();
       assert.fail("Should have thrown error");
     } catch (error: any) {
       // Should get the interceptor error
@@ -859,7 +859,7 @@ describe("Interceptor Integration", () => {
       return config;
     });
 
-    await request.get();
+    await request.getResponse();
 
     // Assert - interceptor modification should override
     const [, options] = FetchMock.mock.calls[0];
@@ -879,7 +879,7 @@ describe("Interceptor Integration", () => {
       })
       .withBody({ data: "value" }); // This will be processed, but interceptor runs first
 
-    await request.get();
+    await request.getResponse();
 
     // Assert - BodyRequest will set the body, but we verify the interceptor can modify it
     const [, options] = FetchMock.mock.calls[0];
@@ -940,7 +940,7 @@ describe("Interceptor Integration", () => {
     });
 
     // Act
-    const response = await request.get();
+    const response = await request.getResponse();
 
     // Assert
     assert.equal(response.status, 200);
