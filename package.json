@@ -26,8 +26,6 @@
   "scripts": {
     "dev": "cross-env BUILD_ENV=development rollup -c rollup.config.js -w",
     "build": "cross-env BUILD_ENV=production rollup -c rollup.config.js",
-    "build:min": "cross-env BUILD_ENV=production MINIFY=true rollup -c rollup.config.js",
-    "build:all": "npm run build && npm run build:min",
     "analyze": "cross-env ANALYZE=true BUILD_ENV=production rollup -c rollup.config.js",
     "analyze:min": "cross-env ANALYZE=true MINIFY=true BUILD_ENV=production rollup -c rollup.config.js",
     "lint": "eslint 'src/**/*.{js,ts,json}' 'test/**/*.{js,ts,json}'",
@@ -38,7 +36,7 @@
     "test": "node --import tsx --test test/**/*.test.ts",
     "test:coverage": "node --import tsx --experimental-test-coverage --test test/**/*.test.ts",
     "preversion": "npm run check",
-    "prepublishOnly": "npm run build:all",
+    "prepublishOnly": "npm run build",
     "publish:beta": "npm version prerelease --preid=beta && git push origin --tags && npm publish --tag latest",
     "disabled:publish:patch": "npm version patch && git push origin --tags && npm publish",
     "disabled:publish:minor": "npm version minor && git push origin --tags && npm publish",
