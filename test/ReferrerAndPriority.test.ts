@@ -19,33 +19,35 @@ describe("Referrer Policy and Priority", () => {
 
   describe("withReferrerPolicy", () => {
     it("should set referrer policy for all enum values", async () => {
-      const policies = [
-        ReferrerPolicy.ORIGIN,
-        ReferrerPolicy.UNSAFE_URL,
-        ReferrerPolicy.SAME_ORIGIN,
-        ReferrerPolicy.NO_REFERRER,
-        ReferrerPolicy.STRICT_ORIGIN,
-        ReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN,
-        ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE,
-        ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN,
+      const policyTests = [
+        { method: "ORIGIN", value: ReferrerPolicy.ORIGIN },
+        { method: "UNSAFE_URL", value: ReferrerPolicy.UNSAFE_URL },
+        { method: "SAME_ORIGIN", value: ReferrerPolicy.SAME_ORIGIN },
+        { method: "NO_REFERRER", value: ReferrerPolicy.NO_REFERRER },
+        { method: "STRICT_ORIGIN", value: ReferrerPolicy.STRICT_ORIGIN },
+        { method: "ORIGIN_WHEN_CROSS_ORIGIN", value: ReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN },
+        { method: "NO_REFERRER_WHEN_DOWNGRADE", value: ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE },
+        { method: "STRICT_ORIGIN_WHEN_CROSS_ORIGIN", value: ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN },
       ];
 
-      for (const policy of policies) {
+      for (const { method, value } of policyTests) {
         FetchMock.reset();
         FetchMock.mockResponseOnce({ body: { success: true } });
-        const request = new GetRequest("https://api.example.com/test").withReferrerPolicy(policy);
+        const request = new GetRequest("https://api.example.com/test");
+        // @ts-expect-error - dynamic method access for testing
+        request.withReferrerPolicy[method]();
 
         await request.get();
 
         const [, options] = FetchMock.mock.calls[0];
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-        assert.equal((options as RequestInit).referrerPolicy, policy);
+        assert.equal((options as RequestInit).referrerPolicy, value);
       }
     });
 
     it("should allow chaining withReferrerPolicy with other methods", async () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
-      const request = new GetRequest("https://api.example.com/test").withReferrerPolicy(ReferrerPolicy.STRICT_ORIGIN).withHeader("X-Custom", "value").withTimeout(5000);
+      const request = new GetRequest("https://api.example.com/test").withReferrerPolicy.STRICT_ORIGIN().withHeader("X-Custom", "value").withTimeout(5000);
 
       await request.get();
 
@@ -59,7 +61,7 @@ describe("Referrer Policy and Priority", () => {
 
     it("should override referrer policy when called multiple times", async () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
-      const request = new GetRequest("https://api.example.com/test").withReferrerPolicy(ReferrerPolicy.NO_REFERRER).withReferrerPolicy(ReferrerPolicy.ORIGIN);
+      const request = new GetRequest("https://api.example.com/test").withReferrerPolicy.NO_REFERRER().withReferrerPolicy.ORIGIN();
 
       await request.get();
 
@@ -70,24 +72,30 @@ describe("Referrer Policy and Priority", () => {
 
   describe("withPriority", () => {
     it("should set priority for all enum values", async () => {
-      const priorities = [RequestPriority.LOW, RequestPriority.HIGH, RequestPriority.AUTO];
+      const priorityTests = [
+        { method: "LOW", value: RequestPriority.LOW },
+        { method: "HIGH", value: RequestPriority.HIGH },
+        { method: "AUTO", value: RequestPriority.AUTO },
+      ];
 
-      for (const priority of priorities) {
+      for (const { method, value } of priorityTests) {
         FetchMock.reset();
         FetchMock.mockResponseOnce({ body: { success: true } });
-        const request = new GetRequest("https://api.example.com/test").withPriority(priority);
+        const request = new GetRequest("https://api.example.com/test");
+        // @ts-expect-error - dynamic method access for testing
+        request.withPriority[method]();
 
         await request.get();
 
         const [, options] = FetchMock.mock.calls[0];
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-        assert.equal((options as RequestInit).priority, priority);
+        assert.equal((options as RequestInit).priority, value);
       }
     });
 
     it("should allow chaining withPriority with other methods", async () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
-      const request = new GetRequest("https://api.example.com/test").withPriority(RequestPriority.HIGH).withHeader("X-Custom", "value").withReferrer("https://example.com");
+      const request = new GetRequest("https://api.example.com/test").withPriority.HIGH().withHeader("X-Custom", "value").withReferrer("https://example.com");
 
       await request.get();
 
@@ -100,7 +108,7 @@ describe("Referrer Policy and Priority", () => {
 
     it("should override priority when called multiple times", async () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
-      const request = new GetRequest("https://api.example.com/test").withPriority(RequestPriority.LOW).withPriority(RequestPriority.HIGH);
+      const request = new GetRequest("https://api.example.com/test").withPriority.LOW().withPriority.HIGH();
 
       await request.get();
 
@@ -142,7 +150,7 @@ describe("Referrer Policy and Priority", () => {
 
     it("should allow chaining withKeepAlive with other methods", async () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
-      const request = new GetRequest("https://api.example.com/test").withKeepAlive(true).withPriority(RequestPriority.HIGH).withReferrerPolicy(ReferrerPolicy.NO_REFERRER);
+      const request = new GetRequest("https://api.example.com/test").withKeepAlive(true).withPriority.HIGH().withReferrerPolicy.NO_REFERRER();
 
       await request.get();
 
@@ -176,7 +184,7 @@ describe("Referrer Policy and Priority", () => {
 
     it("should allow chaining withReferrer with other methods", async () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
-      const request = new GetRequest("https://api.example.com/test").withReferrer("https://example.com").withReferrerPolicy(ReferrerPolicy.UNSAFE_URL).withKeepAlive(true);
+      const request = new GetRequest("https://api.example.com/test").withReferrer("https://example.com").withReferrerPolicy.UNSAFE_URL().withKeepAlive(true);
 
       await request.get();
 
@@ -192,8 +200,8 @@ describe("Referrer Policy and Priority", () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
       const request = new GetRequest("https://api.example.com/test")
         .withReferrer("https://example.com")
-        .withReferrerPolicy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
-        .withPriority(RequestPriority.HIGH)
+        .withReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN()
+        .withPriority.HIGH()
         .withKeepAlive(true)
         .withHeader("X-Custom", "value");
 

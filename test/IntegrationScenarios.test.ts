@@ -35,10 +35,10 @@ describe("Integration Scenarios", () => {
         .withBearerToken("token123")
         .withTimeout(5000)
         .withRetries(2)
-        .withCredentials("include")
-        .withPriority("high")
-        .withMode("cors")
-        .withRedirect("follow")
+        .withCredentials.INCLUDE()
+        .withPriority.HIGH()
+        .withMode.CORS()
+        .withRedirect.FOLLOW()
         .getJson();
 
       assert.deepEqual(result, { success: true });
@@ -378,7 +378,14 @@ describe("Integration Scenarios", () => {
         await request;
         assert.fail("Should have been aborted or timed out");
       } catch (error: any) {
-        assert.ok(error.isAborted || error.isTimeout || error.message.includes("Aborted") || error.message.toLowerCase().includes("aborted") || error.message.includes("Timeout") || error.message.toLowerCase().includes("timeout"));
+        assert.ok(
+          error.isAborted ||
+            error.isTimeout ||
+            error.message.includes("Aborted") ||
+            error.message.toLowerCase().includes("aborted") ||
+            error.message.includes("Timeout") ||
+            error.message.toLowerCase().includes("timeout")
+        );
       }
     });
   });

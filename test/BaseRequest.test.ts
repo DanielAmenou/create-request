@@ -246,7 +246,7 @@ describe("BaseRequest", () => {
   it("should set credentials policy", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest("https://api.example.com/test").withCredentials(CredentialsPolicy.INCLUDE);
+    const request = new GetRequest("https://api.example.com/test").withCredentials.INCLUDE();
 
     // Act
     await request.get();
@@ -259,7 +259,7 @@ describe("BaseRequest", () => {
   it("should set redirect mode", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest("https://api.example.com/test").withRedirect(RedirectMode.ERROR);
+    const request = new GetRequest("https://api.example.com/test").withRedirect.ERROR();
 
     // Act
     await request.get();
@@ -272,7 +272,7 @@ describe("BaseRequest", () => {
   it("should set request mode", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest("https://api.example.com/test").withMode(RequestMode.CORS);
+    const request = new GetRequest("https://api.example.com/test").withMode.CORS();
 
     // Act
     await request.get();
@@ -285,7 +285,7 @@ describe("BaseRequest", () => {
   it("should set request priority", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
-    const request = new GetRequest("https://api.example.com/test").withPriority(RequestPriority.HIGH);
+    const request = new GetRequest("https://api.example.com/test").withPriority.HIGH();
 
     // Act
     await request.get();
@@ -656,9 +656,9 @@ describe("BaseRequest", () => {
 
     // Act
     // Using enum values for proper type checking
-    request.withCredentials(CredentialsPolicy.SAME_ORIGIN);
-    request.withMode(RequestMode.CORS);
-    request.withRedirect(RedirectMode.ERROR);
+    request.withCredentials.SAME_ORIGIN();
+    request.withMode.CORS();
+    request.withRedirect.ERROR();
     request.withReferrer("https://example.com/referrer");
     request.withKeepAlive(true);
 
@@ -865,9 +865,9 @@ describe("BaseRequest", () => {
 
     // Act
     // Using enum values for proper type checking
-    request.withCredentials(CredentialsPolicy.SAME_ORIGIN);
-    request.withMode(RequestMode.CORS);
-    request.withRedirect(RedirectMode.ERROR);
+    request.withCredentials.SAME_ORIGIN();
+    request.withMode.CORS();
+    request.withRedirect.ERROR();
     request.withReferrer("https://example.com/referrer");
     request.withKeepAlive(true);
 

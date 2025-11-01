@@ -125,7 +125,6 @@ The library provides a comprehensive set of configuration methods that can be ch
 import create, {
   RequestPriority,
   CredentialsPolicy,
-  RequestMode,
   RedirectMode,
   ReferrerPolicy,
 } from "create-request";
@@ -170,12 +169,13 @@ const request = create
   .withContentType("application/json") // Set specific content type
 
   // Fetch API options
-  .withCredentials(CredentialsPolicy.INCLUDE) // Includes cookies with cross-origin requests
-  .withMode(RequestMode.CORS) // Controls CORS behavior
-  .withRedirect(RedirectMode.FOLLOW) // Controls redirect behavior (follow, error, manual)
+  // Note: These methods support three styles - Fluent API (shown below), Enum-based (e.g., .withMode(RequestMode.CORS)), or String-based (e.g., .withMode("cors"))
+  .withCredentials.INCLUDE() // Includes cookies with cross-origin requests
+  .withMode.CORS() // Controls CORS behavior
+  .withRedirect.FOLLOW() // Controls redirect behavior (follow, error, manual)
   .withReferrer("https://example.com") // Sets request referrer
-  .withReferrerPolicy(ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE) // Controls referrer policy
-  .withPriority(RequestPriority.HIGH) // Sets request priority
+  .withReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE() // Controls referrer policy
+  .withPriority.HIGH() // Sets request priority
   .withKeepAlive(true); // Keeps connection alive after the page is unloaded
 ```
 

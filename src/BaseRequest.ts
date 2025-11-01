@@ -1,4 +1,4 @@
-import { type HttpMethod, type RedirectMode, type RequestMode, type RequestPriority, CredentialsPolicy } from "./enums.js";
+import { type HttpMethod, RedirectMode, RequestMode, RequestPriority, ReferrerPolicy, CredentialsPolicy } from "./enums.js";
 import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions, RequestInterceptor, ResponseInterceptor, ErrorInterceptor, RequestConfig, Body } from "./types.js";
 import { ResponseWrapper } from "./ResponseWrapper.js";
 import { CookieUtils } from "./utils/CookieUtils.js";
@@ -143,13 +143,38 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets the credentials policy for the request
-   * @param credentialsPolicy - Can be 'omit', 'same-origin', or 'include'
-   * @returns The instance for chaining
+   * Sets credentials policy - supports both direct call and fluent API
+   * @example
+   * request.withCredentials("include")
+   * request.withCredentials(CredentialsPolicy.INCLUDE)
+   * request.withCredentials.INCLUDE()
    */
-  withCredentials(credentialsPolicy: CredentialsPolicy = CredentialsPolicy.SAME_ORIGIN): this {
-    this.requestOptions.credentials = credentialsPolicy;
-    return this;
+  get withCredentials(): ((credentialsPolicy: CredentialsPolicy | string) => BaseRequest) & {
+    INCLUDE: () => BaseRequest;
+    OMIT: () => BaseRequest;
+    SAME_ORIGIN: () => BaseRequest;
+  } {
+    const fluent = {
+      INCLUDE: (): this => {
+        this.requestOptions.credentials = CredentialsPolicy.INCLUDE;
+        return this;
+      },
+      OMIT: (): this => {
+        this.requestOptions.credentials = CredentialsPolicy.OMIT;
+        return this;
+      },
+      SAME_ORIGIN: (): this => {
+        this.requestOptions.credentials = CredentialsPolicy.SAME_ORIGIN;
+        return this;
+      },
+    };
+
+    const callable = (credentialsPolicy: CredentialsPolicy | string): this => {
+      this.requestOptions.credentials = credentialsPolicy as CredentialsPolicy;
+      return this;
+    };
+
+    return Object.assign(callable, fluent);
   }
 
   /**
@@ -173,23 +198,98 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets the referrer policy for the request
-   * @param policy - The referrer policy to use
-   * @returns The instance for chaining
+   * Sets referrer policy - supports both direct call and fluent API
+   * @example
+   * request.withReferrerPolicy("no-referrer")
+   * request.withReferrerPolicy(ReferrerPolicy.NO_REFERRER)
+   * request.withReferrerPolicy.NO_REFERRER()
    */
-  withReferrerPolicy(policy: ReferrerPolicy): this {
-    this.requestOptions.referrerPolicy = policy;
-    return this;
+  get withReferrerPolicy(): ((policy: ReferrerPolicy | string) => BaseRequest) & {
+    ORIGIN: () => BaseRequest;
+    UNSAFE_URL: () => BaseRequest;
+    SAME_ORIGIN: () => BaseRequest;
+    NO_REFERRER: () => BaseRequest;
+    STRICT_ORIGIN: () => BaseRequest;
+    ORIGIN_WHEN_CROSS_ORIGIN: () => BaseRequest;
+    NO_REFERRER_WHEN_DOWNGRADE: () => BaseRequest;
+    STRICT_ORIGIN_WHEN_CROSS_ORIGIN: () => BaseRequest;
+  } {
+    const fluent = {
+      ORIGIN: (): this => {
+        this.requestOptions.referrerPolicy = ReferrerPolicy.ORIGIN;
+        return this;
+      },
+      UNSAFE_URL: (): this => {
+        this.requestOptions.referrerPolicy = ReferrerPolicy.UNSAFE_URL;
+        return this;
+      },
+      SAME_ORIGIN: (): this => {
+        this.requestOptions.referrerPolicy = ReferrerPolicy.SAME_ORIGIN;
+        return this;
+      },
+      NO_REFERRER: (): this => {
+        this.requestOptions.referrerPolicy = ReferrerPolicy.NO_REFERRER;
+        return this;
+      },
+      STRICT_ORIGIN: (): this => {
+        this.requestOptions.referrerPolicy = ReferrerPolicy.STRICT_ORIGIN;
+        return this;
+      },
+      ORIGIN_WHEN_CROSS_ORIGIN: (): this => {
+        this.requestOptions.referrerPolicy = ReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN;
+        return this;
+      },
+      NO_REFERRER_WHEN_DOWNGRADE: (): this => {
+        this.requestOptions.referrerPolicy = ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE;
+        return this;
+      },
+      STRICT_ORIGIN_WHEN_CROSS_ORIGIN: (): this => {
+        this.requestOptions.referrerPolicy = ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN;
+        return this;
+      },
+    };
+
+    const callable = (policy: ReferrerPolicy | string): this => {
+      this.requestOptions.referrerPolicy = policy as ReferrerPolicy;
+      return this;
+    };
+
+    return Object.assign(callable, fluent);
   }
 
   /**
-   * Sets the redirect policy for the request
-   * @param redirect - Can be 'follow', 'error', or 'manual'
-   * @returns The instance for chaining
+   * Sets redirect mode - supports both direct call and fluent API
+   * @example
+   * request.withRedirect("follow")
+   * request.withRedirect(RedirectMode.FOLLOW)
+   * request.withRedirect.FOLLOW()
    */
-  withRedirect(redirect: RedirectMode): this {
-    this.requestOptions.redirect = redirect;
-    return this;
+  get withRedirect(): ((redirect: RedirectMode | string) => BaseRequest) & {
+    FOLLOW: () => BaseRequest;
+    ERROR: () => BaseRequest;
+    MANUAL: () => BaseRequest;
+  } {
+    const fluent = {
+      FOLLOW: (): this => {
+        this.requestOptions.redirect = RedirectMode.FOLLOW;
+        return this;
+      },
+      ERROR: (): this => {
+        this.requestOptions.redirect = RedirectMode.ERROR;
+        return this;
+      },
+      MANUAL: (): this => {
+        this.requestOptions.redirect = RedirectMode.MANUAL;
+        return this;
+      },
+    };
+
+    const callable = (redirect: RedirectMode | string): this => {
+      this.requestOptions.redirect = redirect as RedirectMode;
+      return this;
+    };
+
+    return Object.assign(callable, fluent);
   }
 
   /**
@@ -203,13 +303,38 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets the priority of the request
-   * @param priority - Can be 'high', 'low', or 'auto'
-   * @returns The instance for chaining
+   * Sets request priority - supports both direct call and fluent API
+   * @example
+   * request.withPriority("high")
+   * request.withPriority(RequestPriority.HIGH)
+   * request.withPriority.HIGH()
    */
-  withPriority(priority: RequestPriority): this {
-    this.requestOptions.priority = priority as RequestPriority;
-    return this;
+  get withPriority(): ((priority: RequestPriority | string) => BaseRequest) & {
+    HIGH: () => BaseRequest;
+    LOW: () => BaseRequest;
+    AUTO: () => BaseRequest;
+  } {
+    const fluent = {
+      HIGH: (): this => {
+        this.requestOptions.priority = RequestPriority.HIGH;
+        return this;
+      },
+      LOW: (): this => {
+        this.requestOptions.priority = RequestPriority.LOW;
+        return this;
+      },
+      AUTO: (): this => {
+        this.requestOptions.priority = RequestPriority.AUTO;
+        return this;
+      },
+    };
+
+    const callable = (priority: RequestPriority | string): this => {
+      this.requestOptions.priority = priority as RequestPriority;
+      return this;
+    };
+
+    return Object.assign(callable, fluent);
   }
 
   /**
@@ -249,13 +374,43 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets the mode of the request
-   * @param mode - The mode for the request (cors, no-cors, same-origin, navigate)
-   * @returns The instance for chaining
+   * Sets request mode - supports both direct call and fluent API
+   * @example
+   * request.withMode("cors")
+   * request.withMode(RequestMode.CORS)
+   * request.withMode.CORS()
    */
-  withMode(mode: RequestMode): this {
-    this.requestOptions.mode = mode as RequestMode;
-    return this;
+  get withMode(): ((mode: RequestMode | string) => BaseRequest) & {
+    CORS: () => BaseRequest;
+    NO_CORS: () => BaseRequest;
+    SAME_ORIGIN: () => BaseRequest;
+    NAVIGATE: () => BaseRequest;
+  } {
+    const fluent = {
+      CORS: (): this => {
+        this.requestOptions.mode = RequestMode.CORS;
+        return this;
+      },
+      NO_CORS: (): this => {
+        this.requestOptions.mode = RequestMode.NO_CORS;
+        return this;
+      },
+      SAME_ORIGIN: (): this => {
+        this.requestOptions.mode = RequestMode.SAME_ORIGIN;
+        return this;
+      },
+      NAVIGATE: (): this => {
+        this.requestOptions.mode = RequestMode.NAVIGATE;
+        return this;
+      },
+    };
+
+    const callable = (mode: RequestMode | string): this => {
+      this.requestOptions.mode = mode as RequestMode;
+      return this;
+    };
+
+    return Object.assign(callable, fluent);
   }
 
   /**
