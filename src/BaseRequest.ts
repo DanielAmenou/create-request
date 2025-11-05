@@ -641,9 +641,20 @@ export abstract class BaseRequest {
    * Execute the request and parse the response as JSON
    *
    * @returns A promise that resolves to the parsed JSON data
+   * @throws {RequestError} When the request fails, JSON parsing fails, GraphQL errors occur (if throwOnError enabled), or body is already consumed
    *
    * @example
    * const users = await request.getJson<User[]>();
+   *
+   * @example
+   * // Error handling - errors are always RequestError
+   * try {
+   *   const data = await request.getJson();
+   * } catch (error) {
+   *   if (error instanceof RequestError) {
+   *     console.log(error.status, error.url, error.method);
+   *   }
+   * }
    */
   async getJson<T = unknown>(): Promise<T> {
     const response = await this.getResponse();
@@ -695,6 +706,7 @@ export abstract class BaseRequest {
    *
    * @param selector - Optional function to extract and transform data
    * @returns A promise that resolves to the selected data
+   * @throws {RequestError} When the request fails, JSON parsing fails, or the selector throws an error
    *
    * @example
    * // Get full response
@@ -702,6 +714,16 @@ export abstract class BaseRequest {
    *
    * // Extract specific data
    * const users = await request.getData(data => data.results.users);
+   *
+   * @example
+   * // Error handling - errors are always RequestError
+   * try {
+   *   const data = await request.getData();
+   * } catch (error) {
+   *   if (error instanceof RequestError) {
+   *     console.log(error.status, error.url, error.method);
+   *   }
+   * }
    */
   async getData<T = unknown, R = T>(selector?: (data: T) => R): Promise<T | R> {
     const response = await this.getResponse();

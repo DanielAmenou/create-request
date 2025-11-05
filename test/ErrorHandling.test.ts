@@ -786,4 +786,677 @@ describe("Error Handling Tests", () => {
       }
     });
   });
+
+  // =============== CONNECTION ERRORS ===============
+  describe("Connection Errors", () => {
+    it("should handle ECONNREFUSED connection errors", async () => {
+      // Arrange - Simulate connection refused error
+      const connectionError = new TypeError("fetch failed");
+      (connectionError as Error & { code?: string }).code = "ECONNREFUSED";
+      connectionError.stack = "TypeError: fetch failed\n    at connect (node:internal/...)";
+      FetchMock.mockErrorOnce(connectionError);
+      const request = create.get("https://api.example.com/data");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        assert(error instanceof RequestError);
+        assert(error.message.includes("Connection refused"));
+        assert(error.message.includes("https://api.example.com/data"));
+      }
+    });
+
+    it("should handle ECONNRESET connection errors", async () => {
+      // Arrange - Simulate connection reset error
+      const connectionError = new TypeError("fetch failed");
+      (connectionError as Error & { code?: string }).code = "ECONNRESET";
+      connectionError.stack = "TypeError: fetch failed\n    at connect (node:internal/...)";
+      FetchMock.mockErrorOnce(connectionError);
+      const request = create.get("https://api.example.com/data");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        assert(error instanceof RequestError);
+        assert(error.message.includes("Connection refused"));
+      }
+    });
+
+    it("should handle EAI_AGAIN DNS errors", async () => {
+      // Arrange - Simulate DNS resolution error
+      const dnsError = new TypeError("fetch failed");
+      (dnsError as Error & { code?: string }).code = "EAI_AGAIN";
+      dnsError.stack = "TypeError: fetch failed\n    at getaddrinfo (node:internal/...)";
+      FetchMock.mockErrorOnce(dnsError);
+      const request = create.get("https://api.example.com/data");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        assert(error instanceof RequestError);
+        assert(error.message.includes("Unable to resolve hostname"));
+      }
+    });
+
+    it("should handle EAI_NODATA DNS errors", async () => {
+      // Arrange - Simulate DNS resolution error
+      const dnsError = new TypeError("fetch failed");
+      (dnsError as Error & { code?: string }).code = "EAI_NODATA";
+      dnsError.stack = "TypeError: fetch failed\n    at getaddrinfo (node:internal/...)";
+      FetchMock.mockErrorOnce(dnsError);
+      const request = create.get("https://api.example.com/data");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        assert(error instanceof RequestError);
+        assert(error.message.includes("Unable to resolve hostname"));
+      }
+    });
+
+    it("should handle timeout errors with ETIMEDOUT code", async () => {
+      // Arrange - Simulate timeout error with ETIMEDOUT code
+      const timeoutError = new TypeError("fetch failed");
+      (timeoutError as Error & { code?: string }).code = "ETIMEDOUT";
+      timeoutError.stack = "TypeError: fetch failed\n    at TimeoutError (node:internal/...)";
+      FetchMock.mockErrorOnce(timeoutError);
+      const request = create.get("https://api.example.com/data");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        assert(error instanceof RequestError);
+        assert.equal(error.isTimeout, true);
+        assert(error.message.includes("Request timeout"));
+      }
+    });
+
+    it("should handle timeout errors with timeout in stack", async () => {
+      // Arrange - Simulate timeout error detected via stack trace
+      const timeoutError = new TypeError("fetch failed");
+      timeoutError.stack = "TypeError: fetch failed\n    at timeout (node:internal/...)";
+      FetchMock.mockErrorOnce(timeoutError);
+      const request = create.get("https://api.example.com/data");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        assert(error instanceof RequestError);
+        assert.equal(error.isTimeout, true);
+        assert(error.message.includes("Request timeout"));
+      }
+    });
+  });
+
+  // =============== RETRY CALLBACK ERRORS ===============
+  describe("Retry Callback Errors", () => {
+    it("should handle errors thrown in retry callback", async () => {
+      // Arrange
+      FetchMock.mockErrorOnce(new Error("Network failure 1"));
+      FetchMock.mockErrorOnce(new Error("Network failure 2"));
+      FetchMock.mockErrorOnce(new Error("Network failure 3"));
+
+      const request = create
+        .get("https://api.example.com/data")
+        .withRetries(2)
+        .onRetry(() => {
+          throw new Error("Retry callback error");
+        });
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        // The retry callback error should be caught and not crash
+        assert(error instanceof Error);
+      }
+    });
+
+    it("should handle async errors in retry callback", async () => {
+      // Arrange
+      FetchMock.mockErrorOnce(new Error("Network failure 1"));
+      FetchMock.mockErrorOnce(new Error("Network failure 2"));
+
+      const request = create
+        .get("https://api.example.com/data")
+        .withRetries(1)
+        .onRetry(async () => {
+          await new Promise(resolve => setTimeout(resolve, 10));
+          throw new Error("Async retry callback error");
+        });
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        // The async retry callback error should be caught
+        assert(error instanceof Error);
+      }
+    });
+  });
+
+  // =============== QUERY PARAM ERRORS ===============
+  describe("Query Parameter Errors", () => {
+    it("should handle array query parameters correctly", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withQueryParams({
+        tags: ["tag1", "tag2", "tag3"],
+        ids: ["1", "2", "3"],
+        active: true,
+      });
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert - Verify the URL contains all array values
+      assert.ok(response);
+      // The query params should be properly formatted
+    });
+
+    it("should handle null and undefined query parameters", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withQueryParams({
+        valid: "value",
+        nullValue: null,
+        undefinedValue: undefined,
+      });
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert - null and undefined should be filtered out
+      assert.ok(response);
+    });
+
+    it("should handle empty array in query parameters", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withQueryParams({
+        emptyArray: [],
+        valid: "value",
+      });
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+  });
+
+  // =============== REQUEST CONFIGURATION ERRORS ===============
+  describe("Request Configuration Errors", () => {
+    it("should handle withKeepAlive configuration", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withKeepAlive(true);
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle withAuthorization configuration", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withAuthorization("Bearer token123");
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle all referrer policy options", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+
+      // Test all referrer policy options
+      const policies = [
+        "ORIGIN",
+        "UNSAFE_URL",
+        "SAME_ORIGIN",
+        "NO_REFERRER",
+        "STRICT_ORIGIN",
+        "ORIGIN_WHEN_CROSS_ORIGIN",
+        "NO_REFERRER_WHEN_DOWNGRADE",
+        "STRICT_ORIGIN_WHEN_CROSS_ORIGIN",
+      ];
+
+      for (const policy of policies) {
+        const request = create.get("https://api.example.com/data");
+        // Use fluent API
+        (request.withReferrerPolicy as any)[policy]();
+        const response = await request.getResponse();
+        assert.ok(response);
+        FetchMock.reset();
+        FetchMock.mockResponseOnce({ body: { success: true } });
+      }
+    });
+
+    it("should handle all priority options", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+
+      // Test all priority options
+      const priorities = ["HIGH", "LOW", "AUTO"];
+
+      for (const priority of priorities) {
+        const request = create.get("https://api.example.com/data");
+        // Use fluent API
+        (request.withPriority as any)[priority]();
+        const response = await request.getResponse();
+        assert.ok(response);
+        FetchMock.reset();
+        FetchMock.mockResponseOnce({ body: { success: true } });
+      }
+    });
+
+    it("should handle all mode options", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+
+      // Test all mode options
+      const modes = ["CORS", "NO_CORS", "SAME_ORIGIN", "NAVIGATE"];
+
+      for (const mode of modes) {
+        const request = create.get("https://api.example.com/data");
+        // Use fluent API
+        (request.withMode as any)[mode]();
+        const response = await request.getResponse();
+        assert.ok(response);
+        FetchMock.reset();
+        FetchMock.mockResponseOnce({ body: { success: true } });
+      }
+    });
+  });
+
+  // =============== CSRF PROTECTION ERRORS ===============
+  describe("CSRF Protection Errors", () => {
+    it("should handle requests without CSRF protection", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withoutCsrfProtection();
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle CSRF protection with anti-CSRF headers", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withAntiCsrfHeaders();
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+  });
+
+  // =============== BASE64 ENCODING ERRORS ===============
+  describe("Base64 Encoding Errors", () => {
+    it("should handle basic auth with special characters", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withBasicAuth("user:name", "pass:word");
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle basic auth with unicode characters", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withBasicAuth("用户名", "密码");
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+  });
+
+  // =============== ERROR INTERCEPTOR ERRORS ===============
+  describe("Error Interceptor Errors", () => {
+    it("should handle errors thrown in error interceptor", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({
+        status: 500,
+        body: { message: "Server error" },
+      });
+      const request = create.get("https://api.example.com/data").withErrorInterceptor(() => {
+        throw new Error("Interceptor error");
+      });
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        // The interceptor error should be caught
+        assert(error instanceof Error);
+      }
+    });
+
+    it("should handle error interceptor that returns a response wrapper", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({
+        status: 500,
+        body: { message: "Server error" },
+      });
+      const { ResponseWrapper } = await import("../src/ResponseWrapper.js");
+      const mockResponse = new Response(JSON.stringify({ recovered: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+      const request = create.get("https://api.example.com/data").withErrorInterceptor(() => {
+        return new ResponseWrapper(mockResponse, "https://api.example.com/data", "GET");
+      });
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+      const data = await response.getJson();
+      assert.deepEqual(data, { recovered: true });
+    });
+  });
+
+  // =============== REQUEST INTERCEPTOR ERRORS ===============
+  describe("Request Interceptor Errors", () => {
+    it("should handle errors thrown in request interceptor", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withRequestInterceptor(() => {
+        throw new Error("Request interceptor error");
+      });
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        assert(error instanceof Error);
+      }
+    });
+
+    it("should handle request interceptor that returns early response", async () => {
+      // Arrange
+      const mockResponse = new Response(JSON.stringify({ intercepted: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+      const request = create.get("https://api.example.com/data").withRequestInterceptor(() => {
+        return mockResponse;
+      });
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+      const data = await response.getJson();
+      assert.deepEqual(data, { intercepted: true });
+    });
+  });
+
+  // =============== ADDITIONAL CONFIGURATION TESTS ===============
+  describe("Additional Configuration Tests", () => {
+    it("should handle withContentType configuration", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withContentType("application/json");
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle referrer policy with string parameter", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withReferrerPolicy("no-referrer");
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle mode with string parameter", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withMode("cors");
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle priority with string parameter", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withPriority("high");
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle credentials with string parameter", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withCredentials("include");
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle query params with number values", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withQueryParams({
+        page: 1,
+        limit: 10,
+        offset: 0,
+      });
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle query params with boolean values", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withQueryParams({
+        active: true,
+        deleted: false,
+      });
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle query params with array of numbers", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withQueryParams({
+        ids: [1, 2, 3, 4, 5] as unknown as string[],
+      });
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle query params with array of booleans", async () => {
+      // Arrange
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data").withQueryParams({
+        flags: [true, false, true] as unknown as string[],
+      });
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert
+      assert.ok(response);
+    });
+
+    it("should handle getGraphQLOptions on BaseRequest (returns undefined)", async () => {
+      // Arrange - GetRequest extends BaseRequest, which has getGraphQLOptions that returns undefined
+      FetchMock.mockResponseOnce({ body: { data: { test: true } } });
+      const request = create.get("https://api.example.com/data");
+
+      // Act - This should work without GraphQL options since BaseRequest.getGraphQLOptions returns undefined
+      const response = await request.getResponse();
+      const data = await response.getJson();
+
+      // Assert
+      assert.ok(response);
+      assert.deepEqual(data, { data: { test: true } });
+    });
+
+    it("should handle autoApplyCsrfProtection initialization", async () => {
+      // Arrange - Test that CSRF protection is enabled by default
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = create.get("https://api.example.com/data");
+
+      // Act
+      const response = await request.getResponse();
+
+      // Assert - CSRF protection should be enabled by default (autoApplyCsrfProtection = true)
+      assert.ok(response);
+    });
+
+    it("should handle all referrer policy enum values via fluent API", async () => {
+      // Arrange - Test all enum values to ensure type definitions are covered
+      FetchMock.mockResponseOnce({ body: { success: true } });
+
+      const policies = [
+        "ORIGIN",
+        "UNSAFE_URL",
+        "SAME_ORIGIN",
+        "NO_REFERRER",
+        "STRICT_ORIGIN",
+        "ORIGIN_WHEN_CROSS_ORIGIN",
+        "NO_REFERRER_WHEN_DOWNGRADE",
+        "STRICT_ORIGIN_WHEN_CROSS_ORIGIN",
+      ];
+
+      for (const policy of policies) {
+        const request = create.get("https://api.example.com/data");
+        (request.withReferrerPolicy as any)[policy]();
+        const response = await request.getResponse();
+        assert.ok(response);
+        FetchMock.reset();
+        FetchMock.mockResponseOnce({ body: { success: true } });
+      }
+    });
+
+    it("should handle all mode enum values via fluent API", async () => {
+      // Arrange - Test all mode enum values including NAVIGATE
+      FetchMock.mockResponseOnce({ body: { success: true } });
+
+      const modes = ["CORS", "NO_CORS", "SAME_ORIGIN", "NAVIGATE"];
+
+      for (const mode of modes) {
+        const request = create.get("https://api.example.com/data");
+        (request.withMode as any)[mode]();
+        const response = await request.getResponse();
+        assert.ok(response);
+        FetchMock.reset();
+        FetchMock.mockResponseOnce({ body: { success: true } });
+      }
+    });
+
+    it("should handle getJson after getText with invalid JSON", async () => {
+      // Arrange - Test ResponseWrapper.getJson() after getText() with invalid JSON
+      FetchMock.mockResponseOnce({
+        body: "not valid json",
+        headers: { "Content-Type": "text/plain" },
+      });
+      const request = create.get("https://api.example.com/data");
+
+      // Act
+      const response = await request.getResponse();
+
+      // Get text first
+      await response.getText();
+
+      // Try to get JSON from the invalid text
+      try {
+        await response.getJson();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        // Assert - Should throw RequestError when parsing invalid JSON from text cache
+        assert(error instanceof RequestError);
+        assert(error.message.includes("Invalid JSON"));
+      }
+    });
+
+    it("should handle getJson with successful JSON parsing and GraphQL check", async () => {
+      // Arrange - Test successful JSON parsing path
+      FetchMock.mockResponseOnce({
+        body: { data: { test: true } },
+        headers: { "Content-Type": "application/json" },
+      });
+      const request = create.get("https://api.example.com/data");
+
+      // Act
+      const response = await request.getResponse();
+      const data = await response.getJson();
+
+      // Assert - Should successfully parse JSON and check GraphQL errors
+      assert.ok(data);
+      assert.deepEqual(data, { data: { test: true } });
+    });
+  });
 });

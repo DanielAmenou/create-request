@@ -66,7 +66,7 @@ export class ResponseWrapper {
     );
     const errorMessage = errorMessages.join(", ");
 
-    throw new RequestError(`GraphQL request failed with errors: ${errorMessage}`, this.url!, this.method!, {
+    throw new RequestError(`GraphQL request failed with errors: ${errorMessage}`, this.url || "", this.method || "", {
       status: this.response.status,
       response: this.response,
     });
@@ -78,12 +78,21 @@ export class ResponseWrapper {
    * If GraphQL options are set with throwOnError=true, will check for GraphQL errors and throw.
    *
    * @returns The parsed JSON data
-   * @throws Error if the response has already been consumed in a different format
-   * @throws RequestError if GraphQL response contains errors and throwOnError is enabled
+   * @throws {RequestError} When the request fails, JSON parsing fails, GraphQL errors occur (if throwOnError enabled), or body is already consumed
    *
    * @example
    * const data = await response.getJson();
    * console.log(data.items);
+   *
+   * @example
+   * // Error handling - errors are always RequestError
+   * try {
+   *   const data = await response.getJson();
+   * } catch (error) {
+   *   if (error instanceof RequestError) {
+   *     console.log(error.status, error.url, error.method);
+   *   }
+   * }
    */
   async getJson<T = unknown>(): Promise<T> {
     if (this.jsonCache !== undefined) {
@@ -105,20 +114,14 @@ export class ResponseWrapper {
             throw error;
           }
           const errorMessage = error instanceof Error ? error.message : String(error);
-          if (this.url && this.method) {
-            throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url, this.method, {
-              response: this.response,
-            });
-          }
-          throw new Error(`Invalid JSON: ${errorMessage}`);
+          throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url || "", this.method || "", {
+            response: this.response,
+          });
         }
       }
-      if (this.url && this.method) {
-        throw new RequestError("Body already consumed", this.url, this.method, {
-          response: this.response,
-        });
-      }
-      throw new Error("Body already consumed");
+      throw new RequestError("Body already consumed", this.url || "", this.method || "", {
+        response: this.response,
+      });
     }
 
     this.bodyUsed = true;
@@ -133,13 +136,10 @@ export class ResponseWrapper {
         throw error;
       }
       const errorMessage = error instanceof Error ? error.message : String(error);
-      if (this.url && this.method) {
-        throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url, this.method, {
-          status: this.response.status,
-          response: this.response,
-        });
-      }
-      throw error;
+      throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url || "", this.method || "", {
+        status: this.response.status,
+        response: this.response,
+      });
     }
   }
 
@@ -149,7 +149,7 @@ export class ResponseWrapper {
    * if the body has already been consumed in those formats.
    *
    * @returns The response text
-   * @throws Error if the response has already been consumed in an incompatible format
+   * @throws {RequestError} When reading fails or the response has already been consumed in an incompatible format
    *
    * @example
    * const text = await response.getText();
@@ -173,21 +173,15 @@ export class ResponseWrapper {
           return this.textCache;
         } catch (e) {
           const errorMessage = e instanceof Error ? e.message : String(e);
-          if (this.url && this.method) {
-            throw new RequestError(`Cannot convert to text: ${errorMessage}`, this.url, this.method, {
-              response: this.response,
-            });
-          }
-          throw e;
+          throw new RequestError(`Cannot convert to text: ${errorMessage}`, this.url || "", this.method || "", {
+            response: this.response,
+          });
         }
       }
 
-      if (this.url && this.method) {
-        throw new RequestError("Cannot convert to text", this.url, this.method, {
-          response: this.response,
-        });
-      }
-      throw new Error("Cannot convert to text");
+      throw new RequestError("Cannot convert to text", this.url || "", this.method || "", {
+        response: this.response,
+      });
     }
 
     this.bodyUsed = true;
@@ -196,13 +190,10 @@ export class ResponseWrapper {
       return this.textCache;
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
-      if (this.url && this.method) {
-        throw new RequestError(`Read failed: ${errorMessage}`, this.url, this.method, {
-          status: this.response.status,
-          response: this.response,
-        });
-      }
-      throw e;
+      throw new RequestError(`Read failed: ${errorMessage}`, this.url || "", this.method || "", {
+        status: this.response.status,
+        response: this.response,
+      });
     }
   }
 
@@ -212,7 +203,7 @@ export class ResponseWrapper {
    * if the body has already been consumed as text.
    *
    * @returns The response as a Blob
-   * @throws Error if the response has already been consumed in an incompatible format
+   * @throws {RequestError} When reading fails or the response has already been consumed in an incompatible format
    *
    * @example
    * const blob = await response.getBlob();
@@ -229,12 +220,9 @@ export class ResponseWrapper {
         this.blobCache = new Blob([this.textCache], { type: "text/plain" });
         return this.blobCache;
       }
-      if (this.url && this.method) {
-        throw new RequestError("Cannot convert to Blob", this.url, this.method, {
-          response: this.response,
-        });
-      }
-      throw new Error("Cannot convert to Blob");
+      throw new RequestError("Cannot convert to Blob", this.url || "", this.method || "", {
+        response: this.response,
+      });
     }
 
     this.bodyUsed = true;
@@ -243,13 +231,10 @@ export class ResponseWrapper {
       return this.blobCache;
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
-      if (this.url && this.method) {
-        throw new RequestError(`Read failed: ${errorMessage}`, this.url, this.method, {
-          status: this.response.status,
-          response: this.response,
-        });
-      }
-      throw e;
+      throw new RequestError(`Read failed: ${errorMessage}`, this.url || "", this.method || "", {
+        status: this.response.status,
+        response: this.response,
+      });
     }
   }
 
@@ -258,7 +243,7 @@ export class ResponseWrapper {
    * This method consumes the body and should only be called once.
    *
    * @returns The response body as a ReadableStream or null
-   * @throws Error if the response body has already been consumed
+   * @throws {RequestError} When the response body has already been consumed
    *
    * @example
    * const stream = response.getBody();
@@ -269,12 +254,9 @@ export class ResponseWrapper {
    */
   getBody(): ReadableStream<Uint8Array> | null {
     if (this.bodyUsed) {
-      if (this.url && this.method) {
-        throw new RequestError("Body already consumed", this.url, this.method, {
-          response: this.response,
-        });
-      }
-      throw new Error("Body already consumed");
+      throw new RequestError("Body already consumed", this.url || "", this.method || "", {
+        response: this.response,
+      });
     }
 
     this.bodyUsed = true;
@@ -287,6 +269,7 @@ export class ResponseWrapper {
    *
    * @param selector - Optional function to extract and transform data
    * @returns A promise that resolves to the selected data
+   * @throws {RequestError} When the request fails, JSON parsing fails, or the selector throws an error
    *
    * @example
    * // Get full response
@@ -294,6 +277,16 @@ export class ResponseWrapper {
    *
    * // Extract specific data
    * const users = await response.getData(data => data.results.users);
+   *
+   * @example
+   * // Error handling - errors are always RequestError
+   * try {
+   *   const data = await response.getData();
+   * } catch (error) {
+   *   if (error instanceof RequestError) {
+   *     console.log(error.status, error.url, error.method);
+   *   }
+   * }
    */
   async getData<T = unknown, R = T>(selector?: (data: T) => R): Promise<T | R> {
     try {
@@ -313,21 +306,15 @@ export class ResponseWrapper {
       // Enhance selector errors with context
       if (selector) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        if (this.url && this.method) {
-          throw new RequestError(`Data selector failed: ${errorMessage}`, this.url, this.method, {
-            response: this.response,
-          });
-        }
-        throw new Error(`Data selector failed: ${errorMessage}`);
+        throw new RequestError(`Data selector failed: ${errorMessage}`, this.url || "", this.method || "", {
+          response: this.response,
+        });
       }
 
       // If we get here and it's not a RequestError, wrap it
       // This should rarely happen as getJson() should throw RequestError
       const errorObj = error instanceof Error ? error : new Error(String(error));
-      if (this.url && this.method) {
-        throw RequestError.networkError(this.url, this.method, errorObj);
-      }
-      throw errorObj;
+      throw RequestError.networkError(this.url || "", this.method || "", errorObj);
     }
   }
 }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { Blob } from "node:buffer";
 import { describe, it } from "node:test";
 
+import { RequestError } from "../src/RequestError.js";
 import { ResponseWrapper } from "../src/ResponseWrapper.js";
 
 describe("ResponseWrapper", () => {
@@ -144,8 +145,8 @@ describe("ResponseWrapper", () => {
       await wrapper.getJson();
       assert.fail("Should have thrown an error for empty body with JSON content type");
     } catch (error) {
-      assert(error instanceof SyntaxError);
-      assert(error.message.includes("Unexpected end of JSON input"));
+      assert(error instanceof RequestError);
+      assert(error.message.includes("Invalid JSON") || error.message.includes("Unexpected end of JSON input"));
     }
   });
 

@@ -298,7 +298,7 @@ describe("ResponseWrapper Edge Cases", () => {
       }
     });
 
-    it("should throw generic Error when JSON parsing fails after body consumed without url/method", async () => {
+    it("should throw RequestError when JSON parsing fails after body consumed without url/method", async () => {
       // Create a response that will fail JSON parsing
       const response = createMockResponse({
         body: "not valid json",
@@ -309,19 +309,18 @@ describe("ResponseWrapper Edge Cases", () => {
       // Consume body as text first
       await wrapper.getText();
 
-      // Now try to get JSON - should fail parsing and throw generic Error (not RequestError)
+      // Now try to get JSON - should fail parsing and throw RequestError
       try {
         await wrapper.getJson();
         assert.fail("Should have thrown error");
       } catch (error: any) {
-        // Should be generic Error, not RequestError, since url/method are missing
-        assert.ok(error instanceof Error);
-        assert.ok(!(error instanceof RequestError));
+        // Should be RequestError (always throws RequestError, even without url/method)
+        assert.ok(error instanceof RequestError);
         assert.ok(error.message.includes("Invalid JSON") || error.message.includes("parse"));
       }
     });
 
-    it("should throw generic Error when body consumed via getBody then getJson called without url/method", async () => {
+    it("should throw RequestError when body consumed via getBody then getJson called without url/method", async () => {
       const response = createMockResponse({
         body: { data: "test" },
       });
@@ -330,19 +329,18 @@ describe("ResponseWrapper Edge Cases", () => {
       // Consume body via getBody
       wrapper.getBody();
 
-      // Now try to get JSON - should throw generic Error (not RequestError) since body is consumed
+      // Now try to get JSON - should throw RequestError since body is consumed
       try {
         await wrapper.getJson();
         assert.fail("Should have thrown error");
       } catch (error: any) {
-        // Should be generic Error, not RequestError, since url/method are missing
-        assert.ok(error instanceof Error);
+        // Should be RequestError (always throws RequestError, even without url/method)
+        assert.ok(error instanceof RequestError);
         assert.ok(error.message.includes("Body already consumed"));
-        // May or may not be RequestError depending on implementation
       }
     });
 
-    it("should throw generic Error when getting text after body consumed without url/method", async () => {
+    it("should get text after body consumed as JSON without url/method", async () => {
       const response = createMockResponse({
         body: { data: "test" },
       });
@@ -356,7 +354,7 @@ describe("ResponseWrapper Edge Cases", () => {
       assert.ok(text.includes("data"));
     });
 
-    it("should throw generic Error when blob to text conversion fails without url/method", async () => {
+    it("should throw RequestError when blob to text conversion fails without url/method", async () => {
       // Create a blob that will fail text conversion
       const response = createMockResponse({
         body: new Blob([new Uint8Array([0xff, 0xfe])], { type: "application/octet-stream" }),
@@ -367,15 +365,14 @@ describe("ResponseWrapper Edge Cases", () => {
       await wrapper.getBlob();
 
       // Try to convert blob to text - this might succeed or fail depending on implementation
-      // If it fails, should throw generic Error
+      // If it fails, should throw RequestError
       try {
         const text = await wrapper.getText();
         // If it succeeds, that's fine - we just want to ensure the path is covered
         assert.ok(typeof text === "string");
       } catch (error: any) {
-        // If it fails, should be generic Error (not RequestError) since url/method are missing
-        assert.ok(error instanceof Error);
-        assert.ok(!(error instanceof RequestError) || !(error instanceof RequestError && error.url));
+        // If it fails, should be RequestError (always throws RequestError, even without url/method)
+        assert.ok(error instanceof RequestError);
       }
     });
 
