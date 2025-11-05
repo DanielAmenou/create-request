@@ -5,7 +5,17 @@ import { Config } from "./utils/Config.js";
 export { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, SameSitePolicy, ReferrerPolicy } from "./enums.js";
 
 // Export types
-export type { RetryCallback, RequestOptions, CookiesRecord, CookieOptions, RequestConfig, RequestInterceptor, ResponseInterceptor, ErrorInterceptor } from "./types.js";
+export type {
+  RetryCallback,
+  CookiesRecord,
+  CookieOptions,
+  RequestConfig,
+  GraphQLOptions,
+  RequestOptions,
+  ErrorInterceptor,
+  RequestInterceptor,
+  ResponseInterceptor,
+} from "./types.js";
 
 // Export core classes
 export { ResponseWrapper } from "./ResponseWrapper.js";

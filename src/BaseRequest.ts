@@ -1,5 +1,16 @@
 import { type HttpMethod, RedirectMode, RequestMode, RequestPriority, ReferrerPolicy, CredentialsPolicy } from "./enums.js";
-import type { RequestOptions, RetryCallback, CookiesRecord, CookieOptions, RequestInterceptor, ResponseInterceptor, ErrorInterceptor, RequestConfig, Body } from "./types.js";
+import type {
+  Body,
+  RequestConfig,
+  RetryCallback,
+  CookiesRecord,
+  CookieOptions,
+  RequestOptions,
+  GraphQLOptions,
+  ErrorInterceptor,
+  RequestInterceptor,
+  ResponseInterceptor,
+} from "./types.js";
 import { ResponseWrapper } from "./ResponseWrapper.js";
 import { CookieUtils } from "./utils/CookieUtils.js";
 import { RequestError } from "./RequestError.js";
@@ -27,6 +38,14 @@ export abstract class BaseRequest {
 
   constructor(url: string) {
     this.url = url;
+  }
+
+  /**
+   * Get GraphQL options if set (only for BodyRequest subclasses)
+   * @returns GraphQL options or undefined
+   */
+  protected getGraphQLOptions(): GraphQLOptions | undefined {
+    return undefined;
   }
 
   /**
@@ -1030,7 +1049,8 @@ export abstract class BaseRequest {
 
       // If interceptor returned a Response, short-circuit and wrap it
       if (interceptorResult instanceof Response) {
-        const wrappedResponse = new ResponseWrapper(interceptorResult, this.url, this.method);
+        const graphQLOptions = this.getGraphQLOptions();
+        const wrappedResponse = new ResponseWrapper(interceptorResult, this.url, this.method, graphQLOptions);
         return await this.runResponseInterceptors(wrappedResponse);
       }
 
@@ -1075,7 +1095,8 @@ export abstract class BaseRequest {
         throw RequestError.fromResponse(response, url, method);
       }
 
-      const wrappedResponse = new ResponseWrapper(response, url, method);
+      const graphQLOptions = this.getGraphQLOptions();
+      const wrappedResponse = new ResponseWrapper(response, url, method, graphQLOptions);
       return await this.runResponseInterceptors(wrappedResponse);
     } catch (error) {
       // Convert to RequestError if needed

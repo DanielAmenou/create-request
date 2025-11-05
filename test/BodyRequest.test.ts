@@ -272,7 +272,7 @@ describe("BodyRequest", () => {
       // Assert
       const [, options] = FetchMock.mock.calls[0];
       const body = JSON.parse(options.body as string);
-      assert.deepEqual(body, { query: query.trim() });
+      assert.deepEqual(body, { query: query });
       assert.deepEqual(options.headers, {
         "Content-Type": "application/json",
       });
@@ -292,7 +292,7 @@ describe("BodyRequest", () => {
       const [, options] = FetchMock.mock.calls[0];
       const body = JSON.parse(options.body as string);
       assert.deepEqual(body, {
-        query: query.trim(),
+        query: query,
         variables,
       });
       assert.deepEqual(options.headers, {
@@ -314,7 +314,7 @@ describe("BodyRequest", () => {
       const [, options] = FetchMock.mock.calls[0];
       const body = JSON.parse(options.body as string);
       assert.deepEqual(body, {
-        query: mutation.trim(),
+        query: mutation,
         variables,
       });
       assert.deepEqual(options.headers, {
@@ -322,32 +322,10 @@ describe("BodyRequest", () => {
       });
     });
 
-    it("should trim whitespace from query", async () => {
-      // Arrange
-      FetchMock.mockResponseOnce();
-      const query = "   query { user { name } }   ";
-      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query);
-
-      // Act
-      await request.getResponse();
-
-      // Assert
-      const [, options] = FetchMock.mock.calls[0];
-      const body = JSON.parse(options.body as string);
-      assert.equal(body.query, "query { user { name } }");
-    });
-
     it("should throw error for empty query string", () => {
       // Act & Assert
       assert.throws(() => {
         new PostRequest("https://api.example.com/graphql").withGraphQL("");
-      }, /Invalid GraphQL query/);
-    });
-
-    it("should throw error for whitespace-only query string", () => {
-      // Act & Assert
-      assert.throws(() => {
-        new PostRequest("https://api.example.com/graphql").withGraphQL("   ");
       }, /Invalid GraphQL query/);
     });
 
@@ -379,7 +357,7 @@ describe("BodyRequest", () => {
       // Assert
       const [, options] = FetchMock.mock.calls[0];
       const body = JSON.parse(options.body as string);
-      assert.deepEqual(body, { query: query.trim() });
+      assert.deepEqual(body, { query: query });
       assert.deepEqual(options.headers, {
         "Content-Type": "application/vnd.graphql+json", // Original header preserved
       });
@@ -397,7 +375,7 @@ describe("BodyRequest", () => {
       // Assert
       const [, options] = FetchMock.mock.calls[0];
       const body = JSON.parse(options.body as string);
-      assert.deepEqual(body, { query: query.trim() });
+      assert.deepEqual(body, { query: query });
       assert.deepEqual(options.headers, {
         "Content-Type": "application/json",
         Authorization: "Bearer token123",
@@ -429,7 +407,7 @@ describe("BodyRequest", () => {
       const [, options] = FetchMock.mock.calls[0];
       const body = JSON.parse(options.body as string);
       assert.deepEqual(body, {
-        query: query.trim(),
+        query: query,
         variables,
       });
     });
@@ -479,17 +457,10 @@ describe("BodyRequest", () => {
       // Assert
       const [, options] = FetchMock.mock.calls[0];
       const body = JSON.parse(options.body as string);
-      assert.equal(body.query, query.trim());
+      assert.equal(body.query, query);
       // undefined values are omitted by JSON.stringify
       assert.equal(body.variables.name, "John");
       assert.equal(body.variables.age, undefined);
-    });
-
-    it("should handle query with only whitespace after trim", () => {
-      // Act & Assert
-      assert.throws(() => {
-        new PostRequest("https://api.example.com/graphql").withGraphQL("   \n\t  ");
-      }, /Invalid GraphQL query/);
     });
 
     it("should handle query with newlines and tabs", async () => {

@@ -63,6 +63,10 @@ export type CookiesRecord = Record<string, string | CookieOptions>;
 
 export { HttpMethod, RequestMode, RedirectMode, SameSitePolicy, RequestPriority, CredentialsPolicy };
 
+export interface GraphQLOptions {
+  throwOnError?: boolean;
+}
+
 export interface RequestOptions extends Omit<RequestInit, "signal" | "body" | "method" | "credentials" | "mode" | "redirect" | "priority"> {
   timeout?: number;
   retries?: number;

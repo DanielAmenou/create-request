@@ -1,4 +1,5 @@
 import { RequestError } from "./RequestError.js";
+import type { GraphQLOptions } from "./types.js";
 
 /**
  * Wrapper for HTTP responses with methods to transform the response data
@@ -15,10 +16,18 @@ export class ResponseWrapper {
   private blobCache: Blob | undefined;
   private bodyUsed = false;
 
-  constructor(response: Response, url?: string, method?: string) {
+  // GraphQL-specific options
+  private graphQLOptions?: GraphQLOptions;
+
+  constructor(response: Response, url?: string, method?: string, graphQLOptions?: GraphQLOptions) {
     this.response = response;
     this.url = url;
     this.method = method;
+    if (graphQLOptions) {
+      this.graphQLOptions = {
+        throwOnError: graphQLOptions.throwOnError,
+      };
+    }
   }
 
   // Wrapper properties
@@ -43,11 +52,34 @@ export class ResponseWrapper {
   }
 
   /**
+   * Check for GraphQL errors and throw if throwOnError is enabled
+   * @param data - The parsed JSON data
+   * @throws RequestError if GraphQL response contains errors and throwOnError is enabled
+   */
+  private checkGraphQLErrors(data: unknown): void {
+    if (!this.graphQLOptions?.throwOnError || typeof data !== "object" || data === null) return;
+    const responseData = data as { errors?: unknown };
+    if (!Array.isArray(responseData.errors) || responseData.errors.length === 0) return;
+    const errors = responseData.errors;
+    const errorMessages = errors.map(x =>
+      typeof x === "string" ? x : x && typeof x === "object" && "message" in x ? String((x as { message?: unknown }).message || "Unknown error") : String(x)
+    );
+    const errorMessage = errorMessages.join(", ");
+
+    throw new RequestError(`GraphQL request failed with errors: ${errorMessage}`, this.url!, this.method!, {
+      status: this.response.status,
+      response: this.response,
+    });
+  }
+
+  /**
    * Parse the response body as JSON
    * Caches the result for subsequent calls.
+   * If GraphQL options are set with throwOnError=true, will check for GraphQL errors and throw.
    *
    * @returns The parsed JSON data
    * @throws Error if the response has already been consumed in a different format
+   * @throws RequestError if GraphQL response contains errors and throwOnError is enabled
    *
    * @example
    * const data = await response.getJson();
@@ -55,6 +87,7 @@ export class ResponseWrapper {
    */
   async getJson<T = unknown>(): Promise<T> {
     if (this.jsonCache !== undefined) {
+      this.checkGraphQLErrors(this.jsonCache);
       return this.jsonCache as T;
     }
 
@@ -64,9 +97,14 @@ export class ResponseWrapper {
         try {
           const parsed: unknown = JSON.parse(this.textCache);
           this.jsonCache = parsed;
+          this.checkGraphQLErrors(parsed);
           return parsed as T;
-        } catch (e) {
-          const errorMessage = e instanceof Error ? e.message : String(e);
+        } catch (error) {
+          // Re-throw RequestErrors from checkGraphQLErrors without wrapping
+          if (error instanceof RequestError) {
+            throw error;
+          }
+          const errorMessage = error instanceof Error ? error.message : String(error);
           if (this.url && this.method) {
             throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url, this.method, {
               response: this.response,
@@ -87,16 +125,21 @@ export class ResponseWrapper {
     try {
       const parsed: unknown = await this.response.json();
       this.jsonCache = parsed;
+      this.checkGraphQLErrors(parsed);
       return parsed as T;
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
+    } catch (error) {
+      // Re-throw RequestErrors from checkGraphQLErrors without wrapping
+      if (error instanceof RequestError) {
+        throw error;
+      }
+      const errorMessage = error instanceof Error ? error.message : String(error);
       if (this.url && this.method) {
         throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url, this.method, {
           status: this.response.status,
           response: this.response,
         });
       }
-      throw e;
+      throw error;
     }
   }
 

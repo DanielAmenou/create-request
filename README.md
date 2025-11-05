@@ -247,13 +247,33 @@ const result = await create
   .getJson();
 ```
 
+#### GraphQL Error Handling
+
+GraphQL errors do not cause exceptions by default. Use the `throwOnError` option to make them throw exceptions:
+
+```typescript
+// Throw an error if the GraphQL response contains errors
+try {
+  const user = await create
+    .post("https://api.example.com/graphql")
+    .withGraphQL(
+      "query GetUser($id: ID!) { user(id: $id) { name email } }",
+      { id: "123" },
+      { throwOnError: true }
+    )
+    .getJson();
+} catch (error) {
+  console.error(error.message);
+}
+```
+
 The `withGraphQL` method automatically:
 
 - Formats the body as JSON with `query` and optional `variables` properties
 - Sets `Content-Type` to `application/json`
-- Trims whitespace from the query string
 - Validates the query is non-empty
 - Validates variables are a plain object (not arrays or null)
+- Optionally throws errors when GraphQL response contains errors (with `throwOnError: true`)
 
 ### Query Parameters Advanced Features
 
@@ -357,52 +377,6 @@ try {
 ```
 
 ## Advanced Usage
-
-### GraphQL Support
-
-`create-request` provides first-class support for GraphQL with the `withGraphQL` method:
-
-```typescript
-// Simple query
-const query = "query { user { name email } }";
-const data = await create
-  .post("https://api.example.com/graphql")
-  .withGraphQL(query)
-  .getJson();
-
-// Query with variables
-const queryWithVars = "query GetUser($id: ID!) { user(id: $id) { name email } }";
-const user = await create
-  .post("https://api.example.com/graphql")
-  .withGraphQL(queryWithVars, { id: "123" })
-  .getJson();
-
-// Mutation
-const mutation =
-  "mutation CreateUser($name: String!) { createUser(name: $name) { id name } }";
-const result = await create
-  .post("https://api.example.com/graphql")
-  .withGraphQL(mutation, { name: "John Doe" })
-  .getJson();
-
-// Complex variables with nested objects
-const complexQuery =
-  "query SearchUsers($filters: UserFilters!) { users(filters: $filters) { id name } }";
-const results = await create
-  .post("https://api.example.com/graphql")
-  .withGraphQL(complexQuery, {
-    filters: {
-      name: "John",
-      age: 30,
-      tags: ["active", "verified"],
-      metadata: {
-        source: "web",
-        verified: true,
-      },
-    },
-  })
-  .getJson();
-```
 
 ### Interceptors
 
@@ -745,7 +719,7 @@ This library works with all browsers that support the Fetch API:
 
 | Feature             | create-request | Fetch  | Axios   | SuperAgent | Got     | Ky     | node-fetch | Redaxios |
 | ------------------- | -------------- | ------ | ------- | ---------- | ------- | ------ | ---------- | -------- |
-| **Size (min+gzip)** | ~5.5KB         | Native | ~13.6KB | ~17.8KB    | ~17.8KB | ~3.4KB | ~7.7KB     | ~1KB     |
+| **Size (min+gzip)** | ~5.8KB         | Native | ~13.6KB | ~17.8KB    | ~17.8KB | ~3.4KB | ~7.7KB     | ~1KB     |
 | **Browser**         | Modern         | Modern | IE11+   | IE9+       | ❌ No   | Modern | ❌ No      | Modern   |
 | **Node.js**         | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
 | **HTTP/2**          | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |

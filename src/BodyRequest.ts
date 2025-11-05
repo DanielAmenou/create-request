@@ -1,7 +1,7 @@
 import { RequestError } from "./RequestError.js";
 import { BaseRequest } from "./BaseRequest.js";
 import { BodyType } from "./enums.js";
-import type { Body } from "./types.js";
+import type { Body, GraphQLOptions } from "./types.js";
 import type { ResponseWrapper } from "./ResponseWrapper.js";
 
 /**
@@ -10,6 +10,7 @@ import type { ResponseWrapper } from "./ResponseWrapper.js";
 export abstract class BodyRequest extends BaseRequest {
   protected body?: Body;
   private bodyType?: BodyType;
+  private graphQLOptions: GraphQLOptions | undefined = undefined;
 
   constructor(url: string) {
     super(url);
@@ -53,6 +54,7 @@ export abstract class BodyRequest extends BaseRequest {
    *
    * @param query - The GraphQL query or mutation string
    * @param variables - Optional variables object to pass with the query
+   * @param options - Optional GraphQL-specific options
    * @returns The request instance for chaining
    *
    * @example
@@ -62,14 +64,19 @@ export abstract class BodyRequest extends BaseRequest {
    * @example
    * const request = new PostRequest('/graphql')
    *   .withGraphQL('mutation { createUser(name: $name) { id } }', { name: 'John' });
+   *
+   * @example
+   * // Throw an error if the GraphQL response contains errors
+   * const request = new PostRequest('/graphql')
+   *   .withGraphQL('query { user { id } }', undefined, { throwOnError: true });
    */
-  withGraphQL(query: string, variables?: Record<string, unknown>): this {
-    if (typeof query !== "string" || query.trim().length === 0) {
+  withGraphQL(query: string, variables?: Record<string, unknown>, options?: GraphQLOptions): this {
+    if (typeof query !== "string" || query.length === 0) {
       throw new RequestError("Invalid GraphQL query", this.url, this.method);
     }
 
     const graphQLBody: { query: string; variables?: Record<string, unknown> } = {
-      query: query.trim(),
+      query: query,
     };
 
     if (variables !== undefined) {
@@ -77,6 +84,19 @@ export abstract class BodyRequest extends BaseRequest {
         throw new RequestError("Invalid GraphQL variables", this.url, this.method);
       }
       graphQLBody.variables = variables;
+    }
+
+    // Store GraphQL options if provided
+    if (options !== undefined) {
+      if (typeof options !== "object" || options === null || Array.isArray(options)) {
+        throw new RequestError("Invalid GraphQL options", this.url, this.method);
+      }
+
+      // Store only the known GraphQL options properties
+      const opts = options as unknown as { throwOnError?: boolean };
+      this.graphQLOptions = {
+        throwOnError: typeof opts.throwOnError === "boolean" ? opts.throwOnError : undefined,
+      };
     }
 
     // Validate JSON is stringifiable early
@@ -109,6 +129,14 @@ export abstract class BodyRequest extends BaseRequest {
     if (!this.hasContentType()) {
       this.withContentType(contentType);
     }
+  }
+
+  /**
+   * Get the GraphQL options if set
+   * @returns The GraphQL options or undefined
+   */
+  protected getGraphQLOptions(): GraphQLOptions | undefined {
+    return this.graphQLOptions;
   }
 
   /**
