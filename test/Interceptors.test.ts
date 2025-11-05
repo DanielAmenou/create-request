@@ -778,7 +778,7 @@ describe("Interceptor Integration", () => {
       await request.getJson();
       assert.fail("Should have thrown error");
     } catch (error: any) {
-      assert.ok(error.message.includes("Interceptor failed"));
+      assert.ok(error.message.includes("Request interceptor failed"));
       assert.ok(error.message.includes("Interceptor error"));
     }
   });
@@ -797,7 +797,7 @@ describe("Interceptor Integration", () => {
       assert.fail("Should have thrown error");
     } catch (error: any) {
       // Should get the interceptor error
-      assert.ok(error.message.includes("Interceptor failed"));
+      assert.ok(error.message.includes("Response interceptor failed"));
       assert.ok(error.message.includes("Response interceptor error"));
     }
   });
@@ -845,7 +845,7 @@ describe("Interceptor Integration", () => {
       assert.fail("Should have thrown error");
     } catch (error: any) {
       assert.deepEqual(log, ["interceptor-1", "interceptor-2"]);
-      assert.ok(error.message.includes("Interceptor failed"));
+      assert.ok(error.message.includes("Request interceptor failed"));
     }
   });
 

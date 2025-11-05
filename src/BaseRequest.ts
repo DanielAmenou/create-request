@@ -139,13 +139,13 @@ export abstract class BaseRequest {
    *
    * @param timeout - The timeout in milliseconds
    * @returns The request instance for chaining
-   * @throws Error if timeout is not a positive number
+   * @throws RequestError if timeout is not a positive number
    *
    * @example
    * request.withTimeout(5000); // 5 seconds timeout
    */
   withTimeout(timeout: number): this {
-    if (!Number.isFinite(timeout) || timeout <= 0) throw new Error("Timeout must be a positive number");
+    if (!Number.isFinite(timeout) || timeout <= 0) throw new RequestError("Timeout must be a positive number", this.url, this.method);
 
     this.requestOptions.timeout = timeout;
     return this;
@@ -156,13 +156,13 @@ export abstract class BaseRequest {
    *
    * @param retries - Number of retry attempts before failing
    * @returns The request instance for chaining
-   * @throws Error if retries is not a non-negative integer
+   * @throws RequestError if retries is not a non-negative integer
    *
    * @example
    * request.withRetries(3); // Retry up to 3 times
    */
   withRetries(retries: number): this {
-    if (!Number.isInteger(retries) || retries < 0) throw new Error("Retry count must be a non-negative integer");
+    if (!Number.isInteger(retries) || retries < 0) throw new RequestError("Retry count must be a non-negative integer", this.url, this.method);
     this.requestOptions.retries = retries;
     return this;
   }
@@ -436,7 +436,7 @@ export abstract class BaseRequest {
     if (typeof Buffer !== "undefined") return Buffer.from(str).toString("base64");
 
     // Fallback (should never happen in modern environments)
-    throw new Error("Base64 encoding is not supported");
+    throw new RequestError("Base64 encoding is not supported", this.url, this.method);
   }
 
   /**
@@ -855,8 +855,7 @@ export abstract class BaseRequest {
         currentConfig = result;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        // Use RequestError when we have request context
-        throw new RequestError(`Interceptor failed: ${errorMessage}`, currentConfig.url, currentConfig.method);
+        throw new RequestError(`Request interceptor failed: ${errorMessage}`, currentConfig.url, currentConfig.method);
       }
     }
 
@@ -882,12 +881,9 @@ export abstract class BaseRequest {
         currentResponse = await allInterceptors[i](currentResponse);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        // Use RequestError when we have response context (url/method from ResponseWrapper)
-        if (currentResponse.url && currentResponse.method) {
-          throw new RequestError(`Interceptor failed: ${errorMessage}`, currentResponse.url, currentResponse.method);
-        }
-        // Fallback to generic Error if no context available (shouldn't happen in practice)
-        throw new Error(`Interceptor failed: ${errorMessage}`);
+        const url = currentResponse.url || "";
+        const method = currentResponse.method || "";
+        throw new RequestError(`Response interceptor failed: ${errorMessage}`, url, method);
       }
     }
 
@@ -925,10 +921,15 @@ export abstract class BaseRequest {
           const errorMessage = interceptorError instanceof Error ? interceptorError.message : String(interceptorError);
           // Always wrap in RequestError when we have context
           if (currentError instanceof RequestError) {
-            currentError = new RequestError(`Error interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method);
+            currentError = new RequestError(`Error interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method, {
+              status: currentError.status,
+              response: currentError.response,
+            });
           } else if (currentError instanceof ResponseWrapper && currentError.url && currentError.method) {
             // If it's a ResponseWrapper, we can still create a proper RequestError from its context
-            currentError = new RequestError(`Error interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method);
+            currentError = new RequestError(`Error interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method, {
+              status: currentError.status,
+            });
           } else {
             // Last resort: if we have no context at all, use the original error's context
             // This shouldn't happen in practice, but handle it gracefully

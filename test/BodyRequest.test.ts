@@ -148,7 +148,7 @@ describe("BodyRequest", () => {
     // Act & Assert
     assert.throws(() => {
       new PostRequest("https://api.example.com/test").withBody(circularObj as Body);
-    }, /Stringify failed/);
+    }, /JSON stringify failed/);
   });
 
   it("should respect existing Content-Type header when using withBody", async () => {
@@ -422,7 +422,7 @@ describe("BodyRequest", () => {
       assert.throws(() => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
-      }, /Stringify failed/);
+      }, /JSON stringify failed/);
     });
 
     it("should throw error when variables contain non-serializable values", () => {
@@ -436,7 +436,7 @@ describe("BodyRequest", () => {
       assert.throws(() => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
-      }, /Stringify failed/);
+      }, /JSON stringify failed/);
     });
 
     it("should handle variables with undefined values (which get omitted)", async () => {

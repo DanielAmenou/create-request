@@ -115,11 +115,13 @@ export class ResponseWrapper {
           }
           const errorMessage = error instanceof Error ? error.message : String(error);
           throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url || "", this.method || "", {
+            status: this.response.status,
             response: this.response,
           });
         }
       }
       throw new RequestError("Body already consumed", this.url || "", this.method || "", {
+        status: this.response.status,
         response: this.response,
       });
     }
@@ -174,12 +176,14 @@ export class ResponseWrapper {
         } catch (e) {
           const errorMessage = e instanceof Error ? e.message : String(e);
           throw new RequestError(`Cannot convert to text: ${errorMessage}`, this.url || "", this.method || "", {
+            status: this.response.status,
             response: this.response,
           });
         }
       }
 
       throw new RequestError("Cannot convert to text", this.url || "", this.method || "", {
+        status: this.response.status,
         response: this.response,
       });
     }
@@ -221,6 +225,7 @@ export class ResponseWrapper {
         return this.blobCache;
       }
       throw new RequestError("Cannot convert to Blob", this.url || "", this.method || "", {
+        status: this.response.status,
         response: this.response,
       });
     }
@@ -255,6 +260,7 @@ export class ResponseWrapper {
   getBody(): ReadableStream<Uint8Array> | null {
     if (this.bodyUsed) {
       throw new RequestError("Body already consumed", this.url || "", this.method || "", {
+        status: this.response.status,
         response: this.response,
       });
     }
@@ -307,6 +313,7 @@ export class ResponseWrapper {
       if (selector) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         throw new RequestError(`Data selector failed: ${errorMessage}`, this.url || "", this.method || "", {
+          status: this.response.status,
           response: this.response,
         });
       }
