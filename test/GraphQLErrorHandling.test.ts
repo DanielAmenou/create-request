@@ -31,7 +31,7 @@ describe("GraphQL Error Handling", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, { id: "1" }, { throwOnError: true });
 
       await assert.rejects(
-        async () => await request.getJson(),
+        async () => request.getJson(),
         (error: Error) => {
           assert.ok(error instanceof RequestError);
           return true;
@@ -64,7 +64,7 @@ describe("GraphQL Error Handling", () => {
         assert.fail("Should have thrown an error");
       } catch (error) {
         assert.ok(error instanceof RequestError);
-        const reqError = error as RequestError;
+        const reqError = error;
         assert.match(reqError.message, /GraphQL request failed/);
         assert.match(reqError.message, /Field 'email' is required/);
       }
@@ -94,7 +94,7 @@ describe("GraphQL Error Handling", () => {
         assert.fail("Should have thrown an error");
       } catch (error) {
         assert.ok(error instanceof RequestError);
-        const reqError = error as RequestError;
+        const reqError = error;
         assert.match(reqError.message, /Authentication required/);
       }
     });
@@ -118,7 +118,7 @@ describe("GraphQL Error Handling", () => {
         assert.fail("Should have thrown an error");
       } catch (error) {
         assert.ok(error instanceof RequestError);
-        const reqError = error as RequestError;
+        const reqError = error;
         assert.equal(reqError.status, 200);
         assert.ok(reqError.response);
         assert.equal(reqError.response?.status, 200);
@@ -157,7 +157,7 @@ describe("GraphQL Error Handling", () => {
         assert.fail("Should have thrown an error");
       } catch (error) {
         assert.ok(error instanceof RequestError);
-        const reqError = error as RequestError;
+        const reqError = error;
         assert.match(reqError.message, /Field 'name' is required, Field 'email' is invalid, Age must be positive/);
       }
     });
@@ -181,7 +181,7 @@ describe("GraphQL Error Handling", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: true });
 
       await assert.rejects(
-        async () => await request.getData(),
+        async () => request.getData(),
         (error: Error) => error instanceof RequestError
       );
     });
@@ -206,7 +206,7 @@ describe("GraphQL Error Handling", () => {
 
       const response = await request.getResponse();
       await assert.rejects(
-        async () => await response.getJson(),
+        async () => response.getJson(),
         (error: Error) => error instanceof RequestError
       );
     });
@@ -231,7 +231,7 @@ describe("GraphQL Error Handling", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: true });
 
       await assert.rejects(
-        async () => await request.getJson(),
+        async () => request.getJson(),
         (error: Error) => {
           assert.match(error.message, /Email field failed to resolve/);
           return true;
@@ -291,7 +291,7 @@ describe("GraphQL Error Handling", () => {
         assert.fail("Should have thrown an error");
       } catch (error) {
         assert.ok(error instanceof RequestError);
-        const reqError = error as RequestError;
+        const reqError = error;
         assert.match(reqError.message, /GraphQL request failed/);
         assert.match(reqError.message, /Cannot query field "test" on type "filterItem"., Syntax error in query/);
       }
@@ -396,7 +396,7 @@ describe("GraphQL Error Handling", () => {
 
       // First call should throw
       await assert.rejects(
-        async () => await response.getJson(),
+        async () => response.getJson(),
         (error: Error) => {
           assert.match(error.message, /Cached error/);
           return true;
@@ -405,7 +405,7 @@ describe("GraphQL Error Handling", () => {
 
       // Second call on same response should also throw (from cache)
       await assert.rejects(
-        async () => await response.getJson(),
+        async () => response.getJson(),
         (error: Error) => {
           assert.match(error.message, /Cached error/);
           return true;
@@ -428,7 +428,7 @@ describe("GraphQL Error Handling", () => {
 
       // First call should succeed
       const result1 = await response.getJson();
-      assert.ok(result1.hasOwnProperty("data"));
+      assert.ok(Object.hasOwn(result1, "data"));
 
       // Second call should also succeed (from cache)
       const result2 = await response.getJson();
@@ -450,7 +450,7 @@ describe("GraphQL Error Handling", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: true });
 
       const result = await request.getJson();
-      assert.ok(result.hasOwnProperty("data"));
+      assert.ok(Object.hasOwn(result, "data"));
     });
 
     it("should not throw when errors field is missing", async () => {
@@ -465,7 +465,7 @@ describe("GraphQL Error Handling", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: true });
 
       const result = await request.getJson();
-      assert.ok(result.hasOwnProperty("data"));
+      assert.ok(Object.hasOwn(result, "data"));
     });
 
     it("should not throw when errors is null", async () => {
@@ -481,7 +481,7 @@ describe("GraphQL Error Handling", () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: true });
 
       const result = await request.getJson();
-      assert.ok(result.hasOwnProperty("data"));
+      assert.ok(Object.hasOwn(result, "data"));
     });
 
     it("should handle error without path or locations", async () => {
@@ -510,6 +510,8 @@ describe("GraphQL Error Handling", () => {
 
       assert.throws(
         () => {
+          // @ts-expect-error - Testing invalid GraphQL options
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, [] as any);
         },
         (error: Error) => {
@@ -520,6 +522,8 @@ describe("GraphQL Error Handling", () => {
 
       assert.throws(
         () => {
+          // @ts-expect-error - Testing invalid GraphQL options
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, null as any);
         },
         (error: Error) => {
