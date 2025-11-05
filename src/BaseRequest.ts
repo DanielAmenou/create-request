@@ -780,7 +780,8 @@ export abstract class BaseRequest {
    * @returns The URL with query parameters appended
    */
   private formatUrlWithQueryParams(url: string): string {
-    if (!this.queryParams.toString()) {
+    const queryString = this.queryParams.toString();
+    if (!queryString) {
       return url;
     }
 
@@ -798,7 +799,7 @@ export abstract class BaseRequest {
       // Handle relative URLs
       const hasExistingParams = url.includes("?");
       const separator = hasExistingParams ? "&" : "?";
-      return `${url}${separator}${this.queryParams.toString()}`;
+      return `${url}${separator}${queryString}`;
     }
   }
 
