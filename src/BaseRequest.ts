@@ -323,6 +323,51 @@ export abstract class BaseRequest {
   }
 
   /**
+   * Sets the integrity hash for subresource integrity verification
+   * @param integrity - The integrity hash string (e.g., "sha256-...")
+   * @returns The instance for chaining
+   * @example
+   * request.withIntegrity("sha256-abcdef1234567890...")
+   */
+  withIntegrity(integrity: string): this {
+    this.requestOptions.integrity = integrity;
+    return this;
+  }
+
+  /**
+   * Sets cache mode - supports both direct call and fluent API
+   * @example
+   * request.withCache("no-cache")
+   * request.withCache(CacheMode.NO_CACHE)
+   * request.withCache.NO_CACHE()
+   */
+  get withCache(): ((cache: string) => BaseRequest) & {
+    DEFAULT: () => BaseRequest;
+    NO_STORE: () => BaseRequest;
+    RELOAD: () => BaseRequest;
+    NO_CACHE: () => BaseRequest;
+    FORCE_CACHE: () => BaseRequest;
+    ONLY_IF_CACHED: () => BaseRequest;
+  } {
+    const cacheOptions: Record<string, string> = {
+      DEFAULT: "default",
+      NO_STORE: "no-store",
+      RELOAD: "reload",
+      NO_CACHE: "no-cache",
+      FORCE_CACHE: "force-cache",
+      ONLY_IF_CACHED: "only-if-cached",
+    };
+    return this.createFluentSetter<string>("cache", cacheOptions) as ((cache: string) => BaseRequest) & {
+      DEFAULT: () => BaseRequest;
+      NO_STORE: () => BaseRequest;
+      RELOAD: () => BaseRequest;
+      NO_CACHE: () => BaseRequest;
+      FORCE_CACHE: () => BaseRequest;
+      ONLY_IF_CACHED: () => BaseRequest;
+    };
+  }
+
+  /**
    * Adds query parameters to the request URL
    * @param params - An object containing the query parameters
    * @returns The instance for chaining
@@ -1044,9 +1089,11 @@ export abstract class BaseRequest {
       mode: fetchOptions.mode,
       redirect: fetchOptions.redirect,
       referrer: fetchOptions.referrer,
-      referrerPolicy: fetchOptions.referrerPolicy,
+      referrerPolicy: fetchOptions.referrerPolicy as ReferrerPolicy | undefined,
       keepalive: fetchOptions.keepalive,
       priority: extendedOptions.priority,
+      integrity: fetchOptions.integrity,
+      cache: fetchOptions.cache,
     };
   }
 
@@ -1057,6 +1104,12 @@ export abstract class BaseRequest {
     fetchOptions.headers = config.headers;
     if (config.body !== undefined) {
       fetchOptions.body = config.body as BodyInit | null;
+    }
+    if (config.integrity !== undefined) {
+      fetchOptions.integrity = config.integrity;
+    }
+    if (config.cache !== undefined) {
+      fetchOptions.cache = config.cache as RequestCache;
     }
   }
 

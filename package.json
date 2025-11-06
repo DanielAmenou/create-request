@@ -65,7 +65,7 @@
   "size-limit": [
     {
       "path": "dist/library/index.esm.js",
-      "limit": "6 KB",
+      "limit": "6.2 KB",
       "gzip": true,
       "name": "ESM Standard"
     },

@@ -79,3 +79,15 @@ export enum ReferrerPolicy {
   NO_REFERRER_WHEN_DOWNGRADE = "no-referrer-when-downgrade",
   STRICT_ORIGIN_WHEN_CROSS_ORIGIN = "strict-origin-when-cross-origin",
 }
+
+/**
+ * Cache modes for fetch requests
+ */
+export enum CacheMode {
+  RELOAD = "reload",
+  DEFAULT = "default",
+  NO_CACHE = "no-cache",
+  NO_STORE = "no-store",
+  FORCE_CACHE = "force-cache",
+  ONLY_IF_CACHED = "only-if-cached",
+}
