@@ -128,6 +128,7 @@ import create, {
   RedirectMode,
   ReferrerPolicy,
   SameSitePolicy,
+  CacheMode,
 } from "create-request";
 
 // Configure request options
@@ -177,7 +178,9 @@ const request = create
   .withReferrer("https://example.com") // Sets request referrer
   .withReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE() // Controls referrer policy
   .withPriority.HIGH() // Sets request priority
-  .withKeepAlive(true); // Keeps connection alive after the page is unloaded
+  .withKeepAlive(true) // Keeps connection alive after the page is unloaded
+  .withIntegrity("sha256-abcdef1234567890...") // Sets subresource integrity hash
+  .withCache("no-cache"); // Controls cache behavior (or use .withCache.NO_CACHE())
 ```
 
 Each configuration method returns the request object, allowing for a fluent interface where methods can be chained together. You can configure only what you need for a specific request:
@@ -306,6 +309,44 @@ const typed = create.get("https://api.example.com/data").withQueryParams({
 const merged = create
   .get("https://api.example.com/users?existing=value")
   .withQueryParams({ new: "param" }); // Both existing and new params included
+```
+
+### Subresource Integrity and Cache Control
+
+The library supports subresource integrity verification and cache control options:
+
+```typescript
+// Subresource Integrity - ensures the fetched resource hasn't been tampered with
+const secureRequest = create
+  .get("https://cdn.example.com/script.js")
+  .withIntegrity("sha256-abcdef1234567890..."); // Browser will verify the hash
+
+// Cache Control - supports all cache modes via fluent API or string values
+const cachedRequest = create.get("https://api.example.com/data").withCache("no-cache"); // Direct string value
+
+// Using fluent API for cache modes
+const fluentCache = create.get("https://api.example.com/data").withCache.NO_CACHE(); // Fluent API method
+
+// All available cache modes:
+create
+  .get("https://api.example.com/data")
+  .withCache.DEFAULT() // Default cache behavior
+  .withCache.NO_STORE() // Don't store in cache
+  .withCache.RELOAD() // Reload from server
+  .withCache.NO_CACHE() // Validate with server before using cache
+  .withCache.FORCE_CACHE() // Use cache even if stale
+  .withCache.ONLY_IF_CACHED(); // Only use cache, don't fetch from server
+
+// Using enum values (import from create-request)
+import { CacheMode } from "create-request";
+
+const enumCache = create.get("https://api.example.com/data").withCache(CacheMode.NO_CACHE);
+
+// Combining integrity and cache
+const secureCached = create
+  .get("https://cdn.example.com/resource.js")
+  .withIntegrity("sha256-abcdef1234567890...")
+  .withCache("no-store"); // Ensure no caching for sensitive resources
 ```
 
 ### Executing Requests
