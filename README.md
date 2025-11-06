@@ -14,7 +14,7 @@
 - [Installation](#installation)
 - [Basic Usage](#basic-usage)
 - [Advanced Usage](#advanced-usage)
-- [GraphQL Support](#graphql-support)
+- [GraphQL Support](#graphql-requests)
 - [Interceptors](#interceptors)
 - [TypeScript Support](#typescript-support)
 - [CSRF Protection](#csrf-protection)
