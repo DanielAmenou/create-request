@@ -8,7 +8,10 @@
   "sideEffects": false,
   "type": "module",
   "files": [
-    "dist/library"
+    "dist/library",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "exports": {
     ".": {
