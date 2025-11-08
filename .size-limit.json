@@ -1,0 +1,26 @@
+[
+  {
+    "path": "dist/library/index.esm.js",
+    "limit": "6.2 KB",
+    "gzip": true,
+    "name": "ESM Standard"
+  },
+  {
+    "path": "dist/library/index.cjs",
+    "limit": "6.5 KB",
+    "gzip": true,
+    "name": "CJS Standard"
+  },
+  {
+    "path": "dist/library/index.esm.min.js",
+    "limit": "6.2 KB",
+    "gzip": true,
+    "name": "ESM Minified"
+  },
+  {
+    "path": "dist/library/index.min.cjs",
+    "limit": "6.5 KB",
+    "gzip": true,
+    "name": "CJS Minified"
+  }
+]

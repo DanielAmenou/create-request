@@ -65,32 +65,6 @@
   "bugs": {
     "url": "https://github.com/DanielAmenou/create-request/issues"
   },
-  "size-limit": [
-    {
-      "path": "dist/library/index.esm.js",
-      "limit": "6.2 KB",
-      "gzip": true,
-      "name": "ESM Standard"
-    },
-    {
-      "path": "dist/library/index.cjs",
-      "limit": "6.5 KB",
-      "gzip": true,
-      "name": "CJS Standard"
-    },
-    {
-      "path": "dist/library/index.esm.min.js",
-      "limit": "6 KB",
-      "gzip": true,
-      "name": "ESM Minified"
-    },
-    {
-      "path": "dist/library/index.min.cjs",
-      "limit": "6.5 KB",
-      "gzip": true,
-      "name": "CJS Minified"
-    }
-  ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^22.0.0",
     "@rollup/plugin-node-resolve": "^13.3.0",
