@@ -1138,33 +1138,42 @@ export abstract class BaseRequest {
       this.applyRequestConfig(interceptorResult, fetchOptions);
 
       // Set the combined abort signal
-      fetchOptions.signal = abortSignal.signal;
+      if (abortSignal.signal) {
+        fetchOptions.signal = abortSignal.signal;
+      }
 
       // Execute fetch
       let response: Response;
       try {
         response = await fetch(url, fetchOptions);
       } catch (error) {
-        // Check if it's an abort error (DOMException in browsers, or AbortSignal abort)
-        if (error instanceof DOMException && error.name === "AbortError") {
-          if (abortSignal.wasTimeout()) {
-            throw RequestError.timeout(url, method, this.requestOptions.timeout!);
-          }
-          throw RequestError.abortError(url, method);
-        }
-
-        // Check for Node.js/undici TimeoutError
         const errorObj = error instanceof Error ? error : new Error(String(error));
         const errorName = errorObj.name;
         const errorMessage = errorObj.message.toLowerCase();
 
-        // Detect timeout errors from Node.js/undici (TimeoutError)
-        const isTimeoutError = errorName === "TimeoutError" || errorMessage.includes("timeout") || errorMessage.includes("aborted due to timeout") || abortSignal.wasTimeout();
+        // Check if this is a timeout error from our internal timeout
+        const isOurTimeout = abortSignal.wasTimeout();
+
+        // Check if it's an abort error (DOMException in browsers, or AbortSignal abort)
+        if (error instanceof DOMException && error.name === "AbortError") {
+          // If it was our timeout that caused the abort, throw timeout error
+          if (isOurTimeout && this.requestOptions.timeout) {
+            throw RequestError.timeout(url, method, this.requestOptions.timeout);
+          }
+          // Otherwise it's a manual abort
+          throw RequestError.abortError(url, method);
+        }
+
+        // Check for Node.js/undici TimeoutError or other timeout indicators
+        // This catches timeout errors that aren't thrown as AbortError
+        const isTimeoutError = isOurTimeout || errorName === "TimeoutError" || errorMessage.includes("timeout") || errorMessage.includes("aborted due to timeout");
 
         if (isTimeoutError && this.requestOptions.timeout) {
           throw RequestError.timeout(url, method, this.requestOptions.timeout);
         }
 
+        // For other network errors, let RequestError.networkError handle them
+        // It will check for timeout patterns as a safety net (useful for external AbortControllers)
         throw RequestError.networkError(url, method, errorObj);
       }
 

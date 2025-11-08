@@ -63,6 +63,11 @@ export class RequestError extends Error {
     const errorMessageLower = message.toLowerCase();
 
     // Check for timeout errors (Node.js/undici TimeoutError)
+    // Note: While explicit timeouts set via withTimeout() are handled in BaseRequest,
+    // this detection serves as a safety net for:
+    // 1. Timeout errors from external AbortControllers (e.g., AbortSignal.timeout())
+    // 2. Different runtime implementations that may throw timeout errors differently
+    // 3. Network-level timeouts (ETIMEDOUT)
     const isTimeoutError =
       errorName === "TimeoutError" ||
       errorMessageLower.includes("timeout") ||
