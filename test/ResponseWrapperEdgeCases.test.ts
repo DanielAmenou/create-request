@@ -5,8 +5,8 @@ import { RequestError } from "../src/RequestError.js";
 import { createMockResponse } from "./utils/fetchMock.js";
 
 describe("ResponseWrapper Edge Cases", () => {
-  describe("Body Consumption - Complex Scenarios", () => {
-    it("should handle getting text after JSON", async () => {
+  describe("Body Consumption - Single Use Only", () => {
+    it("should throw error when getting text after JSON", async () => {
       const response = createMockResponse({
         body: { name: "John", age: 30 },
         headers: { "content-type": "application/json" },
@@ -16,12 +16,16 @@ describe("ResponseWrapper Edge Cases", () => {
       const json = await wrapper.getJson();
       assert.deepEqual(json, { name: "John", age: 30 });
 
-      const text = await wrapper.getText();
-      assert.ok(text.includes("John"));
-      assert.ok(text.includes("30"));
+      try {
+        await wrapper.getText();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+      }
     });
 
-    it("should handle getting JSON after text", async () => {
+    it("should throw error when getting JSON after text", async () => {
       const response = createMockResponse({
         body: '{"name":"John","age":30}',
         headers: { "content-type": "application/json" },
@@ -31,11 +35,16 @@ describe("ResponseWrapper Edge Cases", () => {
       const text = await wrapper.getText();
       assert.ok(text.includes("John"));
 
-      const json = await wrapper.getJson();
-      assert.deepEqual(json, { name: "John", age: 30 });
+      try {
+        await wrapper.getJson();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+      }
     });
 
-    it("should handle getting Blob after text", async () => {
+    it("should throw error when getting Blob after text", async () => {
       const response = createMockResponse({
         body: "plain text content",
         headers: { "content-type": "text/plain" },
@@ -45,13 +54,16 @@ describe("ResponseWrapper Edge Cases", () => {
       const text = await wrapper.getText();
       assert.equal(text, "plain text content");
 
-      const blob = await wrapper.getBlob();
-      assert.ok(blob instanceof Blob);
-      const blobText = await blob.text();
-      assert.equal(blobText, "plain text content");
+      try {
+        await wrapper.getBlob();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+      }
     });
 
-    it("should handle getting text after Blob", async () => {
+    it("should throw error when getting text after Blob", async () => {
       const response = createMockResponse({
         body: "text content",
         headers: { "content-type": "text/plain" },
@@ -61,12 +73,16 @@ describe("ResponseWrapper Edge Cases", () => {
       const blob = await wrapper.getBlob();
       assert.ok(blob instanceof Blob);
 
-      const text = await wrapper.getText();
-      const blobText = await blob.text();
-      assert.equal(text, blobText);
+      try {
+        await wrapper.getText();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+      }
     });
 
-    it("should handle multiple calls to same method (cache)", async () => {
+    it("should throw error when calling same method twice", async () => {
       const response = createMockResponse({
         body: { data: "test" },
         headers: { "content-type": "application/json" },
@@ -74,11 +90,15 @@ describe("ResponseWrapper Edge Cases", () => {
       const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
 
       const json1 = await wrapper.getJson();
-      const json2 = await wrapper.getJson();
-      const json3 = await wrapper.getJson();
+      assert.deepEqual(json1, { data: "test" });
 
-      assert.deepEqual(json1, json2);
-      assert.deepEqual(json2, json3);
+      try {
+        await wrapper.getJson();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+      }
     });
 
     it("should throw error when getting body stream after consumption", async () => {
@@ -90,10 +110,31 @@ describe("ResponseWrapper Edge Cases", () => {
       await wrapper.getJson();
 
       try {
-        wrapper.getBody();
+        const stream = wrapper.getBody();
+        if (stream) {
+          await stream.cancel(); // Clean up the stream
+        }
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError || error.message.includes("Body already consumed"));
+      }
+    });
+
+    it("should throw error when getting ArrayBuffer after text", async () => {
+      const response = createMockResponse({
+        body: "text content",
+        headers: { "content-type": "text/plain" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      await wrapper.getText();
+
+      try {
+        await wrapper.getArrayBuffer();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
       }
     });
   });
@@ -153,7 +194,7 @@ describe("ResponseWrapper Edge Cases", () => {
       assert.deepEqual(json, complex);
     });
 
-    it("should throw error for invalid JSON after text consumption", async () => {
+    it("should throw error when body already consumed", async () => {
       const response = createMockResponse({
         body: "not valid json",
         headers: { "content-type": "text/plain" },
@@ -166,7 +207,8 @@ describe("ResponseWrapper Edge Cases", () => {
         await wrapper.getJson();
         assert.fail("Should have thrown error");
       } catch (error: any) {
-        assert.ok(error instanceof RequestError || error.message.includes("parse"));
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
       }
     });
   });
@@ -261,8 +303,233 @@ describe("ResponseWrapper Edge Cases", () => {
     });
   });
 
+  describe("ArrayBuffer Conversion - Comprehensive Tests", () => {
+    it("should get ArrayBuffer from response", async () => {
+      const content = "Binary content";
+      const response = createMockResponse({
+        body: content,
+        headers: { "content-type": "application/octet-stream" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      const buffer = await wrapper.getArrayBuffer();
+
+      assert.ok(buffer instanceof ArrayBuffer);
+      const text = new TextDecoder().decode(buffer);
+      assert.equal(text, content);
+    });
+
+    it("should handle empty ArrayBuffer", async () => {
+      const response = createMockResponse({
+        body: "",
+        headers: { "content-type": "application/octet-stream" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      const buffer = await wrapper.getArrayBuffer();
+
+      assert.ok(buffer instanceof ArrayBuffer);
+      assert.equal(buffer.byteLength, 0);
+    });
+
+    it("should handle large ArrayBuffer", async () => {
+      const largeContent = "x".repeat(10000);
+      const response = createMockResponse({
+        body: largeContent,
+        headers: { "content-type": "application/octet-stream" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      const buffer = await wrapper.getArrayBuffer();
+
+      assert.ok(buffer instanceof ArrayBuffer);
+      assert.equal(buffer.byteLength, 10000);
+      const text = new TextDecoder().decode(buffer);
+      assert.equal(text, largeContent);
+    });
+
+    it("should handle binary data in ArrayBuffer", async () => {
+      const binaryData = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]); // "Hello" in bytes
+      // Create a proper binary response
+      const response = new Response(binaryData.buffer, {
+        headers: { "content-type": "application/octet-stream" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      const buffer = await wrapper.getArrayBuffer();
+
+      assert.ok(buffer instanceof ArrayBuffer);
+      const uint8 = new Uint8Array(buffer);
+      assert.deepEqual(Array.from(uint8), Array.from(binaryData));
+      const text = new TextDecoder().decode(buffer);
+      assert.equal(text, "Hello");
+    });
+
+    it("should throw error when getting ArrayBuffer after JSON", async () => {
+      const response = createMockResponse({
+        body: { data: "test" },
+        headers: { "content-type": "application/json" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      await wrapper.getJson();
+
+      try {
+        await wrapper.getArrayBuffer();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+      }
+    });
+
+    it("should throw error when getting ArrayBuffer after text", async () => {
+      const response = createMockResponse({
+        body: "text content",
+        headers: { "content-type": "text/plain" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      await wrapper.getText();
+
+      try {
+        await wrapper.getArrayBuffer();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+      }
+    });
+
+    it("should throw error when getting ArrayBuffer after Blob", async () => {
+      const response = createMockResponse({
+        body: "blob content",
+        headers: { "content-type": "application/octet-stream" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      await wrapper.getBlob();
+
+      try {
+        await wrapper.getArrayBuffer();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+      }
+    });
+
+    it("should throw error when calling getArrayBuffer twice", async () => {
+      const response = createMockResponse({
+        body: "binary content",
+        headers: { "content-type": "application/octet-stream" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      const buffer1 = await wrapper.getArrayBuffer();
+      assert.ok(buffer1 instanceof ArrayBuffer);
+
+      try {
+        await wrapper.getArrayBuffer();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+      }
+    });
+
+    it("should throw error when getting JSON after ArrayBuffer", async () => {
+      const response = createMockResponse({
+        body: '{"name":"test"}',
+        headers: { "content-type": "application/json" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      await wrapper.getArrayBuffer();
+
+      try {
+        await wrapper.getJson();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+      }
+    });
+
+    it("should throw error when getting text after ArrayBuffer", async () => {
+      const response = createMockResponse({
+        body: "text content",
+        headers: { "content-type": "text/plain" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      await wrapper.getArrayBuffer();
+
+      try {
+        await wrapper.getText();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+      }
+    });
+
+    it("should handle ArrayBuffer without url/method", async () => {
+      const content = "Binary content";
+      const response = createMockResponse({
+        body: content,
+        headers: { "content-type": "application/octet-stream" },
+      });
+      const wrapper = new ResponseWrapper(response); // No url/method
+
+      const buffer = await wrapper.getArrayBuffer();
+
+      assert.ok(buffer instanceof ArrayBuffer);
+      const text = new TextDecoder().decode(buffer);
+      assert.equal(text, content);
+    });
+
+    it("should throw error when getting ArrayBuffer after body consumed via getBody", async () => {
+      const response = createMockResponse({
+        body: "binary content",
+        headers: { "content-type": "application/octet-stream" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      const stream = wrapper.getBody();
+      if (stream) {
+        stream.getReader(); // Lock the stream
+      }
+
+      try {
+        await wrapper.getArrayBuffer();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed") || error.message.includes("unusable") || error.message.includes("locked"));
+      }
+    });
+
+    it("should handle unicode characters in ArrayBuffer", async () => {
+      const unicodeContent = "Hello 世界 🌍";
+      const response = createMockResponse({
+        body: unicodeContent,
+        headers: { "content-type": "text/plain; charset=utf-8" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      const buffer = await wrapper.getArrayBuffer();
+
+      assert.ok(buffer instanceof ArrayBuffer);
+      const text = new TextDecoder("utf-8").decode(buffer);
+      assert.equal(text, unicodeContent);
+    });
+  });
+
   describe("Error Scenarios", () => {
-    it("should throw RequestError when body consumed in incompatible format", async () => {
+    it("should throw RequestError when body consumed", async () => {
       const response = createMockResponse({
         body: { data: "test" },
       });
@@ -274,15 +541,14 @@ describe("ResponseWrapper Edge Cases", () => {
         await wrapper.getBlob();
         assert.fail("Should have thrown error");
       } catch (error: any) {
-        assert.ok(error instanceof RequestError || error.message.includes("consumed"));
-        if (error instanceof RequestError) {
-          assert.equal(error.url, "https://api.example.com/test");
-          assert.equal(error.method, "GET");
-        }
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
       }
     });
 
-    it("should handle errors when context (url/method) is missing", async () => {
+    it("should throw RequestError when body consumed without url/method", async () => {
       const response = createMockResponse({
         body: { data: "test" },
       });
@@ -292,31 +558,10 @@ describe("ResponseWrapper Edge Cases", () => {
 
       try {
         await wrapper.getBlob();
-        // Should still throw error, but might not be RequestError
-      } catch (error: any) {
-        assert.ok(error.message.includes("consumed") || error.message.includes("already") || error.message.includes("Cannot convert"));
-      }
-    });
-
-    it("should throw RequestError when JSON parsing fails after body consumed without url/method", async () => {
-      // Create a response that will fail JSON parsing
-      const response = createMockResponse({
-        body: "not valid json",
-        headers: { "content-type": "text/plain" },
-      });
-      const wrapper = new ResponseWrapper(response); // No url/method
-
-      // Consume body as text first
-      await wrapper.getText();
-
-      // Now try to get JSON - should fail parsing and throw RequestError
-      try {
-        await wrapper.getJson();
         assert.fail("Should have thrown error");
       } catch (error: any) {
-        // Should be RequestError (always throws RequestError, even without url/method)
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Invalid JSON") || error.message.includes("parse"));
+        assert.ok(error.message.includes("Body already consumed"));
       }
     });
 
@@ -326,8 +571,11 @@ describe("ResponseWrapper Edge Cases", () => {
       });
       const wrapper = new ResponseWrapper(response); // No url/method
 
-      // Consume body via getBody
-      wrapper.getBody();
+      // Consume body via getBody and lock the stream
+      const stream = wrapper.getBody();
+      if (stream) {
+        stream.getReader(); // This locks the stream
+      }
 
       // Now try to get JSON - should throw RequestError since body is consumed
       try {
@@ -336,43 +584,7 @@ describe("ResponseWrapper Edge Cases", () => {
       } catch (error: any) {
         // Should be RequestError (always throws RequestError, even without url/method)
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
-      }
-    });
-
-    it("should get text after body consumed as JSON without url/method", async () => {
-      const response = createMockResponse({
-        body: { data: "test" },
-      });
-      const wrapper = new ResponseWrapper(response); // No url/method
-
-      // Consume body as JSON first
-      await wrapper.getJson();
-
-      // Then get text - should succeed (converts from JSON)
-      const text = await wrapper.getText();
-      assert.ok(text.includes("data"));
-    });
-
-    it("should throw RequestError when blob to text conversion fails without url/method", async () => {
-      // Create a blob that will fail text conversion
-      const response = createMockResponse({
-        body: new Blob([new Uint8Array([0xff, 0xfe])], { type: "application/octet-stream" }),
-      });
-      const wrapper = new ResponseWrapper(response); // No url/method
-
-      // Get blob first
-      await wrapper.getBlob();
-
-      // Try to convert blob to text - this might succeed or fail depending on implementation
-      // If it fails, should throw RequestError
-      try {
-        const text = await wrapper.getText();
-        // If it succeeds, that's fine - we just want to ensure the path is covered
-        assert.ok(typeof text === "string");
-      } catch (error: any) {
-        // If it fails, should be RequestError (always throws RequestError, even without url/method)
-        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed") || error.message.includes("unusable") || error.message.includes("locked"));
       }
     });
 
@@ -382,8 +594,11 @@ describe("ResponseWrapper Edge Cases", () => {
       });
       const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET"); // WITH url/method
 
-      // Consume body via getBody
-      wrapper.getBody();
+      // Consume body via getBody and lock the stream
+      const stream = wrapper.getBody();
+      if (stream) {
+        stream.getReader(); // This locks the stream
+      }
 
       // Now try to get JSON - should throw RequestError since url/method are present
       try {
@@ -394,69 +609,7 @@ describe("ResponseWrapper Edge Cases", () => {
         assert.ok(error instanceof RequestError);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
-        assert.ok(error.message.includes("Body already consumed"));
-      }
-    });
-
-    it("should throw RequestError when JSON parsing fails after body consumed with url/method", async () => {
-      // Create a response that will fail JSON parsing
-      const response = createMockResponse({
-        body: "not valid json",
-        headers: { "content-type": "text/plain" },
-      });
-      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET"); // WITH url/method
-
-      // Consume body as text first
-      await wrapper.getText();
-
-      // Now try to get JSON - should fail parsing and throw RequestError (not generic Error)
-      try {
-        await wrapper.getJson();
-        assert.fail("Should have thrown error");
-      } catch (error: any) {
-        // Should be RequestError since url/method are present
-        assert.ok(error instanceof RequestError);
-        assert.equal(error.url, "https://api.example.com/test");
-        assert.equal(error.method, "GET");
-        assert.ok(error.message.includes("Invalid JSON"));
-      }
-    });
-
-    it("should throw RequestError when blob to text conversion fails with url/method", async () => {
-      // Create a custom blob-like object that throws when text() is called
-      class FailingBlob extends Blob {
-        async text(): Promise<string> {
-          await Promise.resolve(); // Satisfy linter require-await rule
-          throw new Error("Blob text conversion failed");
-        }
-      }
-
-      // Create a response that will return our failing blob
-      const failingBlob = new FailingBlob(["test"], { type: "application/octet-stream" });
-
-      // Mock the response's blob() method to return our failing blob
-      const mockResponse = createMockResponse({
-        body: "test",
-      });
-
-      // Override the blob method to return our failing blob
-      mockResponse.blob = () => Promise.resolve(failingBlob);
-
-      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET");
-
-      // Get blob first to cache it
-      await wrapper.getBlob();
-
-      // Now try to get text - should fail with RequestError
-      try {
-        await wrapper.getText();
-        assert.fail("Should have thrown error");
-      } catch (error: any) {
-        // Should be RequestError since url/method are present
-        assert.ok(error instanceof RequestError);
-        assert.equal(error.url, "https://api.example.com/test");
-        assert.equal(error.method, "GET");
-        assert.ok(error.message.includes("Cannot convert to text"));
+        assert.ok(error.message.includes("Body already consumed") || error.message.includes("unusable") || error.message.includes("locked"));
       }
     });
 
@@ -467,8 +620,11 @@ describe("ResponseWrapper Edge Cases", () => {
       const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
 
       try {
-        // Try to get JSON twice after consuming in different format
-        wrapper.getBody();
+        // Try to get JSON after consuming via getBody
+        const stream = wrapper.getBody();
+        if (stream) {
+          stream.getReader(); // This locks the stream
+        }
         await wrapper.getJson();
         assert.fail("Should have thrown error");
       } catch (error: any) {
@@ -509,7 +665,7 @@ describe("ResponseWrapper Edge Cases", () => {
   });
 
   describe("Body Stream", () => {
-    it("should return body stream when not consumed", () => {
+    it("should return body stream when not consumed", async () => {
       const response = createMockResponse({
         body: { data: "test" },
       });
@@ -519,6 +675,11 @@ describe("ResponseWrapper Edge Cases", () => {
 
       // Body should be a ReadableStream or null
       assert.ok(body === null || body instanceof ReadableStream);
+
+      // Clean up the stream
+      if (body) {
+        await body.cancel();
+      }
     });
 
     it("should throw error when getting body stream after JSON", async () => {
@@ -530,7 +691,10 @@ describe("ResponseWrapper Edge Cases", () => {
       await wrapper.getJson();
 
       try {
-        wrapper.getBody();
+        const stream = wrapper.getBody();
+        if (stream) {
+          await stream.cancel(); // Clean up if somehow we got a stream
+        }
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error.message.includes("Body already consumed"));
@@ -546,7 +710,10 @@ describe("ResponseWrapper Edge Cases", () => {
       await wrapper.getText();
 
       try {
-        wrapper.getBody();
+        const stream = wrapper.getBody();
+        if (stream) {
+          await stream.cancel(); // Clean up if somehow we got a stream
+        }
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error.message.includes("Body already consumed"));

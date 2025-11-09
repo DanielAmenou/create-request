@@ -450,16 +450,23 @@ describe("Integration Scenarios", () => {
       assert.deepEqual(data, responseData);
     });
 
-    it("should handle multiple response format requests", async () => {
+    it("should handle single response format request", async () => {
       FetchMock.mockResponseOnce({ body: { data: "test" } });
 
       const response = await create.get("https://api.example.com/test").getResponse();
       const json = await response.getJson();
-      const text = await response.getText();
 
       assert.deepEqual(json, { data: "test" });
-      assert.ok(text.includes("data"));
-      assert.ok(text.includes("test"));
+
+      // Second call should throw body already consumed error
+      await assert.rejects(
+        async () => response.getText(),
+        (error: Error) => {
+          assert(error instanceof RequestError);
+          assert(error.message.includes("Body already consumed"));
+          return true;
+        }
+      );
     });
   });
 });

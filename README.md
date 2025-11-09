@@ -360,6 +360,7 @@ const jsonData = await create.get("https://api.example.com/endpoint").getJson();
 const textData = await create.get("https://api.example.com/endpoint").getText();
 const blobData = await create.get("https://api.example.com/endpoint").getBlob();
 const bodyStream = await create.get("https://api.example.com/endpoint").getBody();
+const arrayBuffer = await create.get("https://api.example.com/endpoint").getArrayBuffer();
 
 // Using the data selector API to extract specific data
 const userData = await create
@@ -387,10 +388,11 @@ console.log(response.method); // HTTP method
 console.log(response.raw); // Raw Response object from fetch
 
 // Use wrapper methods for body parsing
+const stream = response.getBody(); // ReadableStream or null
 const json = await response.getJson();
 const text = await response.getText();
 const blob = await response.getBlob();
-const stream = response.getBody(); // ReadableStream or null
+const arrayBuffer = await response.getArrayBuffer();
 ```
 
 ### Error Handling

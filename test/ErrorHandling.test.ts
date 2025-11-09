@@ -1417,8 +1417,8 @@ describe("Error Handling Tests", () => {
       }
     });
 
-    it("should handle getJson after getText with invalid JSON", async () => {
-      // Arrange - Test ResponseWrapper.getJson() after getText() with invalid JSON
+    it("should handle getJson after getText throws error", async () => {
+      // Arrange - Test ResponseWrapper.getJson() after getText() fails with body consumed error
       FetchMock.mockResponseOnce({
         body: "not valid json",
         headers: { "Content-Type": "text/plain" },
@@ -1431,14 +1431,14 @@ describe("Error Handling Tests", () => {
       // Get text first
       await response.getText();
 
-      // Try to get JSON from the invalid text
+      // Try to get JSON after consuming the body
       try {
         await response.getJson();
         assert.fail("Should have thrown an error");
       } catch (error) {
-        // Assert - Should throw RequestError when parsing invalid JSON from text cache
+        // Assert - Should throw RequestError when body already consumed
         assert(error instanceof RequestError);
-        assert(error.message.includes("Invalid JSON"));
+        assert(error.message.includes("Body already consumed"));
       }
     });
 

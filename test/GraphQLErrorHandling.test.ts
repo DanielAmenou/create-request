@@ -379,13 +379,13 @@ describe("GraphQL Error Handling", () => {
     });
   });
 
-  describe("Response caching with GraphQL errors", () => {
-    it("should check for errors on cached JSON response", async () => {
+  describe("GraphQL error handling on response", () => {
+    it("should check for errors on JSON response", async () => {
       FetchMock.mockResponseOnce({
         status: 200,
         body: {
           data: null,
-          errors: [{ message: "Cached error" }],
+          errors: [{ message: "GraphQL error" }],
         },
       });
 
@@ -398,22 +398,22 @@ describe("GraphQL Error Handling", () => {
       await assert.rejects(
         async () => response.getJson(),
         (error: Error) => {
-          assert.match(error.message, /Cached error/);
+          assert.match(error.message, /GraphQL error/);
           return true;
         }
       );
 
-      // Second call on same response should also throw (from cache)
+      // Second call should throw body already consumed error
       await assert.rejects(
         async () => response.getJson(),
         (error: Error) => {
-          assert.match(error.message, /Cached error/);
+          assert.match(error.message, /Body already consumed/);
           return true;
         }
       );
     });
 
-    it("should handle cached response with no errors", async () => {
+    it("should handle response with no errors", async () => {
       FetchMock.mockResponseOnce({
         status: 200,
         body: {
@@ -430,9 +430,14 @@ describe("GraphQL Error Handling", () => {
       const result1 = await response.getJson();
       assert.ok(Object.hasOwn(result1, "data"));
 
-      // Second call should also succeed (from cache)
-      const result2 = await response.getJson();
-      assert.deepEqual(result2, result1);
+      // Second call should throw body already consumed error
+      await assert.rejects(
+        async () => response.getJson(),
+        (error: Error) => {
+          assert.match(error.message, /Body already consumed/);
+          return true;
+        }
+      );
     });
   });
 

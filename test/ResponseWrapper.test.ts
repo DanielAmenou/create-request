@@ -150,7 +150,7 @@ describe("ResponseWrapper", () => {
     }
   });
 
-  it("should allow calling getJson() multiple times on the same response", async () => {
+  it("should throw error when calling getJson() twice on the same response", async () => {
     // Arrange
     const data = { name: "John", age: 30 };
     const mockResponse = new Response(JSON.stringify(data), {
@@ -160,14 +160,13 @@ describe("ResponseWrapper", () => {
 
     // Act
     const result1 = await wrapper.getJson();
-    const result2 = await wrapper.getJson();
 
     // Assert
     assert.deepEqual(result1, data);
-    assert.deepEqual(result2, data);
+    await assert.rejects(() => wrapper.getJson(), /Body already consumed/);
   });
 
-  it("should allow getting text after JSON", async () => {
+  it("should throw error when getting text after JSON", async () => {
     // Arrange
     const data = { name: "John", age: 30 };
     const jsonString = JSON.stringify(data);
@@ -178,14 +177,13 @@ describe("ResponseWrapper", () => {
 
     // Act
     const jsonResult = await wrapper.getJson();
-    const textResult = await wrapper.getText();
 
     // Assert
     assert.deepEqual(jsonResult, data);
-    assert.equal(textResult, jsonString);
+    await assert.rejects(() => wrapper.getText(), /Body already consumed/);
   });
 
-  it("should allow getting JSON after text", async () => {
+  it("should throw error when getting JSON after text", async () => {
     // Arrange
     const data = { name: "John", age: 30 };
     const jsonString = JSON.stringify(data);
@@ -196,14 +194,13 @@ describe("ResponseWrapper", () => {
 
     // Act
     const textResult = await wrapper.getText();
-    const jsonResult = await wrapper.getJson();
 
     // Assert
     assert.equal(textResult, jsonString);
-    assert.deepEqual(jsonResult, data);
+    await assert.rejects(() => wrapper.getJson(), /Body already consumed/);
   });
 
-  it("should convert between blob and text formats", async () => {
+  it("should throw error when getting blob after text", async () => {
     // Arrange
     const content = "Hello, world!";
     const mockResponse = new Response(content, {
@@ -216,22 +213,55 @@ describe("ResponseWrapper", () => {
 
     // Assert
     assert.equal(text, content);
+    await assert.rejects(() => wrapper.getBlob(), /Body already consumed/);
   });
 
-  it("should throw a descriptive error when body is consumed in incompatible formats", async () => {
+  it("should throw a descriptive error when body stream is locked", async () => {
     // Arrange
     const mockResponse = new Response("Plain text content", {
       headers: { "Content-Type": "text/plain" },
     });
     const wrapper = new ResponseWrapper(mockResponse);
 
-    // Act
-    wrapper.getBody(); // Get the body first - no need to await as it returns synchronously
+    // Act - Get the body stream and lock it by getting a reader
+    const stream = wrapper.getBody();
+    if (stream) {
+      stream.getReader(); // This locks the stream and marks body as used
+    }
 
     // Assert - now try to get JSON which should fail
-    await assert.rejects(
-      () => wrapper.getJson(), // Remove the extra await here
-      /Body already consumed/
-    );
+    await assert.rejects(() => wrapper.getJson(), /Body (already consumed|is unusable|has already been read)/i);
+  });
+
+  it("should get ArrayBuffer response", async () => {
+    // Arrange
+    const content = "Binary content";
+    const mockResponse = new Response(content, {
+      headers: { "Content-Type": "application/octet-stream" },
+    });
+    const wrapper = new ResponseWrapper(mockResponse);
+
+    // Act
+    const result = await wrapper.getArrayBuffer();
+
+    // Assert
+    assert(result instanceof ArrayBuffer);
+    const text = new TextDecoder().decode(result);
+    assert.equal(text, content);
+  });
+
+  it("should throw error when getting ArrayBuffer after body consumed", async () => {
+    // Arrange
+    const content = "Binary content";
+    const mockResponse = new Response(content, {
+      headers: { "Content-Type": "application/octet-stream" },
+    });
+    const wrapper = new ResponseWrapper(mockResponse);
+
+    // Act
+    await wrapper.getText();
+
+    // Assert
+    await assert.rejects(() => wrapper.getArrayBuffer(), /Body already consumed/);
   });
 });
