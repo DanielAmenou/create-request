@@ -186,10 +186,26 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets credentials policy - supports both direct call and fluent API
+   * Sets the credentials policy for the request, controlling whether cookies and authentication
+   * headers are sent with cross-origin requests.
+   *
+   * @param credentialsPolicy - The credentials policy to use:
+   *   - `"include"` or `CredentialsPolicy.INCLUDE`: Always send credentials (cookies, authorization headers) with the request, even for cross-origin requests.
+   *   - `"omit"` or `CredentialsPolicy.OMIT`: Never send credentials, even for same-origin requests.
+   *   - `"same-origin"` or `CredentialsPolicy.SAME_ORIGIN`: Only send credentials for same-origin requests (default behavior in most browsers).
+   *
+   * @returns The request instance for chaining
+   *
    * @example
+   * // Using string values
    * request.withCredentials("include")
+   *
+   * @example
+   * // Using enum values
    * request.withCredentials(CredentialsPolicy.INCLUDE)
+   *
+   * @example
+   * // Using fluent API
    * request.withCredentials.INCLUDE()
    */
   get withCredentials(): ((credentialsPolicy: CredentialsPolicy | string) => BaseRequest) & {
@@ -209,9 +225,30 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Allows providing an external AbortController to cancel the request
-   * @param controller - The AbortController to use for this request
-   * @returns The instance for chaining
+   * Allows providing an external AbortController to cancel the request.
+   * This is useful when you need to cancel a request from outside the request chain,
+   *
+   * @param controller - The AbortController to use for this request. When `controller.abort()` is called,
+   *   the request will be cancelled and throw an abort error.
+   *
+   * @returns The request instance for chaining
+   *
+   * @example
+   * const controller = new AbortController();
+   * const request = createRequest('/api/data')
+   *   .withAbortController(controller)
+   *   .getJson();
+   *
+   * // Later, cancel the request
+   * controller.abort();
+   *
+   * @example
+   * // Share abort controller across multiple requests
+   * const controller = new AbortController();
+   * request1.withAbortController(controller).getJson();
+   * request2.withAbortController(controller).getJson();
+   * // Aborting will cancel both requests
+   * controller.abort();
    */
   withAbortController(controller: AbortController): this {
     this.abortController = controller;
@@ -219,9 +256,22 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets the referrer for the request
-   * @param referrer - The referrer URL or policy
-   * @returns The instance for chaining
+   * Sets the referrer URL for the request. The referrer is the URL of the page that initiated the request.
+   * This can be used to override the default referrer that the browser would normally send.
+   *
+   * @param referrer - The referrer URL to send with the request. Can be:
+   *   - A full URL (e.g., "https://example.com/page")
+   *   - An empty string to omit the referrer
+   *   - A relative URL (will be resolved relative to the current page)
+   *
+   * @returns The request instance for chaining
+   *
+   * @example
+   * request.withReferrer("https://example.com/previous-page")
+   *
+   * @example
+   * // Omit referrer
+   * request.withReferrer("")
    */
   withReferrer(referrer: string): this {
     this.requestOptions.referrer = referrer;
@@ -229,10 +279,31 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets referrer policy - supports both direct call and fluent API
+   * Sets the referrer policy for the request, controlling how much referrer information
+   * is sent with the request. This helps balance privacy and functionality.
+   *
+   * @param policy - The referrer policy to use:
+   *   - `"no-referrer"` or `ReferrerPolicy.NO_REFERRER`: Never send the referrer header.
+   *   - `"no-referrer-when-downgrade"` or `ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE`: Send full referrer for same-origin or HTTPS→HTTPS, omit for HTTPS→HTTP (default in most browsers).
+   *   - `"origin"` or `ReferrerPolicy.ORIGIN`: Only send the origin (scheme, host, port), not the full URL.
+   *   - `"origin-when-cross-origin"` or `ReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN`: Send full referrer for same-origin, only origin for cross-origin.
+   *   - `"same-origin"` or `ReferrerPolicy.SAME_ORIGIN`: Send full referrer for same-origin requests only, omit for cross-origin.
+   *   - `"strict-origin"` or `ReferrerPolicy.STRICT_ORIGIN`: Send origin for HTTPS→HTTPS or HTTP→HTTP, omit for HTTPS→HTTP.
+   *   - `"strict-origin-when-cross-origin"` or `ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN`: Send full referrer for same-origin, origin for cross-origin HTTPS→HTTPS, omit for HTTPS→HTTP.
+   *   - `"unsafe-url"` or `ReferrerPolicy.UNSAFE_URL`: Always send the full referrer URL (may leak sensitive information).
+   *
+   * @returns The request instance for chaining
+   *
    * @example
+   * // Using string values
    * request.withReferrerPolicy("no-referrer")
+   *
+   * @example
+   * // Using enum values
    * request.withReferrerPolicy(ReferrerPolicy.NO_REFERRER)
+   *
+   * @example
+   * // Using fluent API
    * request.withReferrerPolicy.NO_REFERRER()
    */
   get withReferrerPolicy(): ((policy: ReferrerPolicy | string) => BaseRequest) & {
@@ -267,11 +338,30 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets redirect mode - supports both direct call and fluent API
+   * Sets how the request handles HTTP redirects (3xx status codes).
+   *
+   * @param redirect - The redirect handling mode:
+   *   - `"follow"` or `RedirectMode.FOLLOW`: Automatically follow redirects. The fetch will transparently follow redirects and return the final response (default behavior).
+   *   - `"error"` or `RedirectMode.ERROR`: Treat redirects as errors. If a redirect occurs, the request will fail with an error.
+   *   - `"manual"` or `RedirectMode.MANUAL`: Return the redirect response without following it. The response will have a `type` of "opaqueredirect" and you can manually handle the redirect.
+   *
+   * @returns The request instance for chaining
+   *
    * @example
+   * // Using string values
    * request.withRedirect("follow")
+   *
+   * @example
+   * // Using enum values
    * request.withRedirect(RedirectMode.FOLLOW)
+   *
+   * @example
+   * // Using fluent API
    * request.withRedirect.FOLLOW()
+   *
+   * @example
+   * // Fail on redirects
+   * request.withRedirect.ERROR()
    */
   get withRedirect(): ((redirect: RedirectMode | string) => BaseRequest) & {
     FOLLOW: () => BaseRequest;
@@ -290,9 +380,19 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets the keepalive flag for the request
-   * @param keepalive - Whether to allow the request to outlive the page
-   * @returns The instance for chaining
+   * Sets the keepalive flag for the request. When enabled, the request can continue
+   * even after the page that initiated it is closed. This is useful for analytics,
+   * logging, or other background requests that should complete even if the user navigates away.
+   *
+   * @param keepalive - Whether to allow the request to outlive the page:
+   *   - `true`: The request will continue even if the page is closed or navigated away.
+   *   - `false`: The request will be cancelled if the page is closed (default).
+   *
+   * @returns The request instance for chaining
+   *
+   * @example
+   * // Send analytics event that should complete even if user navigates away
+   * request.withKeepAlive(true)
    */
   withKeepAlive(keepalive: boolean): this {
     this.requestOptions.keepalive = keepalive;
@@ -300,11 +400,31 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets request priority - supports both direct call and fluent API
+   * Sets the priority hint for the request, indicating to the browser how important
+   * this request is relative to other requests. This helps the browser optimize resource loading.
+   *
+   * @param priority - The request priority:
+   *   - `"high"` or `RequestPriority.HIGH`: High priority - the browser should prioritize this request.
+   *   - `"low"` or `RequestPriority.LOW`: Low priority - the browser can defer this request if needed.
+   *   - `"auto"` or `RequestPriority.AUTO`: Automatic priority based on the request type (default).
+   *
+   * @returns The request instance for chaining
+   *
    * @example
+   * // Using string values
    * request.withPriority("high")
+   *
+   * @example
+   * // Using enum values
    * request.withPriority(RequestPriority.HIGH)
+   *
+   * @example
+   * // Using fluent API
    * request.withPriority.HIGH()
+   *
+   * @example
+   * // Low priority for non-critical requests
+   * request.withPriority.LOW()
    */
   get withPriority(): ((priority: RequestPriority | string) => BaseRequest) & {
     HIGH: () => BaseRequest;
@@ -323,11 +443,24 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets the integrity hash for subresource integrity verification
-   * @param integrity - The integrity hash string (e.g., "sha256-...")
-   * @returns The instance for chaining
+   * Sets the integrity hash for Subresource Integrity (SRI) verification.
+   * This allows the browser to verify that the fetched resource hasn't been tampered with
+   * by comparing its hash against the provided value. If the hashes don't match, the request fails.
+   *
+   * @param integrity - The integrity hash string in the format `"algorithm-hash"`:
+   *   - Example: `"sha256-abcdef1234567890..."` (SHA-256 hash)
+   *   - Example: `"sha384-abcdef1234567890..."` (SHA-384 hash)
+   *   - Example: `"sha512-abcdef1234567890..."` (SHA-512 hash)
+   *   - Multiple hashes can be separated by spaces: `"sha256-... sha384-..."`
+   *
+   * @returns The request instance for chaining
+   *
    * @example
    * request.withIntegrity("sha256-abcdef1234567890...")
+   *
+   * @example
+   * // Multiple algorithms for better compatibility
+   * request.withIntegrity("sha256-... sha384-...")
    */
   withIntegrity(integrity: string): this {
     this.requestOptions.integrity = integrity;
@@ -335,11 +468,38 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets cache mode - supports both direct call and fluent API
+   * Sets the cache mode for the request, controlling how the browser's HTTP cache
+   * is used for this request.
+   *
+   * @param cache - The cache mode:
+   *   - `"default"` or `CacheMode.DEFAULT`: Use the browser's default cache behavior. The browser will check the cache and use it if valid, otherwise fetch from network.
+   *   - `"no-store"` or `CacheMode.NO_STORE`: Never use the cache and don't store the response in cache. Always fetch from network.
+   *   - `"reload"` or `CacheMode.RELOAD`: Bypass the cache but store the response. Always fetch from network, ignoring cached responses.
+   *   - `"no-cache"` or `CacheMode.NO_CACHE`: Check the cache but revalidate with the server. Use cached response only if server confirms it's still valid.
+   *   - `"force-cache"` or `CacheMode.FORCE_CACHE`: Use the cache if available, even if stale. Only fetch from network if not in cache.
+   *   - `"only-if-cached"` or `CacheMode.ONLY_IF_CACHED`: Only use the cache. If not in cache, return an error. Never fetch from network.
+   *
+   * @returns The request instance for chaining
+   *
    * @example
+   * // Using string values
    * request.withCache("no-cache")
+   *
+   * @example
+   * // Using enum values
    * request.withCache(CacheMode.NO_CACHE)
+   *
+   * @example
+   * // Using fluent API
    * request.withCache.NO_CACHE()
+   *
+   * @example
+   * // Always fetch fresh data
+   * request.withCache.RELOAD()
+   *
+   * @example
+   * // Use cache only, fail if not cached
+   * request.withCache.ONLY_IF_CACHED()
    */
   get withCache(): ((cache: string) => BaseRequest) & {
     DEFAULT: () => BaseRequest;
@@ -404,11 +564,32 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets request mode - supports both direct call and fluent API
+   * Sets the request mode, which determines the CORS (Cross-Origin Resource Sharing) behavior
+   * for the request. This controls how the browser handles cross-origin requests.
+   *
+   * @param mode - The request mode:
+   *   - `"cors"` or `RequestMode.CORS`: Enable CORS. The browser will send CORS headers and enforce CORS rules. This is the default for most cross-origin requests.
+   *   - `"no-cors"` or `RequestMode.NO_CORS`: Disable CORS. The request is sent as a "simple" request without CORS headers. The response will be opaque (you can't read it).
+   *   - `"same-origin"` or `RequestMode.SAME_ORIGIN`: Only allow same-origin requests. Cross-origin requests will fail.
+   *   - `"navigate"` or `RequestMode.NAVIGATE`: Used for navigation requests (typically only used by the browser itself).
+   *
+   * @returns The request instance for chaining
+   *
    * @example
+   * // Using string values
    * request.withMode("cors")
+   *
+   * @example
+   * // Using enum values
    * request.withMode(RequestMode.CORS)
+   *
+   * @example
+   * // Using fluent API
    * request.withMode.CORS()
+   *
+   * @example
+   * // Restrict to same-origin only
+   * request.withMode.SAME_ORIGIN()
    */
   get withMode(): ((mode: RequestMode | string) => BaseRequest) & {
     CORS: () => BaseRequest;
