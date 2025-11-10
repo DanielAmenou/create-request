@@ -2,7 +2,9 @@ import { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMo
 import type { RequestError } from "./RequestError.js";
 import type { ResponseWrapper } from "./ResponseWrapper.js";
 
-export type Body = null | Blob | string | object | FormData | ArrayBuffer | URLSearchParams | ReadableStream;
+// Body type extends BodyInit (the standard RequestInit.body type) with support for
+// JSON-serializable values (objects and arrays) as a convenience feature.
+export type Body = BodyInit | Record<string, unknown> | unknown[];
 
 export type RetryCallback = (options: { attempt: number; error: RequestError }) => void | Promise<void>;
 

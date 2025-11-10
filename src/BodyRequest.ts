@@ -30,7 +30,15 @@ export abstract class BodyRequest extends BaseRequest {
     } else if (
       body !== null &&
       typeof body === "object" &&
-      !(body instanceof FormData || body instanceof Blob || body instanceof ArrayBuffer || body instanceof URLSearchParams || body instanceof ReadableStream)
+      !(
+        body instanceof FormData ||
+        body instanceof Blob ||
+        body instanceof File ||
+        body instanceof ArrayBuffer ||
+        ArrayBuffer.isView(body) || // Handles TypedArray and DataView
+        body instanceof URLSearchParams ||
+        body instanceof ReadableStream
+      )
     ) {
       this.bodyType = BodyType.JSON;
       this.setContentTypeIfNeeded("application/json");
