@@ -229,24 +229,17 @@ The library provides built-in support for GraphQL queries and mutations:
 
 ```typescript
 // GraphQL query without variables
+const userQuery = "query { users { id name email } }";
 const users = await create
   .post("https://api.example.com/graphql")
-  .withGraphQL("query { users { id name email } }")
+  .withGraphQL(userQuery)
   .getJson();
 
 // GraphQL query with variables
+const userQuery = "query GetUser($id: ID!) { user(id: $id) { name email } }";
 const user = await create
   .post("https://api.example.com/graphql")
-  .withGraphQL("query GetUser($id: ID!) { user(id: $id) { name email } }", { id: "123" })
-  .getJson();
-
-// GraphQL mutation
-const result = await create
-  .post("https://api.example.com/graphql")
-  .withGraphQL(
-    "mutation CreateUser($name: String!) { createUser(name: $name) { id name } }",
-    { name: "John Doe" }
-  )
+  .withGraphQL(userQuery, { id: "123" })
   .getJson();
 ```
 
@@ -256,14 +249,11 @@ GraphQL errors do not cause exceptions by default. Use the `throwOnError` option
 
 ```typescript
 // Throw an error if the GraphQL response contains errors
+const userQuery = "query GetUser($id: ID!) { user(id: $id) { name email } }";
 try {
   const user = await create
     .post("https://api.example.com/graphql")
-    .withGraphQL(
-      "query GetUser($id: ID!) { user(id: $id) { name email } }",
-      { id: "123" },
-      { throwOnError: true }
-    )
+    .withGraphQL(userQuery, { id: "123" }, { throwOnError: true })
     .getJson();
 } catch (error) {
   console.error(error.message);
