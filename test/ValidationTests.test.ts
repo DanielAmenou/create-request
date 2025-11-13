@@ -60,7 +60,7 @@ describe("Request Validation", () => {
       // Act & Assert
       assert.throws(() => {
         request.withRetries(-1);
-      }, /Retry count must be a non-negative integer/);
+      }, /Invalid retries: -1/);
     });
 
     it("should throw error for non-integer retry count", () => {
@@ -70,7 +70,7 @@ describe("Request Validation", () => {
       // Act & Assert
       assert.throws(() => {
         request.withRetries(1.5);
-      }, /Retry count must be a non-negative integer/);
+      }, /Invalid retries: 1.5/);
     });
 
     it("should throw error for NaN retry count", () => {
@@ -80,7 +80,7 @@ describe("Request Validation", () => {
       // Act & Assert
       assert.throws(() => {
         request.withRetries(NaN);
-      }, /Retry count must be a non-negative integer/);
+      }, /Invalid retries: NaN/);
     });
 
     it("should accept zero retry count", () => {

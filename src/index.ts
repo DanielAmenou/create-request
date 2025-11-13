@@ -7,6 +7,7 @@ export { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMo
 // Export types
 export type {
   RetryCallback,
+  RetryConfig,
   CookiesRecord,
   CookieOptions,
   RequestConfig,
@@ -14,6 +15,7 @@ export type {
   RequestOptions,
   ErrorInterceptor,
   RequestInterceptor,
+  RetryDelayFunction,
   ResponseInterceptor,
 } from "./types.js";
 

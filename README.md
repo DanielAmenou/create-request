@@ -143,6 +143,8 @@ const request = create
 
   // Automatic retry configuration
   .withRetries(3) // Retry up to 3 times on failure
+  // Or use a config object with delay support:
+  .withRetries({ attempts: 3, delay: 1000 }) // Retry 3 times with 1 second delay between attempts
   .onRetry(({ attempt, error }) => {
     console.log(`Attempt ${attempt} failed: ${error.message}. Retrying...`);
   })
@@ -410,6 +412,53 @@ try {
 ```
 
 ## Advanced Usage
+
+### Automatic Retries with Delay
+
+The `withRetries()` method supports both simple number-based retries and object-based configuration with customizable delays:
+
+```typescript
+// Simple number
+const request1 = create.get("https://api.example.com/data").withRetries(3);
+
+// With fixed delay between retries
+const request2 = create
+  .get("https://api.example.com/data")
+  .withRetries({ attempts: 3, delay: 1000 }); // Wait 1 second between retries
+
+// With exponential backoff function
+const request3 = create.get("https://api.example.com/data").withRetries({
+  attempts: 5,
+  delay: ({ attempt }) => Math.min(1000 * Math.pow(2, attempt - 1), 10000), // Exponential backoff capped at 10s
+});
+
+// With error-aware delay (e.g., longer delay for rate limits)
+const request4 = create.get("https://api.example.com/data").withRetries({
+  attempts: 3,
+  delay: ({ attempt, error }) => {
+    if (error.status === 429) {
+      return 5000; // Wait 5 seconds for rate limit errors
+    }
+    return attempt * 1000; // Linear backoff for other errors
+  },
+});
+```
+
+**Rate Limit Aware:**
+
+```typescript
+.withRetries({
+  attempts: 3,
+  delay: ({ error }) => {
+    if (error.status === 429) {
+      // Check Retry-After header if available
+      const retryAfter = error.response?.headers.get("Retry-After");
+      return retryAfter ? parseInt(retryAfter) * 1000 : 5000;
+    }
+    return 1000; // Default delay
+  },
+})
+```
 
 ### Interceptors
 

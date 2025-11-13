@@ -9,6 +9,29 @@ export type Body = BodyInit | Record<string, unknown> | unknown[];
 export type RetryCallback = (options: { attempt: number; error: RequestError }) => void | Promise<void>;
 
 /**
+ * Delay function type for retry configuration
+ * Receives the current attempt number and error, returns delay in milliseconds
+ */
+export type RetryDelayFunction = (options: { attempt: number; error: RequestError }) => number;
+
+/**
+ * Configuration object for retry behavior
+ */
+export interface RetryConfig {
+  /**
+   * Number of retry attempts before failing
+   */
+  attempts: number;
+  /**
+   * Delay between retries in milliseconds, or a function that calculates the delay synchronously
+   * - If a number: fixed delay in milliseconds (must be non-negative)
+   * - If a function: calculates delay synchronously based on attempt number and error
+   * - If not provided: no delay between retries
+   */
+  delay?: number | RetryDelayFunction;
+}
+
+/**
  * Configuration object passed to request interceptors
  * Contains all the information needed to make the request
  */
@@ -73,7 +96,7 @@ export interface GraphQLOptions {
 
 export interface RequestOptions extends Omit<RequestInit, "signal" | "body" | "method" | "credentials" | "mode" | "redirect" | "priority" | "cache"> {
   timeout?: number;
-  retries?: number;
+  retries?: number | RetryConfig;
   onRetry?: RetryCallback;
   body?: Body;
   credentials?: CredentialsPolicy | RequestCredentials;

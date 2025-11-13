@@ -1,6 +1,7 @@
 import { type HttpMethod, RedirectMode, RequestMode, RequestPriority, ReferrerPolicy, CredentialsPolicy } from "./enums.js";
 import type {
   Body,
+  RetryConfig,
   RequestConfig,
   RetryCallback,
   CookiesRecord,
@@ -154,16 +155,58 @@ export abstract class BaseRequest {
   /**
    * Configure automatic retry behavior for failed requests
    *
-   * @param retries - Number of retry attempts before failing
+   * @param retries - Number of retry attempts before failing, or a configuration object
    * @returns The request instance for chaining
-   * @throws RequestError if retries is not a non-negative integer
+   * @throws RequestError if retries is not a non-negative integer or invalid config
    *
    * @example
+   * // Simple number (backward compatible)
    * request.withRetries(3); // Retry up to 3 times
+   *
+   * @example
+   * // With fixed delay
+   * request.withRetries({ attempts: 3, delay: 1000 }); // Retry 3 times with 1 second delay
+   *
+   * @example
+   * // With exponential backoff function
+   * request.withRetries({
+   *   attempts: 3,
+   *   delay: ({ attempt }) => Math.min(1000 * Math.pow(2, attempt - 1), 10000)
+   * });
+   *
+   * @example
+   * // With delay function based on error
+   * request.withRetries({
+   *   attempts: 3,
+   *   delay: ({ attempt, error }) => {
+   *     if (error.status === 429) return 5000; // Rate limited, wait longer
+   *     return attempt * 1000; // Exponential backoff
+   *   }
+   * });
    */
-  withRetries(retries: number): this {
-    if (!Number.isInteger(retries) || retries < 0) throw new RequestError("Retry count must be a non-negative integer", this.url, this.method);
-    this.requestOptions.retries = retries;
+  withRetries(retries: number | RetryConfig): this {
+    if (typeof retries === "number") {
+      if (!Number.isInteger(retries) || retries < 0) {
+        throw new RequestError(`Invalid retries: ${retries}`, this.url, this.method);
+      }
+      this.requestOptions.retries = retries;
+    } else {
+      // Validate RetryConfig
+      if (!Number.isInteger(retries.attempts) || retries.attempts < 0) {
+        throw new RequestError(`Invalid attempts: ${retries.attempts}`, this.url, this.method);
+      }
+      // Validate delay if provided
+      if (retries.delay !== undefined) {
+        if (typeof retries.delay === "number") {
+          if (!Number.isFinite(retries.delay) || retries.delay < 0) {
+            throw new RequestError(`Invalid delay: ${retries.delay}`, this.url, this.method);
+          }
+        } else if (typeof retries.delay !== "function") {
+          throw new RequestError(`Invalid delay: ${typeof retries.delay}`, this.url, this.method);
+        }
+      }
+      this.requestOptions.retries = retries;
+    }
     return this;
   }
 
@@ -1037,7 +1080,8 @@ export abstract class BaseRequest {
    * @throws RequestError if the request fails after all retries
    */
   private async executeWithRetries(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
-    const maxRetries = this.requestOptions.retries || 0;
+    const retriesConfig = this.requestOptions.retries;
+    const maxRetries = typeof retriesConfig === "number" ? retriesConfig : retriesConfig?.attempts || 0;
     const method = typeof fetchOptions.method === "string" ? fetchOptions.method : "GET";
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -1048,8 +1092,24 @@ export abstract class BaseRequest {
 
         if (attempt >= maxRetries) throw requestError;
 
+        // Call onRetry callback if provided
         if (this.requestOptions.onRetry) {
           await this.requestOptions.onRetry({ attempt: attempt + 1, error: requestError });
+        }
+
+        // Apply delay if configured
+        if (typeof retriesConfig === "object" && retriesConfig.delay !== undefined) {
+          const delay = typeof retriesConfig.delay === "function" ? retriesConfig.delay({ attempt: attempt + 1, error: requestError }) : retriesConfig.delay;
+
+          // Validate delay result
+          if (typeof delay !== "number" || !Number.isFinite(delay) || delay < 0) {
+            throw new RequestError(`Invalid retry delay: ${delay}`, url, method);
+          }
+
+          // Wait for the delay
+          if (delay > 0) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
         }
       }
     }
