@@ -611,5 +611,85 @@ describe("GraphQL Error Handling", () => {
         assert.match(reqError.message, /Cannot resolve field/);
       }
     });
+
+    it("should handle GraphQL errors with no message property", async () => {
+      FetchMock.mockResponseOnce({
+        status: 200,
+        body: {
+          data: null,
+          errors: [
+            {
+              code: "ERROR_CODE",
+              path: ["user"],
+            },
+          ],
+        },
+      });
+
+      const query = "query { user { id } }";
+      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: true });
+
+      try {
+        await request.getJson();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        const reqError = error as RequestError;
+        assert.match(reqError.message, /GraphQL request failed/);
+        assert.equal(reqError.status, 200);
+        assert.ok(reqError.response);
+      }
+    });
+
+    it("should handle GraphQL errors with null message (uses Unknown error)", async () => {
+      FetchMock.mockResponseOnce({
+        status: 200,
+        body: {
+          data: null,
+          errors: [
+            {
+              message: null,
+              code: "ERROR_CODE",
+            },
+          ],
+        },
+      });
+
+      const query = "query { user { id } }";
+      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: true });
+
+      try {
+        await request.getJson();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        const reqError = error as RequestError;
+        assert.match(reqError.message, /Unknown error/);
+        assert.equal(reqError.status, 200);
+        assert.ok(reqError.response);
+      }
+    });
+
+
+    it("should handle GraphQL errors that are neither strings nor objects with message", async () => {
+      FetchMock.mockResponseOnce({
+        status: 200,
+        body: {
+          data: null,
+          errors: [123, true, null],
+        },
+      });
+
+      const query = "query { user { id } }";
+      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: true });
+
+      try {
+        await request.getJson();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        const reqError = error as RequestError;
+        assert.match(reqError.message, /GraphQL request failed/);
+        assert.equal(reqError.status, 200);
+        assert.ok(reqError.response);
+      }
+    });
   });
 });
