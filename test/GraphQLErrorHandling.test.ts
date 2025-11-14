@@ -668,7 +668,6 @@ describe("GraphQL Error Handling", () => {
       }
     });
 
-
     it("should handle GraphQL errors that are neither strings nor objects with message", async () => {
       FetchMock.mockResponseOnce({
         status: 200,
