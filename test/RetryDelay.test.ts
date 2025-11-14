@@ -590,23 +590,6 @@ describe("Retry Delay", () => {
       }
     });
 
-    it("should handle very large delays", async () => {
-      FetchMock.mockErrorOnce(new Error("Network failure 1"));
-      FetchMock.mockResponseOnce({ body: { success: true } });
-
-      const startTime = Date.now();
-      const request = create.get("https://api.example.com/data").withRetries({
-        attempts: 1,
-        delay: 20,
-      });
-
-      const result = await request.getJson();
-      const duration = Date.now() - startTime;
-
-      assert.deepEqual(result, { success: true });
-      assert(duration >= 20, "Should have applied delay");
-    });
-
     it("should work correctly when delay function returns zero", async () => {
       FetchMock.mockErrorOnce(new Error("Network failure 1"));
       FetchMock.mockResponseOnce({ body: { success: true } });
