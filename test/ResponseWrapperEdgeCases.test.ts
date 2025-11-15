@@ -796,5 +796,187 @@ describe("ResponseWrapper Edge Cases", () => {
         assert.equal(error.response, mockResponse);
       }
     });
+
+    it("should handle GraphQL errors with string error messages", async () => {
+      // Create a response with GraphQL errors as strings
+      const mockResponse = new Response(
+        JSON.stringify({
+          data: null,
+          errors: ["Error 1", "Error 2"],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      const graphQLOptions = { throwOnError: true };
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET", graphQLOptions);
+
+      try {
+        await wrapper.getJson();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /GraphQL request failed/);
+        assert.ok(error.message.includes("Error 1"));
+        assert.ok(error.message.includes("Error 2"));
+        assert.equal(error.status, 200);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+        assert.ok(error.response);
+      }
+    });
+
+    it("should handle GraphQL errors with object errors without message property", async () => {
+      // Create a response with GraphQL errors as objects without message
+      const mockResponse = new Response(
+        JSON.stringify({
+          data: null,
+          errors: [{ code: "ERROR_1" }, { code: "ERROR_2" }],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      const graphQLOptions = { throwOnError: true };
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET", graphQLOptions);
+
+      try {
+        await wrapper.getJson();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /GraphQL request failed/);
+        // Objects without message property are converted to string, which becomes "[object Object]"
+        assert.ok(error.message.includes("[object Object]"));
+        assert.equal(error.status, 200);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+      }
+    });
+
+    it("should handle GraphQL errors with mixed error types", async () => {
+      // Create a response with mixed error types
+      const mockResponse = new Response(
+        JSON.stringify({
+          data: null,
+          errors: [
+            "String error",
+            { message: "Object error" },
+            { code: "NO_MESSAGE" },
+            123, // Non-string, non-object
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      const graphQLOptions = { throwOnError: true };
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET", graphQLOptions);
+
+      try {
+        await wrapper.getJson();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /GraphQL request failed/);
+        assert.ok(error.message.includes("String error"));
+        assert.ok(error.message.includes("Object error"));
+        // Objects without message property are converted to string, which becomes "[object Object]"
+        // Numbers are converted to string "123"
+        assert.ok(error.message.includes("[object Object]") || error.message.includes("123"));
+        assert.equal(error.status, 200);
+      }
+    });
+
+    it("should handle GraphQL errors without url or method", async () => {
+      // Create a response with GraphQL errors
+      const mockResponse = new Response(
+        JSON.stringify({
+          data: null,
+          errors: [{ message: "Test error" }],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      const graphQLOptions = { throwOnError: true };
+      const wrapper = new ResponseWrapper(mockResponse, undefined, undefined, graphQLOptions);
+
+      try {
+        await wrapper.getJson();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /GraphQL request failed/);
+        assert.equal(error.status, 200);
+        assert.equal(error.url, "");
+        assert.equal(error.method, "");
+        assert.ok(error.response);
+      }
+    });
+
+    it("should wrap non-RequestError JSON parsing errors with proper context", async () => {
+      // Create a mock response that throws a non-RequestError
+      const mockResponse = new Response("invalid json", {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+
+      // Override json() to throw a regular Error (not RequestError)
+      const originalJson = mockResponse.json;
+      mockResponse.json = async () => {
+        throw new Error("Unexpected token in JSON");
+      };
+
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "POST");
+
+      try {
+        await wrapper.getJson();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /Invalid JSON/);
+        assert.equal(error.status, 500);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "POST");
+        assert.ok(error.response);
+        assert.equal(error.response, mockResponse);
+      }
+    });
+
+    it("should wrap non-Error JSON parsing errors with proper context", async () => {
+      // Create a mock response that throws a non-Error value
+      const mockResponse = new Response("invalid json", {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+
+      // Override json() to throw a non-Error value
+      mockResponse.json = async () => {
+        throw "String error" as any;
+      };
+
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "PUT");
+
+      try {
+        await wrapper.getJson();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /Invalid JSON/);
+        assert.equal(error.status, 400);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "PUT");
+        assert.ok(error.response);
+      }
+    });
   });
 });

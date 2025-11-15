@@ -1935,4 +1935,172 @@ describe("Header Case Sensitivity", () => {
     assert.ok(cookieHeader.includes("second=value"), "Second cookie value should be present");
     assert.ok(cookieHeader.includes("third=value"), "Third cookie value should be present");
   });
+
+  it("should automatically apply XSRF token from cookies when enabled", async () => {
+    // Arrange - mock document & cookies for XSRF
+    const originalDocument = typeof document !== "undefined" ? document : undefined;
+    globalThis.document = {
+      cookie: "XSRF-TOKEN=valid-xsrf-token-12345; other-cookie=value",
+    } as any;
+
+    FetchMock.mockResponseOnce();
+    create.config.setEnableAutoXsrf(true);
+    create.config.setXsrfCookieName("XSRF-TOKEN");
+    create.config.setXsrfHeaderName("X-XSRF-TOKEN");
+
+    const request = new GetRequest("https://api.example.com/test");
+
+    // Act
+    await request.getResponse();
+
+    // Assert - XSRF token should be automatically added
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-XSRF-TOKEN"], "valid-xsrf-token-12345");
+
+    // Cleanup
+    if (originalDocument) {
+      globalThis.document = originalDocument;
+    } else {
+      globalThis.document = undefined as any;
+    }
+  });
+
+  it("should not apply XSRF token when local header already exists", async () => {
+    // Arrange - mock document & cookies for XSRF
+    const originalDocument = typeof document !== "undefined" ? document : undefined;
+    globalThis.document = {
+      cookie: "XSRF-TOKEN=valid-xsrf-token-12345; other-cookie=value",
+    } as any;
+
+    FetchMock.mockResponseOnce();
+    create.config.setEnableAutoXsrf(true);
+    create.config.setXsrfCookieName("XSRF-TOKEN");
+    create.config.setXsrfHeaderName("X-XSRF-TOKEN");
+
+    // Set local XSRF token header
+    const request = new GetRequest("https://api.example.com/test").withHeaders({
+      "X-XSRF-TOKEN": "local-xsrf-token",
+    });
+
+    // Act
+    await request.getResponse();
+
+    // Assert - Local token should be used, not the cookie token
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-XSRF-TOKEN"], "local-xsrf-token");
+
+    // Cleanup
+    if (originalDocument) {
+      globalThis.document = originalDocument;
+    } else {
+      globalThis.document = undefined as any;
+    }
+  });
+
+  it("should not apply XSRF token when auto XSRF is disabled", async () => {
+    // Arrange - mock document & cookies for XSRF
+    const originalDocument = typeof document !== "undefined" ? document : undefined;
+    globalThis.document = {
+      cookie: "XSRF-TOKEN=valid-xsrf-token-12345; other-cookie=value",
+    } as any;
+
+    FetchMock.mockResponseOnce();
+    create.config.setEnableAutoXsrf(false);
+    create.config.setXsrfCookieName("XSRF-TOKEN");
+    create.config.setXsrfHeaderName("X-XSRF-TOKEN");
+
+    const request = new GetRequest("https://api.example.com/test");
+
+    // Act
+    await request.getResponse();
+
+    // Assert - XSRF token should NOT be automatically added
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-XSRF-TOKEN"], undefined);
+
+    // Cleanup
+    if (originalDocument) {
+      globalThis.document = originalDocument;
+    } else {
+      globalThis.document = undefined as any;
+    }
+  });
+
+  it("should not apply XSRF token when token is invalid", async () => {
+    // Arrange - mock document & cookies for XSRF with invalid token (too short)
+    const originalDocument = typeof document !== "undefined" ? document : undefined;
+    globalThis.document = {
+      cookie: "XSRF-TOKEN=short; other-cookie=value",
+    } as any;
+
+    FetchMock.mockResponseOnce();
+    create.config.setEnableAutoXsrf(true);
+    create.config.setXsrfCookieName("XSRF-TOKEN");
+    create.config.setXsrfHeaderName("X-XSRF-TOKEN");
+
+    const request = new GetRequest("https://api.example.com/test");
+
+    // Act
+    await request.getResponse();
+
+    // Assert - Invalid token should NOT be added
+    const [, options] = FetchMock.mock.calls[0];
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["X-XSRF-TOKEN"], undefined);
+
+    // Cleanup
+    if (originalDocument) {
+      globalThis.document = originalDocument;
+    } else {
+      globalThis.document = undefined as any;
+    }
+  });
+
+  it("should handle non-Error exceptions in executeRequest", async () => {
+    // Arrange - Use FetchMock to throw a non-Error value
+    FetchMock.install();
+    FetchMock.mockErrorOnce("String error" as any); // Throw a non-Error value
+
+    const request = new GetRequest("https://api.example.com/test");
+
+    // Act & Assert
+    try {
+      await request.getResponse();
+      assert.fail("Should have thrown an error");
+    } catch (error: any) {
+      // Should be wrapped in RequestError
+      assert.ok(error instanceof RequestError);
+      assert.equal(error.url, "https://api.example.com/test");
+      assert.equal(error.method, "GET");
+      assert.ok(error.message.includes("String error") || error.message.includes("Network error"));
+    } finally {
+      FetchMock.restore();
+    }
+  });
+
+  it("should handle non-Error exceptions with custom error message", async () => {
+    // Arrange - Use FetchMock to throw a non-Error object
+    FetchMock.install();
+    FetchMock.mockErrorOnce({ code: "CUSTOM_ERROR", message: "Custom error" } as any);
+
+    const request = new GetRequest("https://api.example.com/test");
+
+    // Act & Assert
+    try {
+      await request.getResponse();
+      assert.fail("Should have thrown an error");
+    } catch (error: any) {
+      // Should be wrapped in RequestError
+      assert.ok(error instanceof RequestError);
+      assert.equal(error.url, "https://api.example.com/test");
+      assert.equal(error.method, "GET");
+      // The error message should be converted to string
+      assert.ok(error.message.includes("Network error") || error.message.includes("[object Object]"));
+    } finally {
+      FetchMock.restore();
+    }
+  });
 });
