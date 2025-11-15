@@ -414,7 +414,6 @@ describe("Retry Delay", () => {
       });
       FetchMock.mockResponseOnce({ body: { success: true } });
 
-      const delays: number[] = [];
       const request = create.get("https://api.example.com/data").withRetries({
         attempts: 3,
         delay: ({ attempt, error }) => {

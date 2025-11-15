@@ -2062,7 +2062,8 @@ describe("Header Case Sensitivity", () => {
   it("should handle non-Error exceptions in executeRequest", async () => {
     // Arrange - Use FetchMock to throw a non-Error value
     FetchMock.install();
-    FetchMock.mockErrorOnce("String error" as any); // Throw a non-Error value
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    FetchMock.mockErrorOnce("String error" as unknown as Error); // Throw a non-Error value
 
     const request = new GetRequest("https://api.example.com/test");
 
@@ -2084,7 +2085,8 @@ describe("Header Case Sensitivity", () => {
   it("should handle non-Error exceptions with custom error message", async () => {
     // Arrange - Use FetchMock to throw a non-Error object
     FetchMock.install();
-    FetchMock.mockErrorOnce({ code: "CUSTOM_ERROR", message: "Custom error" } as any);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    FetchMock.mockErrorOnce({ code: "CUSTOM_ERROR", message: "Custom error" } as unknown as Error);
 
     const request = new GetRequest("https://api.example.com/test");
 

@@ -730,9 +730,9 @@ describe("ResponseWrapper Edge Cases", () => {
       });
 
       // Override the json() method to throw a non-Error value
-      mockResponse.json = async () => {
+      mockResponse.json = () => {
         // Simulate a non-Error throw (though this is rare in practice)
-        throw "String error" as any;
+        return Promise.reject("String error" as any);
       };
 
       const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET");
@@ -931,9 +931,8 @@ describe("ResponseWrapper Edge Cases", () => {
       });
 
       // Override json() to throw a regular Error (not RequestError)
-      const originalJson = mockResponse.json;
-      mockResponse.json = async () => {
-        throw new Error("Unexpected token in JSON");
+      mockResponse.json = () => {
+        return Promise.reject(new Error("Unexpected token in JSON"));
       };
 
       const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "POST");
@@ -960,8 +959,8 @@ describe("ResponseWrapper Edge Cases", () => {
       });
 
       // Override json() to throw a non-Error value
-      mockResponse.json = async () => {
-        throw "String error" as any;
+      mockResponse.json = () => {
+        return Promise.reject("String error" as any);
       };
 
       const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "PUT");
