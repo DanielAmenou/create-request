@@ -1,6 +1,6 @@
 {
   "name": "create-request",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "A modern, chainable wrapper for fetch with automatic retries, timeouts, comprehensive error handling, and first-class TypeScript support",
   "main": "dist/library/index.cjs",
   "module": "dist/library/index.esm.js",
