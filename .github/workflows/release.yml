@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes and create release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tagName = context.ref.replace('refs/tags/', '');
+            
+            // Generate release notes using GitHub's API
+            const { data: releaseNotes } = await github.rest.repos.generateReleaseNotes({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tagName,
+              target_commitish: context.sha,
+            });
+            
+            // Create the release with auto-generated notes
+            const { data: release } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tagName,
+              name: tagName,
+              body: releaseNotes.body,
+              draft: false,
+              prerelease: tagName.includes('beta') || tagName.includes('alpha') || tagName.includes('rc'),
+            });
+            
+            console.log(`Release created: ${release.html_url}`);
+
