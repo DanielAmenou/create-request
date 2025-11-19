@@ -1,5 +1,6 @@
 import { get, put, head, post, patch, del, options } from "./requestFactories.js";
 import { Config } from "./utils/Config.js";
+import { api } from "./apiBuilder.js";
 
 // Export enums
 export { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, SameSitePolicy, ReferrerPolicy } from "./enums.js";
@@ -32,10 +33,11 @@ export { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadR
  * Provides factory methods for all HTTP methods and access to global configuration.
  */
 const create = {
+  api,
   get,
-  post,
   put,
   del,
+  post,
   patch,
   head,
   options,

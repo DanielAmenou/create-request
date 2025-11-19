@@ -79,7 +79,7 @@ export abstract class BaseRequest {
       throw new RequestError("Invalid URL (control chars)", url, this.method);
     }
     const trimmed = url.trim();
-    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    if (/^https?:\/\//.test(trimmed)) {
       try {
         new URL(trimmed);
       } catch {

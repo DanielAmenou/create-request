@@ -16,9 +16,13 @@
 - [Why create-request](#why-create-request)
 - [Installation](#installation)
 - [Basic Usage](#basic-usage)
-- [Advanced Usage](#advanced-usage)
-- [GraphQL Support](#graphql-requests)
+- [API Builder](#api-builder)
+- [Automatic Retries with Delay](#automatic-retries-with-delay)
 - [Interceptors](#interceptors)
+- [Request Cancellation](#request-cancellation)
+- [URL Handling](#url-handling)
+- [Data Selection](#data-selection)
+- [GraphQL Support](#graphql-requests)
 - [TypeScript Support](#typescript-support)
 - [CSRF Protection](#csrf-protection)
 - [Performance Considerations](#performance-considerations)
@@ -414,9 +418,211 @@ try {
 }
 ```
 
-## Advanced Usage
+## API Builder
 
-### Automatic Retries with Delay
+The API builder allows you to create configured API instances with default settings that can be reused across your application. This is perfect for setting up a base URL, default headers, timeout values, and other request configurations once and using them for all requests.
+
+#### Creating an API Instance
+
+```typescript
+import create from "create-request";
+
+// Create a configured API instance
+const api = create.api().withBaseURL("https://api.example.com").withTimeout(20000);
+
+// Use it with relative URLs
+const users = await api.get("/users").getJson();
+
+// Or without URL (uses baseURL)
+const users = await api.get().getJson();
+const newUser = await api.post().withBody({ name: "John" }).getJson();
+```
+
+#### Core API Builder Method
+
+- **`.withBaseURL(baseURL: string)`** - Set the base URL for all requests. Relative URLs will be resolved against this base URL.
+
+#### Available Request Methods
+
+The API builder provides access to all request configuration methods from `BaseRequest` that can be used as defaults. These methods will apply to all requests made through the API instance:
+
+**Authentication & Headers:**
+
+- `withHeaders(headers)` - Set default headers for all requests
+- `withHeader(key, value)` - Add a single default header
+- `withAuthorization(authValue)` - Set Authorization header
+- `withBasicAuth(username, password)` - Add Basic Authentication
+- `withBearerToken(token)` - Add Bearer token authentication
+- `withContentType(contentType)` - Set default Content-Type header
+
+**Cookies:**
+
+- `withCookies(cookies)` - Add cookies to all requests
+- `withCookie(name, value)` - Add a single cookie
+
+**Request Configuration:**
+
+- `withTimeout(timeout)` - Set default timeout for all requests
+- `withRetries(retries)` - Configure default retry behavior
+- `withReferrer(referrer)` - Set default referrer
+- `withKeepAlive(keepalive)` - Configure keep-alive
+- `withIntegrity(integrity)` - Set integrity check
+- `withQueryParams(params)` - Add default query parameters
+- `withQueryParam(key, value)` - Add a single default query parameter
+
+**CSRF Protection:**
+
+- `withCsrfToken(token, headerName?)` - Set CSRF token
+- `withoutCsrfProtection()` - Disable CSRF protection
+- `withAntiCsrfHeaders()` - Enable anti-CSRF headers
+
+**Interceptors:**
+
+- `withRequestInterceptor(interceptor)` - Add default request interceptor
+- `withResponseInterceptor(interceptor)` - Add default response interceptor
+- `withErrorInterceptor(interceptor)` - Add default error interceptor
+
+These methods can be chained together and will apply to all requests made through the API instance:
+
+```typescript
+const api = create
+  .api()
+  .withBaseURL("https://api.example.com")
+  .withBearerToken("token123")
+  .withCookies({ session: "abc123" })
+  .withTimeout(5000)
+  .withHeaders({ "X-Custom": "value" });
+
+// All requests will include the Bearer token, cookies, timeout, and headers
+await api.get("/users").getJson();
+await api.post("/posts").withBody({ title: "Hello" }).getJson();
+```
+
+#### Methods NOT Available on API Builder
+
+The following methods are **not available** on the API builder because they are request-specific and don't make sense as defaults:
+
+- **`withAbortController(controller)`** - AbortController is per-request, not a default
+- **`withBody(body)`** - Request bodies are different for each request
+- **`withGraphQL(query, variables, options)`** - GraphQL queries are request-specific
+
+These methods should be called directly on individual request instances:
+
+```typescript
+const api = create.api().withBaseURL("https://api.example.com");
+
+// ✅ Good: Use withBody on individual requests
+await api.post("/users").withBody({ name: "John" }).getJson();
+
+// ❌ Bad: withBody is not available on the API builder
+// api.withBody({ name: "John" }); // This will be undefined
+```
+
+#### URL Resolution
+
+The API builder intelligently resolves URLs:
+
+```typescript
+const api = create.api().withBaseURL("https://api.example.com");
+
+// Relative URLs are resolved against baseURL
+await api.get("users").getJson(); // → https://api.example.com/users
+await api.get("/users").getJson(); // → https://api.example.com/users
+await api.get("./users").getJson(); // → https://api.example.com/users
+
+// Absolute URLs are used as-is
+await api.get("https://other-api.com/data").getJson(); // → https://other-api.com/data
+
+// No URL uses baseURL directly
+await api.get().getJson(); // → https://api.example.com
+```
+
+#### Overriding Defaults
+
+You can override default settings on individual requests:
+
+```typescript
+const api = create
+  .api()
+  .withBaseURL("https://api.example.com")
+  .withTimeout(5000)
+  .withBearerToken("token123");
+
+// Override timeout for this specific request
+await api.get("/slow-endpoint").withTimeout(30000).getJson();
+
+// Override headers (merges with defaults)
+await api
+  .get("/users")
+  .withBearerToken("newtoken")
+  .withHeaders({ "X-Custom": "value" })
+  .getJson();
+// Result: Authorization: "Bearer newtoken", X-Custom: "value"
+```
+
+#### All HTTP Methods Supported
+
+The API instance supports all HTTP methods:
+
+```typescript
+const api = create.api().withBaseURL("https://api.example.com");
+
+await api.get("/users").getJson();
+await api.post("/users").withBody({ name: "John" }).getJson();
+await api.put("/users/1").withBody({ name: "Jane" }).getJson();
+await api.patch("/users/1").withBody({ status: "active" }).getJson();
+await api.del("/users/1").getJson();
+await api.head("/users").getResponse();
+await api.options("/users").getResponse();
+```
+
+#### Merging Default Headers
+
+Multiple calls to `withHeaders` will merge headers, with later calls taking precedence:
+
+```typescript
+const api = create
+  .api()
+  .withBaseURL("https://api.example.com")
+  .withBearerToken("token123")
+  .withHeaders({ "X-Custom": "value1" })
+  .withHeaders({ "X-Other": "value2" })
+  .withBearerToken("newtoken");
+
+// Result: Authorization: "Bearer newtoken", X-Custom: "value1", X-Other: "value2"
+```
+
+#### Complete Example
+
+```typescript
+// Set up your API once
+const api = create
+  .api()
+  .withBaseURL("https://api.example.com/v1")
+  .withHeaders({ "Content-Type": "application/json" })
+  .withCookies({ session: "abc123" })
+  .withBearerToken("token123")
+  .withTimeout(20000);
+
+// Use throughout your application
+async function getUsers() {
+  return api.get("/users").getJson();
+}
+
+async function createUser(userData: User) {
+  return api.post("/users").withBody(userData).getJson();
+}
+
+async function updateUser(id: string, userData: Partial<User>) {
+  return api.put(`/users/${id}`).withBody(userData).getJson();
+}
+
+async function deleteUser(id: string) {
+  return api.del(`/users/${id}`).getJson();
+}
+```
+
+## Automatic Retries with Delay
 
 The `withRetries()` method supports both simple number-based retries and object-based configuration with customizable delays:
 
@@ -463,7 +669,7 @@ const request4 = create.get("https://api.example.com/data").withRetries({
 })
 ```
 
-### Interceptors
+## Interceptors
 
 Interceptors allow you to modify requests, transform responses, or handle errors globally or per-request. This is perfect for adding authentication tokens, logging, error recovery, and more.
 
@@ -597,7 +803,7 @@ const asyncData = await create
   .getJson();
 ```
 
-### Request Cancellation
+## Request Cancellation
 
 ```typescript
 const controller = new AbortController();
@@ -623,7 +829,7 @@ try {
 }
 ```
 
-### URL Handling
+## URL Handling
 
 The library handles both absolute and relative URLs, and automatically merges query parameters:
 
@@ -648,7 +854,7 @@ const encoded = await create
   .getJson();
 ```
 
-### Data Selection
+## Data Selection
 
 The `getData` method provides a powerful way to extract and transform specific data from API responses:
 
@@ -815,7 +1021,6 @@ This library works with all browsers that support the Fetch API:
 | **TypeScript**      | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
 | **Streaming**       | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ❌       |
 | **Progress**        | ❌             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
-| **Middleware**      | ❌             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
 | **Cookies**         | ✅             | ✅     | 🛠️      | ✅         | ✅      | ❌     | ❌         | ❌       |
 | **Pagination API**  | ❌             | ❌     | ❌      | ❌         | ✅      | ❌     | ❌         | ❌       |
 | **Zero Deps**       | ✅             | ✅     | ❌      | ❌         | ❌      | ✅     | ✅         | ✅       |
