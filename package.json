@@ -41,11 +41,11 @@
     "prepare": "husky",
     "preversion": "npm run check",
     "prepublishOnly": "npm run build && npm run test:compiled",
-    "publish:beta": "npm version prerelease --preid=beta && git push origin --tags && npm publish --tag beta",
-    "publish:rc": "npm version prerelease --preid=rc && git push origin --tags && npm publish --tag rc",
-    "publish:patch": "npm version patch && git push origin --tags && npm publish",
-    "publish:minor": "npm version minor && git push origin --tags && npm publish",
-    "publish:major": "npm version major && git push origin --tags && npm publish"
+    "publish:beta": "npm version prerelease --preid=beta -m \"chore(release): %s\" && git push origin --tags && npm publish --tag beta",
+    "publish:rc": "npm version prerelease --preid=rc -m \"chore(release): %s\" && git push origin --tags && npm publish --tag rc",
+    "publish:patch": "npm version patch -m \"chore(release): %s\" && git push origin --tags && npm publish",
+    "publish:minor": "npm version minor -m \"chore(release): %s\" && git push origin --tags && npm publish",
+    "publish:major": "npm version major -m \"chore(release): %s\" && git push origin --tags && npm publish"
   },
   "keywords": [
     "fetch",
