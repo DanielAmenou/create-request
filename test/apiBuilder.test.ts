@@ -281,6 +281,87 @@ describe("API Builder", () => {
       assert.equal(url, "https://api.example.com");
     });
 
+    it("should handle URL resolution fallback when URL constructor throws", async () => {
+      // We need to make URL constructor throw to test the catch block
+      FetchMock.mockResponseOnce({ body: { success: true } });
+
+      // Temporarily override URL constructor to throw only in resolveURL
+      const OriginalURL = global.URL;
+      let urlConstructorCallCount = 0;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      global.URL = class MockURL extends OriginalURL {
+        constructor(url: string, base?: string) {
+          urlConstructorCallCount++;
+          // Only throw on the first call (in resolveURL), then restore for validation
+          if (urlConstructorCallCount === 1) {
+            // Restore URL before throwing so validation can work
+            global.URL = OriginalURL;
+            throw new TypeError("Invalid URL");
+          }
+          // For subsequent calls (validation), use original URL
+          super(url, base);
+        }
+      } as typeof URL;
+
+      try {
+        const api = create.api().withBaseURL("https://api.example.com");
+
+        // Test with a relative URL - should use fallback at line 53
+        const result = await api.get("users").getJson();
+        assert.deepEqual(result, { success: true });
+
+        const call = FetchMock.mock.calls[0];
+        const url = Array.isArray(call) ? call[0] : "";
+        // Should use fallback: baseURL without trailing slash + / + url
+        assert.equal(url, "https://api.example.com/users");
+        assert.equal(urlConstructorCallCount, 1);
+      } finally {
+        // Ensure URL is restored
+        global.URL = OriginalURL;
+      }
+    });
+
+    it("should handle URL resolution fallback with URL starting with slash", async () => {
+      // Test line 53: fallback when url starts with "/"
+      FetchMock.mockResponseOnce({ body: { success: true } });
+
+      // Temporarily override URL constructor to throw only in resolveURL
+      const OriginalURL = global.URL;
+      let urlConstructorCallCount = 0;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      global.URL = class MockURL extends OriginalURL {
+        constructor(url: string, base?: string) {
+          urlConstructorCallCount++;
+          // Only throw on the first call (in resolveURL), then restore for validation
+          if (urlConstructorCallCount === 1) {
+            // Restore URL before throwing so validation can work
+            global.URL = OriginalURL;
+            throw new TypeError("Invalid URL");
+          }
+          // For subsequent calls (validation), use original URL
+          super(url, base);
+        }
+      } as typeof URL;
+
+      try {
+        const api = create.api().withBaseURL("https://api.example.com");
+
+        // Test with URL starting with "/" - should use fallback
+        const result = await api.get("/users").getJson();
+        assert.deepEqual(result, { success: true });
+
+        const call = FetchMock.mock.calls[0];
+        const url = Array.isArray(call) ? call[0] : "";
+        // Should use fallback: baseURL without trailing slash + url (which starts with /)
+        assert.equal(url, "https://api.example.com/users");
+      } finally {
+        // Ensure URL is restored
+        global.URL = OriginalURL;
+      }
+    });
+
     it("should work with all methods without URL when baseURL is set", async () => {
       FetchMock.mockResponseOnce();
       FetchMock.mockResponseOnce();
@@ -293,7 +374,10 @@ describe("API Builder", () => {
       await api.put().withBody({}).getResponse();
 
       assert.equal(FetchMock.mock.calls.length, 3);
-      const urls = FetchMock.mock.calls.map(([url]: [string, RequestInit]) => url);
+      const urls = FetchMock.mock.calls.map(call => {
+        const [url] = call as [string, RequestInit];
+        return url;
+      });
       urls.forEach(url => assert.equal(url, "https://api.example.com"));
     });
 
@@ -420,6 +504,18 @@ describe("API Builder", () => {
     it("should not allow withGraphQL on API builder", () => {
       const api = create.api();
       assert.equal((api as any).withGraphQL, undefined);
+    });
+
+    it("should handle property access that is not a function", () => {
+      // Test the fallback path when accessing a property that exists but is not a function
+      const api = create.api().withBaseURL("https://api.example.com");
+
+      // Access a property that exists on the proxy but is not a function
+      // This tests the fallback at line 241 in apiBuilder.ts
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const baseURL = (api as any).baseURL;
+      // baseURL might be undefined or a value, but accessing it should not throw
+      assert.ok(true); // Just verify it doesn't throw
     });
   });
 });

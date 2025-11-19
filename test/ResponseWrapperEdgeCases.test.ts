@@ -977,5 +977,184 @@ describe("ResponseWrapper Edge Cases", () => {
         assert.ok(error.response);
       }
     });
+
+    it("should handle non-Error exceptions in getText", async () => {
+      // Create a mock response that throws a non-Error value
+      const mockResponse = new Response("text content", {
+        status: 200,
+        headers: { "Content-Type": "text/plain" },
+      });
+
+      // Override text() to throw a non-Error value
+      mockResponse.text = () => {
+        return Promise.reject("String error in text" as any);
+      };
+
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET");
+
+      try {
+        await wrapper.getText();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /Read failed/);
+        assert.equal(error.status, 200);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+        assert.ok(error.response);
+      }
+    });
+
+    it("should handle non-Error exceptions in getText", async () => {
+      // Create a mock response that throws a non-Error value
+      const mockResponse = new Response("text content", {
+        status: 200,
+        headers: { "Content-Type": "text/plain" },
+      });
+
+      // Override text() to throw a non-Error value
+      mockResponse.text = () => {
+        return Promise.reject("String error in text" as any);
+      };
+
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET");
+
+      try {
+        await wrapper.getText();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /Read failed/);
+        assert.equal(error.status, 200);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+        assert.ok(error.response);
+      }
+    });
+
+    it("should handle non-Error exceptions in getBlob", async () => {
+      // Create a mock response that throws a non-Error value
+      const mockResponse = new Response("blob content", {
+        status: 200,
+        headers: { "Content-Type": "application/octet-stream" },
+      });
+
+      // Override blob() to throw a non-Error value
+      mockResponse.blob = () => {
+        return Promise.reject("String error in blob" as any);
+      };
+
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET");
+
+      try {
+        await wrapper.getBlob();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /Read failed/);
+        assert.equal(error.status, 200);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+        assert.ok(error.response);
+      }
+    });
+
+    it("should handle non-Error exceptions in getArrayBuffer", async () => {
+      // Create a mock response that throws a non-Error value
+      const mockResponse = new Response("buffer content", {
+        status: 200,
+        headers: { "Content-Type": "application/octet-stream" },
+      });
+
+      // Override arrayBuffer() to throw a non-Error value
+      mockResponse.arrayBuffer = () => {
+        return Promise.reject("String error in arrayBuffer" as any);
+      };
+
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET");
+
+      try {
+        await wrapper.getArrayBuffer();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /Read failed/);
+        assert.equal(error.status, 200);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+        assert.ok(error.response);
+      }
+    });
+
+    it("should throw error when getBody is called after body is consumed", async () => {
+      const response = createMockResponse({
+        body: "test content",
+        headers: { "content-type": "text/plain" },
+      });
+      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
+
+      await wrapper.getText();
+
+      try {
+        wrapper.getBody();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Body already consumed"));
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+      }
+    });
+
+    it("should handle non-Error exceptions in getData with selector", async () => {
+      // Create a mock response with valid JSON
+      const mockResponse = new Response(JSON.stringify({ data: { items: [1, 2, 3] } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET");
+
+      // Use a selector that throws a non-Error value
+      try {
+        await wrapper.getData(() => {
+          throw "String error in selector" as any;
+        });
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /Data selector failed/);
+        assert.equal(error.status, 200);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+        assert.ok(error.response);
+      }
+    });
+
+    it("should handle non-Error exceptions in getData without selector", async () => {
+      // Create a mock response that throws a non-Error value during JSON parsing
+      const mockResponse = new Response("invalid json", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+
+      // Override json() to throw a non-Error value
+      mockResponse.json = () => {
+        return Promise.reject("String error in getData" as any);
+      };
+
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET");
+
+      try {
+        await wrapper.getData();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        // Should be wrapped as networkError when no selector
+        assert.ok(error.message.includes("Network error") || error.message.includes("String error in getData"));
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+      }
+    });
   });
 });

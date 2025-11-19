@@ -92,6 +92,22 @@ describe("Error Handling Tests", () => {
       }
     });
 
+    it("should handle network error with non-Error object", async () => {
+      // Arrange - Mock fetch to throw a non-Error object
+      FetchMock.mockErrorOnce("String error" as unknown as Error);
+      const request = create.get("https://api.example.com/data");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        assert(error instanceof RequestError);
+        assert.equal(error.url, "https://api.example.com/data");
+        assert.equal(error.method, "GET");
+      }
+    });
+
     it("should provide original error stack in network errors", async () => {
       // Arrange
       const originalError = new Error("Original error message");

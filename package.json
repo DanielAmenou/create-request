@@ -36,7 +36,7 @@
     "check": "concurrently \"npm run lint\" \"npm run test\" \"npm run check:size\"",
     "check:size": "npx size-limit",
     "test": "node --import tsx --test test/**/*.test.ts",
-    "test:coverage": "node --import tsx --experimental-test-coverage --test test/**/*.test.ts",
+    "test:coverage": "c8 --reporter=text --reporter=html --reporter=lcov npm test",
     "test:compiled": "node --import tsx --import ./scripts/compiled-loader.mjs --test test/**/*.test.ts",
     "preversion": "npm run check",
     "prepublishOnly": "npm run build && npm run test:compiled",

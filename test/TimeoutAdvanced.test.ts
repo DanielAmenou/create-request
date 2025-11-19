@@ -94,6 +94,33 @@ describe("Timeout Advanced", () => {
         (AbortSignal as any).timeout = originalTimeout;
       }
     });
+
+    it("should handle timeout controller creation when AbortSignal.timeout is not available", async () => {
+      // Test the else branch: timeoutController = new AbortController(); (line 1268)
+      // Temporarily remove AbortSignal.timeout to test the fallback path
+      const originalTimeout = (AbortSignal as any).timeout;
+      delete (AbortSignal as any).timeout;
+
+      try {
+        FetchMock.mockDelayedResponseOnce(2000, { body: { success: true } });
+        const request = new GetRequest("https://api.example.com/test").withTimeout(100);
+
+        try {
+          await request.getResponse();
+          assert.fail("Should have timed out");
+        } catch (error) {
+          assert(error instanceof RequestError);
+          assert.equal(error.isTimeout, true);
+          // This tests the path where timeoutController is created manually
+          // because AbortSignal.timeout is not available
+        }
+      } finally {
+        // Restore AbortSignal.timeout if it existed
+        if (originalTimeout !== undefined) {
+          (AbortSignal as any).timeout = originalTimeout;
+        }
+      }
+    });
   });
 
   describe("Timeout cleanup", () => {

@@ -117,6 +117,33 @@ describe("RequestError", () => {
     assert.equal(error.isTimeout, undefined);
   });
 
+  it("should handle error without stack property", () => {
+    // Arrange - Test stack property access when stack is undefined
+    const errorWithoutStack = new Error("Test error");
+    delete (errorWithoutStack as any).stack;
+
+    // Act
+    const requestError = RequestError.networkError("https://api.example.com", "GET", errorWithoutStack);
+
+    // Assert - should still work without stack
+    assert.ok(requestError instanceof RequestError);
+    assert.equal(requestError.message, "Test error");
+  });
+
+  it("should handle error with stack property in networkError", () => {
+    // Arrange - Test stack property access
+    const originalError = new Error("Original error");
+    originalError.stack = "Error: Original error\n    at test.js:1:1";
+
+    // Act
+    const requestError = RequestError.networkError("https://api.example.com", "GET", originalError);
+
+    // Assert - stack should be enhanced
+    assert.ok(requestError.stack);
+    assert.ok(requestError.stack.includes("Caused by:"));
+    assert.ok(requestError.stack.includes(originalError.stack));
+  });
+
   it("should create a RequestError from Response", () => {
     // Arrange
     // Arrange

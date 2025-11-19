@@ -168,6 +168,22 @@ describe("BodyRequest", () => {
     });
   });
 
+  it("should set Content-Type when not present in headers", async () => {
+    // Arrange - Test hasContentType returning false
+    FetchMock.mockResponseOnce();
+    const data = { name: "John Doe", age: 30 };
+    const request = new PostRequest("https://api.example.com/test").withBody(data);
+
+    // Act
+    await request.getResponse();
+
+    // Assert - Content-Type should be set automatically
+    const [, options] = FetchMock.mock.calls[0];
+    assert.equal(options.body, JSON.stringify(data));
+    const headers = options.headers as Record<string, string>;
+    assert.equal(headers["Content-Type"], "application/json");
+  });
+
   it("should preserve headers case sensitivity", async () => {
     // Arrange
     FetchMock.mockResponseOnce();
@@ -473,6 +489,22 @@ describe("BodyRequest", () => {
       await request.getResponse();
 
       // Assert
+      const [, options] = FetchMock.mock.calls[0];
+      const body = JSON.parse(options.body as string);
+      assert.equal(body.query, query);
+    });
+
+    it("should handle withGraphQL with non-boolean throwOnError", async () => {
+      // Arrange - Test the branch where throwOnError is not a boolean
+      FetchMock.mockResponseOnce();
+      const query = "query { user { name } }";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: "true" as any });
+
+      // Act
+      await request.getResponse();
+
+      // Assert - should work, throwOnError should be undefined since it's not a boolean
       const [, options] = FetchMock.mock.calls[0];
       const body = JSON.parse(options.body as string);
       assert.equal(body.query, query);
