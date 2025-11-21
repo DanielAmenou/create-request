@@ -127,11 +127,7 @@ export abstract class BaseRequest {
    * request.withHeader('Accept', 'application/json');
    */
   withHeader(key: string, value: string): this {
-    // Ignore null and undefined values
-    if (value !== null && value !== undefined) {
-      return this.withHeaders({ [key]: value });
-    }
-    return this;
+    return this.withHeaders({ [key]: value });
   }
 
   /**
@@ -598,12 +594,7 @@ export abstract class BaseRequest {
    * @returns The instance for chaining
    */
   withQueryParam(key: string, value: string | string[] | number | boolean | null | undefined): this {
-    if (value === null || value === undefined) return this;
-
-    if (Array.isArray(value)) value.forEach(v => this.queryParams.append(key, String(v)));
-    else this.queryParams.append(key, String(value));
-
-    return this;
+    return this.withQueryParams({ [key]: value });
   }
 
   /**
@@ -805,9 +796,7 @@ export abstract class BaseRequest {
    * @returns The instance for chaining
    */
   withCsrfToken(token: string, headerName = "X-CSRF-Token"): this {
-    return this.withHeaders({
-      [headerName]: token,
-    });
+    return this.withHeader(headerName, token);
   }
 
   /**
@@ -825,9 +814,7 @@ export abstract class BaseRequest {
    * @returns The instance for chaining
    */
   withAntiCsrfHeaders(): this {
-    return this.withHeaders({
-      "X-Requested-With": "XMLHttpRequest",
-    });
+    return this.withHeader("X-Requested-With", "XMLHttpRequest");
   }
 
   /**
@@ -1009,9 +996,7 @@ export abstract class BaseRequest {
 
     // Apply anti-CSRF headers if enabled
     if (config.isAntiCsrfEnabled()) {
-      this.withHeaders({
-        "X-Requested-With": "XMLHttpRequest",
-      });
+      this.withAntiCsrfHeaders();
     }
 
     // Apply global CSRF token if set
@@ -1021,9 +1006,7 @@ export abstract class BaseRequest {
       const hasLocalToken = this.hasHeader("X-CSRF-Token") || this.hasHeader(csrfHeaderName);
 
       if (!hasLocalToken) {
-        this.withHeaders({
-          [csrfHeaderName]: globalToken,
-        });
+        this.withHeader(csrfHeaderName, globalToken);
       }
     }
 
