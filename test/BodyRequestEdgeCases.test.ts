@@ -6,7 +6,7 @@ import { RequestError } from "../src/RequestError.js";
 import { FetchMock } from "./utils/fetchMock.js";
 import create from "../src/index.js";
 
-describe("BodyRequest Edge Cases", () => {
+describe("BodyRequest Edge Cases", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.reset();
@@ -319,7 +319,7 @@ describe("BodyRequest Edge Cases", () => {
           new PostRequest("https://api.example.com/test").withBody(circular);
         },
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("JSON stringify failed");
+          return error instanceof RequestError && error.message.includes("stringify failed");
         }
       );
     });
@@ -337,7 +337,7 @@ describe("BodyRequest Edge Cases", () => {
           new PostRequest("https://api.example.com/test").withBody(circular);
         },
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("JSON stringify failed");
+          return error instanceof RequestError && error.message.includes("stringify failed");
         }
       );
     });

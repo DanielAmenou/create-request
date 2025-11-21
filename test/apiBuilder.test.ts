@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { FetchMock } from "./utils/fetchMock.js";
 import { describe, it, beforeEach, afterEach } from "node:test";
 
-describe("API Builder", () => {
+describe("API Builder", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.setEnableAntiCsrf(false);

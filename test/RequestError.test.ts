@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import { RequestError } from "../src/RequestError.js";
 
-describe("RequestError", () => {
+describe("RequestError", { timeout: 10000 }, () => {
   it("should create a basic RequestError", () => {
     // Arrange & Act
     const error = new RequestError("Test error", "https://api.example.com", "GET");
@@ -35,7 +35,7 @@ describe("RequestError", () => {
     const error = RequestError.timeout("https://api.example.com", "GET", 5000);
 
     // Assert
-    assert.equal(error.message, "Timeout: 5000ms");
+    assert.equal(error.message, "Timeout 5000ms");
     assert.equal(error.url, "https://api.example.com");
     assert.equal(error.method, "GET");
     assert.equal(error.isTimeout, true);

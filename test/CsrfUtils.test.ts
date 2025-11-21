@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
 import { CsrfUtils } from "../src/utils/CsrfUtils.js";
 
-describe("CsrfUtils", () => {
+describe("CsrfUtils", { timeout: 10000 }, () => {
   // Mock document object
   let originalDocument: typeof document | undefined;
 

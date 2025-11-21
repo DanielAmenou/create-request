@@ -7,7 +7,7 @@ import { FetchMock, createMockResponse } from "./utils/fetchMock.js";
 import create from "../src/index.js";
 import type { RequestConfig } from "../src/types.js";
 
-describe("Interceptor Edge Cases", () => {
+describe("Interceptor Edge Cases", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.reset();

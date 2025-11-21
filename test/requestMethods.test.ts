@@ -6,7 +6,7 @@ import { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadR
 
 import { FetchMock } from "./utils/fetchMock.js";
 
-describe("Request Methods", () => {
+describe("Request Methods", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
   });

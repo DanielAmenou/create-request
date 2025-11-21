@@ -48,7 +48,7 @@ export abstract class BodyRequest extends BaseRequest {
         JSON.stringify(body);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new RequestError(`JSON stringify failed: ${errorMessage}`, this.url, this.method);
+        throw new RequestError(`stringify failed ${errorMessage}`, this.url, this.method);
       }
     } else {
       this.bodyType = BodyType.BINARY;
@@ -90,7 +90,7 @@ export abstract class BodyRequest extends BaseRequest {
 
     if (variables !== undefined) {
       if (typeof variables !== "object" || variables === null || Array.isArray(variables)) {
-        throw new RequestError("Invalid GraphQL variables", this.url, this.method);
+        throw new RequestError("Invalid GraphQL vars", this.url, this.method);
       }
       graphQLBody.variables = variables;
     }
@@ -113,7 +113,7 @@ export abstract class BodyRequest extends BaseRequest {
       JSON.stringify(graphQLBody);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new RequestError(`JSON stringify failed: ${errorMessage}`, this.url, this.method);
+      throw new RequestError(`stringify failed ${errorMessage}`, this.url, this.method);
     }
 
     this.body = graphQLBody;

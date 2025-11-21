@@ -5,7 +5,7 @@ import { describe, it } from "node:test";
 import { RequestError } from "../src/RequestError.js";
 import { ResponseWrapper } from "../src/ResponseWrapper.js";
 
-describe("ResponseWrapper", () => {
+describe("ResponseWrapper", { timeout: 10000 }, () => {
   it("should properly wrap a Response object", () => {
     // Arrange
     const mockResponse = new Response("test body", {

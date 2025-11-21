@@ -4,7 +4,7 @@ import { CookieUtils } from "../src/utils/CookieUtils.js";
 import type { CookiesRecord, CookieOptions } from "../src/types.js";
 import { SameSitePolicy } from "../src/enums.js";
 
-describe("CookieUtils Edge Cases", () => {
+describe("CookieUtils Edge Cases", { timeout: 10000 }, () => {
   describe("formatRequestCookies - Special Characters", () => {
     it("should handle cookies with special characters in names", () => {
       const cookies: CookiesRecord = {

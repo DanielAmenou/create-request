@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { CookieUtils } from "../src/utils/CookieUtils.js";
 import type { CookiesRecord } from "../src/types.js";
 
-describe("CookieUtils", () => {
+describe("CookieUtils", { timeout: 10000 }, () => {
   describe("formatRequestCookies", () => {
     it("should format simple string cookies", () => {
       const cookies: CookiesRecord = {

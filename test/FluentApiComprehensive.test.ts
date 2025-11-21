@@ -5,7 +5,7 @@ import { CredentialsPolicy, ReferrerPolicy, RedirectMode, RequestMode, RequestPr
 import { FetchMock } from "./utils/fetchMock.js";
 import create from "../src/index.js";
 
-describe("Fluent API Comprehensive Tests", () => {
+describe("Fluent API Comprehensive Tests", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.reset();

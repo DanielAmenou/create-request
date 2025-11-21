@@ -4,7 +4,7 @@ import create from "../src/index.js";
 import { HttpMethod } from "../src/enums.js";
 import { FetchMock } from "./utils/fetchMock.js";
 
-describe("Request Factories", () => {
+describe("Request Factories", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.setEnableAntiCsrf(false);

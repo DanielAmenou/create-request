@@ -4,7 +4,7 @@ import { GetRequest } from "../src/requestMethods.js";
 import { FetchMock } from "./utils/fetchMock.js";
 import create from "../src/index.js";
 
-describe("Query Parameters Advanced", () => {
+describe("Query Parameters Advanced", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.setEnableAntiCsrf(false);

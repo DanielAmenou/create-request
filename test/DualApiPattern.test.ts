@@ -5,7 +5,7 @@ import { FetchMock } from "./utils/fetchMock.js";
 import { RequestMode, RedirectMode, RequestPriority, CredentialsPolicy, ReferrerPolicy } from "../src/enums.js";
 import create from "../src/index.js";
 
-describe("Dual API Pattern - Direct Call and Fluent API", () => {
+describe("Dual API Pattern - Direct Call and Fluent API", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.setEnableAntiCsrf(false);

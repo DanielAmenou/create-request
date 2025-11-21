@@ -5,7 +5,7 @@ import { GetRequest } from "../src/requestMethods.js";
 import { RequestError } from "../src/RequestError.js";
 import { FetchMock } from "./utils/fetchMock.js";
 
-describe("Response Chaining API", () => {
+describe("Response Chaining API", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
   });

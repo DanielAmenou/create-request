@@ -6,7 +6,7 @@ import { createMockResponse } from "./utils/fetchMock.js";
 import { PostRequest } from "../src/requestMethods.js";
 import { FetchMock } from "./utils/fetchMock.js";
 
-describe("Body Cache - Multiple Consumption", () => {
+describe("Body Cache - Multiple Consumption", { timeout: 10000 }, () => {
   describe("getJson() - Multiple Calls", () => {
     it("should allow calling getJson() multiple times with cached result", async () => {
       const response = createMockResponse({
@@ -532,7 +532,7 @@ describe("Body Cache - Multiple Consumption", () => {
   });
 });
 
-describe("GraphQL Error Consumption as JSON", () => {
+describe("GraphQL Error Consumption as JSON", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
   });
@@ -860,7 +860,7 @@ describe("GraphQL Error Consumption as JSON", () => {
         const reqError = error as RequestError;
 
         // Error should contain GraphQL error message
-        assert.match(reqError.message, /GraphQL request failed with errors/);
+        assert.match(reqError.message, /GraphQL request failed with errors:/);
         assert.match(reqError.message, /User not found/);
 
         // Response should be available with status
@@ -899,7 +899,7 @@ describe("GraphQL Error Consumption as JSON", () => {
         const reqError = error as RequestError;
 
         // Error message should contain both errors
-        assert.match(reqError.message, /GraphQL request failed with errors/);
+        assert.match(reqError.message, /GraphQL request failed with errors:/);
         assert.match(reqError.message, /Error 1/);
         assert.match(reqError.message, /Error 2/);
 

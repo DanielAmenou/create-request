@@ -4,7 +4,7 @@ import { ResponseWrapper } from "../src/ResponseWrapper.js";
 import { RequestError } from "../src/RequestError.js";
 import { createMockResponse } from "./utils/fetchMock.js";
 
-describe("ResponseWrapper Edge Cases", () => {
+describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
   describe("Body Consumption - Single Use Only", () => {
     it("should throw error when getting text after JSON", async () => {
       const response = createMockResponse({
@@ -97,7 +97,7 @@ describe("ResponseWrapper Edge Cases", () => {
         }
         assert.fail("Should have thrown error");
       } catch (error: any) {
-        assert.ok(error instanceof RequestError || error.message.includes("Body already consumed"));
+        assert.ok(error instanceof RequestError || error.message.includes("Body consumed"));
       }
     });
 
@@ -752,7 +752,7 @@ describe("ResponseWrapper Edge Cases", () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL request failed/);
+        assert.match(error.message, /GraphQL request failed with errors:/);
         assert.equal(error.status, 200);
         assert.ok(error.response);
         assert.equal(error.response, mockResponse);
@@ -780,7 +780,7 @@ describe("ResponseWrapper Edge Cases", () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL request failed/);
+        assert.match(error.message, /GraphQL request failed with errors:/);
         assert.ok(error.message.includes("Error 1"));
         assert.ok(error.message.includes("Error 2"));
         assert.equal(error.status, 200);
@@ -811,7 +811,7 @@ describe("ResponseWrapper Edge Cases", () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL request failed/);
+        assert.match(error.message, /GraphQL request failed with errors:/);
         // Objects without message property are converted to string, which becomes "[object Object]"
         assert.ok(error.message.includes("[object Object]"));
         assert.equal(error.status, 200);
@@ -846,7 +846,7 @@ describe("ResponseWrapper Edge Cases", () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL request failed/);
+        assert.match(error.message, /GraphQL request failed with errors:/);
         assert.ok(error.message.includes("String error"));
         assert.ok(error.message.includes("Object error"));
         // Objects without message property are converted to string, which becomes "[object Object]"
@@ -877,7 +877,7 @@ describe("ResponseWrapper Edge Cases", () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL request failed/);
+        assert.match(error.message, /GraphQL request failed with errors:/);
         assert.equal(error.status, 200);
         assert.equal(error.url, "");
         assert.equal(error.method, "");
@@ -959,7 +959,7 @@ describe("ResponseWrapper Edge Cases", () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Read failed/);
+        assert.match(error.message, /Read failed:/);
         assert.equal(error.status, 200);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
@@ -986,7 +986,7 @@ describe("ResponseWrapper Edge Cases", () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Read failed/);
+        assert.match(error.message, /Read failed:/);
         assert.equal(error.status, 200);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
@@ -1013,7 +1013,7 @@ describe("ResponseWrapper Edge Cases", () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Read failed/);
+        assert.match(error.message, /Read failed:/);
         assert.equal(error.status, 200);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
@@ -1040,7 +1040,7 @@ describe("ResponseWrapper Edge Cases", () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Read failed/);
+        assert.match(error.message, /Read failed:/);
         assert.equal(error.status, 200);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");

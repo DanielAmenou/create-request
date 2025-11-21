@@ -4,7 +4,7 @@ import { GetRequest } from "../src/requestMethods.js";
 import { FetchMock } from "./utils/fetchMock.js";
 import create from "../src/index.js";
 
-describe("Integrity Option", () => {
+describe("Integrity Option", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
   });

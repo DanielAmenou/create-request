@@ -7,7 +7,7 @@ import { GetRequest } from "../src/requestMethods.js";
 import type { CookieOptions } from "../src/types.js";
 import { FetchMock, wait } from "./utils/fetchMock.js";
 
-describe("BaseRequest", () => {
+describe("BaseRequest", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     // Disable anti-CSRF globally for most tests

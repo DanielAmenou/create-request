@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
 import { CsrfUtils } from "../src/utils/CsrfUtils.js";
 
-describe("CsrfUtils Advanced Tests", () => {
+describe("CsrfUtils Advanced Tests", { timeout: 10000 }, () => {
   let originalDocument: typeof document | undefined;
 
   beforeEach(() => {

@@ -4,7 +4,7 @@ import { GetRequest } from "../src/requestMethods.js";
 import { Config } from "../src/utils/Config.js";
 import { FetchMock } from "./utils/fetchMock.js";
 
-describe("Config", () => {
+describe("Config", { timeout: 10000 }, () => {
   let config: any;
 
   beforeEach(() => {

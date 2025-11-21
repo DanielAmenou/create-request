@@ -5,7 +5,7 @@ import { RequestError } from "../src/RequestError.js";
 import { FetchMock, wait } from "./utils/fetchMock.js";
 import create from "../src/index.js";
 
-describe("Abort Signal Combinations", () => {
+describe("Abort Signal Combinations", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.reset();

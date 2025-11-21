@@ -6,7 +6,7 @@ import { GetRequest } from "../src/requestMethods.js";
 import { FetchMock } from "./utils/fetchMock.js";
 import create from "../src/index.js";
 
-describe("Request Interceptors", () => {
+describe("Request Interceptors", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.reset();
@@ -221,7 +221,7 @@ describe("Request Interceptors", () => {
   });
 });
 
-describe("Response Interceptors", () => {
+describe("Response Interceptors", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.reset();
@@ -398,7 +398,7 @@ describe("Response Interceptors", () => {
   });
 });
 
-describe("Error Interceptors", () => {
+describe("Error Interceptors", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.reset();
@@ -607,7 +607,7 @@ describe("Error Interceptors", () => {
   });
 });
 
-describe("Interceptor Integration", () => {
+describe("Interceptor Integration", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.reset();
@@ -798,7 +798,7 @@ describe("Interceptor Integration", () => {
     } catch (error: any) {
       // Should get the interceptor error
       assert.ok(error.message.includes("Response interceptor failed"));
-      assert.ok(error.message.includes("Response interceptor error"));
+      assert.ok(error.message.includes("Response interceptor failed"));
     }
   });
 

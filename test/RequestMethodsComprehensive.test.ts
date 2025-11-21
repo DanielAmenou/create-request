@@ -5,7 +5,7 @@ import create from "../src/index.js";
 import { get, post, put, del, patch, head, options } from "../src/requestFactories.js";
 import { FetchMock } from "./utils/fetchMock.js";
 
-describe("Request Methods Comprehensive Tests", () => {
+describe("Request Methods Comprehensive Tests", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.reset();

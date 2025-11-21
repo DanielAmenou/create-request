@@ -40,7 +40,7 @@ export class RequestError extends Error {
    */
 
   static timeout(url: string, method: string, timeoutMs: number): RequestError {
-    return new RequestError(`Timeout: ${timeoutMs}ms`, url, method, {
+    return new RequestError(`Timeout ${timeoutMs}ms`, url, method, {
       isTimeout: true,
     });
   }
@@ -91,13 +91,13 @@ export class RequestError extends Error {
       const isConnectionError = !isTimeoutError && (errorCode === "ECONNREFUSED" || errorCode === "ECONNRESET" || stack.includes("ECONNREFUSED") || stack.includes("connect"));
 
       if (isTimeoutError) {
-        message = `Network error: Request timeout for ${url}`;
+        message = `Timeout ${url}`;
       } else if (isDnsError) {
-        message = `Network error: Unable to resolve hostname for ${url}`;
+        message = `DNS error ${url}`;
       } else if (isConnectionError) {
-        message = `Network error: Connection refused for ${url}`;
+        message = `Connection refused ${url}`;
       } else {
-        message = `Network error: Failed to fetch ${url}`;
+        message = `Network error ${url}`;
       }
     }
 

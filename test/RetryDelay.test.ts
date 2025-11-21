@@ -4,7 +4,7 @@ import create, { RequestError } from "../src/index.js";
 import { FetchMock } from "./utils/fetchMock.js";
 import { GetRequest } from "../src/requestMethods.js";
 
-describe("Retry Delay", () => {
+describe("Retry Delay", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     FetchMock.reset();

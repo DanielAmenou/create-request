@@ -5,7 +5,7 @@ import { RequestError } from "../src/RequestError.js";
 import { ResponseWrapper } from "../src/ResponseWrapper.js";
 import { FetchMock } from "./utils/fetchMock.js";
 
-describe("Integration Scenarios", () => {
+describe("Integration Scenarios", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.reset();

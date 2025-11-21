@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { GetRequest, PostRequest } from "../src/requestMethods.js";
 import { get, post } from "../src/requestFactories.js";
 
-describe("Request Validation", () => {
+describe("Request Validation", { timeout: 10000 }, () => {
   describe("withTimeout validation", () => {
     it("should throw error for negative timeout value", () => {
       // Arrange

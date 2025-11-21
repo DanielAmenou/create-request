@@ -3,7 +3,7 @@ import { describe, it, beforeEach, afterEach } from "node:test";
 import { GetRequest } from "../src/requestMethods.js";
 import { FetchMock } from "./utils/fetchMock.js";
 
-describe("getData Feature", () => {
+describe("getData Feature", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
   });

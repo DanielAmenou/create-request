@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { parseSize } from "../src/utils/sizeUtils.js";
 
-describe("sizeUtils Edge Cases", () => {
+describe("sizeUtils Edge Cases", { timeout: 10000 }, () => {
   describe("parseSize - Number Input", () => {
     it("should return number as-is", () => {
       assert.equal(parseSize(0), 0);

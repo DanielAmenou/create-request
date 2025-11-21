@@ -5,7 +5,7 @@ import { GetRequest } from "../src/requestMethods.js";
 import { FetchMock } from "./utils/fetchMock.js";
 import create from "../src/index.js";
 
-describe("Referrer Policy and Priority", () => {
+describe("Referrer Policy and Priority", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
     create.config.setEnableAntiCsrf(false);

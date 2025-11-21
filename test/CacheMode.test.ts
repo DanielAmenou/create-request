@@ -5,7 +5,7 @@ import { CacheMode } from "../src/enums.js";
 import { FetchMock } from "./utils/fetchMock.js";
 import create from "../src/index.js";
 
-describe("Cache Mode Options", () => {
+describe("Cache Mode Options", { timeout: 10000 }, () => {
   beforeEach(() => {
     FetchMock.install();
   });
