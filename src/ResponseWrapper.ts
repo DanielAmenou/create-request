@@ -5,12 +5,16 @@ import type { GraphQLOptions } from "./types.js";
  * Wrapper for HTTP responses with methods to transform the response data
  */
 export class ResponseWrapper {
-  private readonly response: Response;
   public readonly url?: string;
   public readonly method?: string;
-
-  // GraphQL-specific options
+  private readonly response: Response;
   private graphQLOptions?: GraphQLOptions;
+
+  // Cache the body as the last used method
+  private cachedBlob?: Blob;
+  private cachedText?: string;
+  private cachedJson?: unknown;
+  private cachedArrayBuffer?: ArrayBuffer;
 
   constructor(response: Response, url?: string, method?: string, graphQLOptions?: GraphQLOptions) {
     this.response = response;
@@ -67,11 +71,10 @@ export class ResponseWrapper {
 
   /**
    * Parse the response body as JSON
-   * Note: This consumes the response body and can only be called once.
    * If GraphQL options are set with throwOnError=true, will check for GraphQL errors and throw.
    *
    * @returns The parsed JSON data
-   * @throws {RequestError} When the request fails, JSON parsing fails, GraphQL errors occur (if throwOnError enabled), or body is already consumed
+   * @throws {RequestError} When the request fails, JSON parsing fails, or GraphQL errors occur (if throwOnError enabled).
    *
    * @example
    * const data = await response.getJson();
@@ -88,6 +91,8 @@ export class ResponseWrapper {
    * }
    */
   async getJson<T = unknown>(): Promise<T> {
+    if (this.cachedJson !== undefined) return this.cachedJson as T;
+
     if (this.response.bodyUsed) {
       throw new RequestError("Body already consumed", this.url || "", this.method || "", {
         status: this.response.status,
@@ -97,10 +102,10 @@ export class ResponseWrapper {
 
     try {
       const parsed: unknown = await this.response.json();
+      this.cachedJson = parsed;
       this.checkGraphQLErrors(parsed);
       return parsed as T;
     } catch (error) {
-      // Re-throw RequestErrors from checkGraphQLErrors without wrapping
       if (error instanceof RequestError) {
         throw error;
       }
@@ -114,15 +119,16 @@ export class ResponseWrapper {
 
   /**
    * Get the response body as text
-   * Note: This consumes the response body and can only be called once.
    *
    * @returns The response text
-   * @throws {RequestError} When reading fails or the response has already been consumed
+   * @throws {RequestError} When reading fails
    *
    * @example
    * const text = await response.getText();
    */
   async getText(): Promise<string> {
+    if (this.cachedText !== undefined) return this.cachedText;
+
     if (this.response.bodyUsed) {
       throw new RequestError("Body already consumed", this.url || "", this.method || "", {
         status: this.response.status,
@@ -131,7 +137,9 @@ export class ResponseWrapper {
     }
 
     try {
-      return await this.response.text();
+      const text = await this.response.text();
+      this.cachedText = text;
+      return text;
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       throw new RequestError(`Read failed: ${errorMessage}`, this.url || "", this.method || "", {
@@ -143,16 +151,17 @@ export class ResponseWrapper {
 
   /**
    * Get the response body as a Blob
-   * Note: This consumes the response body and can only be called once.
    *
    * @returns The response as a Blob
-   * @throws {RequestError} When reading fails or the response has already been consumed
+   * @throws {RequestError} When reading fails
    *
    * @example
    * const blob = await response.getBlob();
    * const url = URL.createObjectURL(blob);
    */
   async getBlob(): Promise<Blob> {
+    if (this.cachedBlob !== undefined) return this.cachedBlob;
+
     if (this.response.bodyUsed) {
       throw new RequestError("Body already consumed", this.url || "", this.method || "", {
         status: this.response.status,
@@ -161,7 +170,9 @@ export class ResponseWrapper {
     }
 
     try {
-      return await this.response.blob();
+      const blob = await this.response.blob();
+      this.cachedBlob = blob;
+      return blob;
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       throw new RequestError(`Read failed: ${errorMessage}`, this.url || "", this.method || "", {
@@ -173,16 +184,19 @@ export class ResponseWrapper {
 
   /**
    * Get the response body as an ArrayBuffer
-   * Note: This consumes the response body and can only be called once.
    *
    * @returns The response as an ArrayBuffer
-   * @throws {RequestError} When reading fails or the response has already been consumed
+   * @throws {RequestError} When reading fails
    *
    * @example
    * const buffer = await response.getArrayBuffer();
    * const uint8Array = new Uint8Array(buffer);
    */
   async getArrayBuffer(): Promise<ArrayBuffer> {
+    if (this.cachedArrayBuffer !== undefined) {
+      return this.cachedArrayBuffer;
+    }
+
     if (this.response.bodyUsed) {
       throw new RequestError("Body already consumed", this.url || "", this.method || "", {
         status: this.response.status,
@@ -191,7 +205,9 @@ export class ResponseWrapper {
     }
 
     try {
-      return await this.response.arrayBuffer();
+      const arrayBuffer = await this.response.arrayBuffer();
+      this.cachedArrayBuffer = arrayBuffer;
+      return arrayBuffer;
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       throw new RequestError(`Read failed: ${errorMessage}`, this.url || "", this.method || "", {
@@ -204,6 +220,7 @@ export class ResponseWrapper {
   /**
    * Get the raw response body as a ReadableStream
    * Note: This consumes the response body and should only be called once.
+   * Unlike other methods, streams cannot be cached, so this will throw if the body is already consumed.
    *
    * @returns The response body as a ReadableStream or null
    * @throws {RequestError} When the response body has already been consumed

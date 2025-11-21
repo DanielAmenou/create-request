@@ -34,7 +34,7 @@
     "lint:fix": "eslint \"**/*.ts\" --ignore-path .eslintignore --fix",
     "format": "prettier --write \"**/*.{ts,js,json}\"",
     "check": "concurrently \"npm run lint\" \"npm run test\" \"npm run check:size\"",
-    "check:size": "npx size-limit",
+    "check:size": "npm run build && npx size-limit",
     "test": "node --import tsx --test test/**/*.test.ts",
     "test:coverage": "c8 --reporter=text --reporter=html --reporter=lcov npm test",
     "test:compiled": "node --import tsx --import ./scripts/compiled-loader.mjs --test test/**/*.test.ts",
