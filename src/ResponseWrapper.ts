@@ -49,6 +49,19 @@ export class ResponseWrapper {
   }
 
   /**
+   * Check if the response body has already been consumed and throw an error if so
+   * @throws RequestError if the body has already been consumed
+   */
+  private checkBodyNotConsumed(): void {
+    if (this.response.bodyUsed) {
+      throw new RequestError("Body already consumed", this.url || "", this.method || "", {
+        status: this.response.status,
+        response: this.response,
+      });
+    }
+  }
+
+  /**
    * Check for GraphQL errors and throw if throwOnError is enabled
    * @param data - The parsed JSON data
    * @throws RequestError if GraphQL response contains errors and throwOnError is enabled
@@ -93,12 +106,7 @@ export class ResponseWrapper {
   async getJson<T = unknown>(): Promise<T> {
     if (this.cachedJson !== undefined) return this.cachedJson as T;
 
-    if (this.response.bodyUsed) {
-      throw new RequestError("Body already consumed", this.url || "", this.method || "", {
-        status: this.response.status,
-        response: this.response,
-      });
-    }
+    this.checkBodyNotConsumed();
 
     try {
       const parsed: unknown = await this.response.json();
@@ -129,12 +137,7 @@ export class ResponseWrapper {
   async getText(): Promise<string> {
     if (this.cachedText !== undefined) return this.cachedText;
 
-    if (this.response.bodyUsed) {
-      throw new RequestError("Body already consumed", this.url || "", this.method || "", {
-        status: this.response.status,
-        response: this.response,
-      });
-    }
+    this.checkBodyNotConsumed();
 
     try {
       const text = await this.response.text();
@@ -162,12 +165,7 @@ export class ResponseWrapper {
   async getBlob(): Promise<Blob> {
     if (this.cachedBlob !== undefined) return this.cachedBlob;
 
-    if (this.response.bodyUsed) {
-      throw new RequestError("Body already consumed", this.url || "", this.method || "", {
-        status: this.response.status,
-        response: this.response,
-      });
-    }
+    this.checkBodyNotConsumed();
 
     try {
       const blob = await this.response.blob();
@@ -197,12 +195,7 @@ export class ResponseWrapper {
       return this.cachedArrayBuffer;
     }
 
-    if (this.response.bodyUsed) {
-      throw new RequestError("Body already consumed", this.url || "", this.method || "", {
-        status: this.response.status,
-        response: this.response,
-      });
-    }
+    this.checkBodyNotConsumed();
 
     try {
       const arrayBuffer = await this.response.arrayBuffer();
@@ -233,12 +226,7 @@ export class ResponseWrapper {
    * }
    */
   getBody(): ReadableStream<Uint8Array> | null {
-    if (this.response.bodyUsed) {
-      throw new RequestError("Body already consumed", this.url || "", this.method || "", {
-        status: this.response.status,
-        response: this.response,
-      });
-    }
+    this.checkBodyNotConsumed();
 
     return this.response.body;
   }
