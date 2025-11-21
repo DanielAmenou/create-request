@@ -394,7 +394,7 @@ describe("GraphQL Error Handling", () => {
 
       const response = await request.getResponse();
 
-      // First call should throw
+      // First call should throw GraphQL error
       await assert.rejects(
         async () => response.getJson(),
         (error: Error) => {
@@ -403,14 +403,12 @@ describe("GraphQL Error Handling", () => {
         }
       );
 
-      // Second call should throw body already consumed error
-      await assert.rejects(
-        async () => response.getJson(),
-        (error: Error) => {
-          assert.match(error.message, /Body already consumed/);
-          return true;
-        }
-      );
+      // Second call should return cached JSON (body caching allows multiple calls)
+      // Note: GraphQL error checking only happens on first parse, not on cached access
+      const cachedResult = await response.getJson<{ data: null; errors: { message: string }[] }>();
+      assert.ok(cachedResult.errors);
+      assert.equal(cachedResult.errors.length, 1);
+      assert.equal(cachedResult.errors[0].message, "GraphQL error");
     });
 
     it("should handle response with no errors", async () => {
@@ -430,14 +428,10 @@ describe("GraphQL Error Handling", () => {
       const result1 = await response.getJson();
       assert.ok(Object.hasOwn(result1, "data"));
 
-      // Second call should throw body already consumed error
-      await assert.rejects(
-        async () => response.getJson(),
-        (error: Error) => {
-          assert.match(error.message, /Body already consumed/);
-          return true;
-        }
-      );
+      // Second call should return cached JSON (body caching allows multiple calls)
+      const result2 = await response.getJson();
+      assert.ok(Object.hasOwn(result2, "data"));
+      assert.strictEqual(result1, result2); // Should be the same cached object
     });
   });
 

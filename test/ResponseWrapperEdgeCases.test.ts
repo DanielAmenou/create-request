@@ -82,25 +82,6 @@ describe("ResponseWrapper Edge Cases", () => {
       }
     });
 
-    it("should throw error when calling same method twice", async () => {
-      const response = createMockResponse({
-        body: { data: "test" },
-        headers: { "content-type": "application/json" },
-      });
-      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
-
-      const json1 = await wrapper.getJson();
-      assert.deepEqual(json1, { data: "test" });
-
-      try {
-        await wrapper.getJson();
-        assert.fail("Should have thrown error");
-      } catch (error: any) {
-        assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
-      }
-    });
-
     it("should throw error when getting body stream after consumption", async () => {
       const response = createMockResponse({
         body: { data: "test" },
@@ -411,25 +392,6 @@ describe("ResponseWrapper Edge Cases", () => {
       const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
 
       await wrapper.getBlob();
-
-      try {
-        await wrapper.getArrayBuffer();
-        assert.fail("Should have thrown error");
-      } catch (error: any) {
-        assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
-      }
-    });
-
-    it("should throw error when calling getArrayBuffer twice", async () => {
-      const response = createMockResponse({
-        body: "binary content",
-        headers: { "content-type": "application/octet-stream" },
-      });
-      const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
-
-      const buffer1 = await wrapper.getArrayBuffer();
-      assert.ok(buffer1 instanceof ArrayBuffer);
 
       try {
         await wrapper.getArrayBuffer();

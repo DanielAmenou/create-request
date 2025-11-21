@@ -150,22 +150,6 @@ describe("ResponseWrapper", () => {
     }
   });
 
-  it("should throw error when calling getJson() twice on the same response", async () => {
-    // Arrange
-    const data = { name: "John", age: 30 };
-    const mockResponse = new Response(JSON.stringify(data), {
-      headers: { "Content-Type": "application/json" },
-    });
-    const wrapper = new ResponseWrapper(mockResponse);
-
-    // Act
-    const result1 = await wrapper.getJson();
-
-    // Assert
-    assert.deepEqual(result1, data);
-    await assert.rejects(() => wrapper.getJson(), /Body already consumed/);
-  });
-
   it("should throw error when getting text after JSON", async () => {
     // Arrange
     const data = { name: "John", age: 30 };
