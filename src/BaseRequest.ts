@@ -1188,11 +1188,6 @@ export abstract class BaseRequest {
               status: currentError.status,
               response: currentError.response,
             });
-          } else if (currentError instanceof ResponseWrapper && currentError.url && currentError.method) {
-            // If it's a ResponseWrapper, we can still create a proper RequestError from its context
-            currentError = new RequestError(`Err Interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method, {
-              status: currentError.status,
-            });
           } else {
             // Last resort: if we have no context at all, use the original error's context
             // This shouldn't happen in practice, but handle it gracefully

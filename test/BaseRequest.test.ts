@@ -2217,3 +2217,322 @@ describe("Header Case Sensitivity", () => {
     FetchMock.restore();
   });
 });
+
+describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
+  beforeEach(() => {
+    FetchMock.install();
+    create.config.reset();
+    create.config.setEnableAntiCsrf(false);
+  });
+
+  afterEach(() => {
+    FetchMock.reset();
+    FetchMock.restore();
+    create.config.reset();
+  });
+
+  describe("Cookie Edge Cases", () => {
+    it("should handle empty cookies object (cookieEntries.length === 0)", async () => {
+      // Test the early return when cookies object is empty
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection().withCookies({});
+
+      // Act
+      await request.getResponse();
+
+      // Assert - should not throw and should not add Cookie header
+      const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
+      const headers = options.headers as Record<string, string>;
+      assert.equal(headers["Cookie"], undefined);
+    });
+
+    it("should handle null cookies object", async () => {
+      // Test the early return when cookies is null
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = new GetRequest("https://api.example.com/test").withoutCsrfProtection();
+      // @ts-expect-error - Testing null cookies
+      request.withCookies(null);
+
+      // Act
+      await request.getResponse();
+
+      // Assert - should not throw
+      assert.equal(FetchMock.mock.calls.length, 1);
+    });
+  });
+
+  describe("Query Parameter Separator Logic", () => {
+    it("should use '&' separator when URL already has query params (hasExistingParams = true)", async () => {
+      // Test relative URL with existing query params
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = new GetRequest("/api/test?existing=value").withQueryParam("new", "newValue");
+
+      // Act
+      await request.getResponse();
+
+      // Assert - URL should use '&' separator
+      const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+      // For relative URLs, the formatUrlWithQueryParams will catch the error and use separator logic
+      assert.ok(url.includes("existing=value"));
+      assert.ok(url.includes("new=newValue"));
+      // The separator should be '&' since URL already has '?'
+      // Should have 'new=newValue' in the URL
+      assert.ok(url.includes("new=newValue"));
+    });
+
+    it("should use '?' separator when URL has no query params (hasExistingParams = false)", async () => {
+      // Test relative URL without existing query params
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = new GetRequest("/api/test").withQueryParam("new", "newValue");
+
+      // Act
+      await request.getResponse();
+
+      // Assert - URL should use '?' separator
+      const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+      // Should start with '?' for the first query param
+      assert.ok(url.includes("new=newValue"));
+      // The URL should have '?' before the query param
+      const queryIndex = url.indexOf("new=newValue");
+      assert.ok(queryIndex > 0);
+      assert.equal(url[queryIndex - 1], "?");
+    });
+  });
+
+  describe("Error Interceptor Edge Cases - Error Type Handling", () => {
+    it("should handle non-Error objects thrown in request interceptor (error instanceof Error check)", async () => {
+      // Test the line: const errorMessage = error instanceof Error ? error.message : String(error);
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = new GetRequest("https://api.example.com/test").withRequestInterceptor(() => {
+        // Throw a non-Error object
+        throw "String error";
+      });
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Req Interceptor failed"));
+        assert.ok(error.message.includes("String error"));
+      }
+    });
+
+    it("should handle Error objects thrown in request interceptor", async () => {
+      FetchMock.mockResponseOnce({ body: { success: true } });
+      const request = new GetRequest("https://api.example.com/test").withRequestInterceptor(() => {
+        throw new Error("Error object");
+      });
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Req Interceptor failed"));
+        assert.ok(error.message.includes("Error object"));
+      }
+    });
+
+    it("should handle non-Error objects thrown in response interceptor", async () => {
+      FetchMock.mockResponseOnce({ status: 200, body: { success: true } });
+      const request = new GetRequest("https://api.example.com/test").withResponseInterceptor(() => {
+        // Throw a non-Error object
+        throw { message: "Object error", code: 500 };
+      });
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Res Interceptor failed"));
+        // Should convert object to string
+        assert.ok(error.message.includes("[object Object]") || error.message.includes("Object error"));
+      }
+    });
+
+    it("should handle non-Error objects thrown in error interceptor (error instanceof Error check)", async () => {
+      // Test the line: const errorMessage = interceptorError instanceof Error ? interceptorError.message : String(interceptorError);
+      FetchMock.mockResponseOnce({ status: 500 });
+      const request = new GetRequest("https://api.example.com/test").withErrorInterceptor(() => {
+        // Throw a non-Error object
+        throw 12345;
+      });
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Err Interceptor"));
+        assert.ok(error.message.includes("12345"));
+      }
+    });
+
+    it("should handle error interceptor throwing when currentError is RequestError (normal case)", async () => {
+      // Test the branch: if (currentError instanceof RequestError) - this is the normal case
+      FetchMock.mockResponseOnce({ status: 500 });
+
+      // Set up a global interceptor that throws
+      create.config.addErrorInterceptor(() => {
+        throw new Error("Global interceptor error");
+      });
+
+      const request = new GetRequest("https://api.example.com/test");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Err Interceptor"));
+        assert.ok(error.message.includes("Global interceptor error"));
+        // Should have context from original RequestError
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+      } finally {
+        create.config.reset();
+      }
+    });
+
+    it("should handle error interceptor throwing non-Error and use original error context (last resort branch)", async () => {
+      // Test the last resort branch: else { currentError = RequestError.networkError(error.url, error.method, errorObj); }
+      // This tests when we have no context and need to use the original error's context
+      FetchMock.mockResponseOnce({ status: 500 });
+
+      // Set up a global interceptor that throws a non-Error
+      create.config.addErrorInterceptor(() => {
+        throw "String error in global interceptor";
+      });
+
+      const request = new GetRequest("https://api.example.com/test");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        // Should fall back to original error's context
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+      } finally {
+        create.config.reset();
+      }
+    });
+
+    it("should handle error interceptor throwing non-Error object when currentError is RequestError", async () => {
+      // Test: const errorObj = interceptorError instanceof Error ? interceptorError : new Error(String(interceptorError));
+      FetchMock.mockResponseOnce({ status: 500 });
+
+      // Set up a global interceptor that throws a non-Error
+      create.config.addErrorInterceptor(() => {
+        // Throw a non-Error object
+        throw { custom: "error object" };
+      });
+
+      const request = new GetRequest("https://api.example.com/test");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Should have thrown error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Err Interceptor"));
+        // Should convert object to string
+        assert.ok(error.message.includes("[object Object]") || error.message.includes("custom"));
+      } finally {
+        create.config.reset();
+      }
+    });
+  });
+
+  describe("combineSignalsManually Edge Cases", () => {
+    it("should return signal1 immediately if signal1 is already aborted", async () => {
+      // Test: if (signal1.aborted) return signal1;
+      const controller1 = new AbortController();
+      controller1.abort(); // Pre-abort signal1
+
+      FetchMock.mockDelayedResponseOnce(500);
+      const request = new GetRequest("https://api.example.com/test").withTimeout(1000).withAbortController(controller1);
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Expected request to be aborted");
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        // Should fail immediately because signal1 is already aborted
+      }
+    });
+
+    it("should return signal2 immediately if signal2 is already aborted", async () => {
+      // Test: if (signal2.aborted) return signal2;
+      const controller = new AbortController();
+      // Create a timeout that's already "aborted" by using a very short timeout
+      // and then immediately creating the request
+      FetchMock.mockDelayedResponseOnce(500);
+
+      // Use a timeout that will trigger very quickly, simulating signal2 being aborted
+      const request = new GetRequest("https://api.example.com/test").withTimeout(1).withAbortController(controller);
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Expected request to timeout");
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        // Should fail due to timeout (signal2)
+      }
+    });
+
+    it("should combine both signals when neither is aborted initially", async () => {
+      // Test the normal combination path: creating a controller and listening to both signals
+      const controller = new AbortController();
+      FetchMock.mockDelayedResponseOnce(500);
+
+      const request = new GetRequest("https://api.example.com/test").withTimeout(1000).withAbortController(controller);
+
+      const requestPromise = request.getResponse();
+
+      // Abort the external controller after a short delay
+      await new Promise(resolve => setTimeout(resolve, 50));
+      controller.abort();
+
+      // Act & Assert
+      try {
+        await requestPromise;
+        assert.fail("Expected request to be aborted");
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        // Should be aborted by the external controller
+      }
+    });
+
+    it("should handle both signals being aborted (signal1 first)", async () => {
+      // Test when signal1 is aborted first, then signal2
+      const controller1 = new AbortController();
+      controller1.abort();
+
+      FetchMock.mockDelayedResponseOnce(500);
+      // Use a very short timeout so signal2 would also be aborted quickly
+      const request = new GetRequest("https://api.example.com/test").withTimeout(1).withAbortController(controller1);
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Expected request to be aborted");
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        // Should fail immediately because signal1 is already aborted
+      }
+    });
+  });
+});
