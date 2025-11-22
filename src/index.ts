@@ -3,7 +3,7 @@ import { Config } from "./utils/Config.js";
 import { api } from "./apiBuilder.js";
 
 // Export enums
-export { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, SameSitePolicy, ReferrerPolicy } from "./enums.js";
+export { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, SameSitePolicy, ReferrerPolicy, CacheMode } from "./enums.js";
 
 // Export types
 export type {
