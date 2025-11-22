@@ -38,6 +38,7 @@
     "test": "node --import tsx --test test/**/*.test.ts",
     "test:coverage": "c8 --reporter=text --reporter=html --reporter=lcov npm test",
     "prepare": "husky",
+    "prepack": "npm run build",
     "preversion": "npm run check",
     "prepublishOnly": "npm run build && npm test",
     "publish:beta": "npm version prerelease --preid=beta -m \"chore(release): %s\" && git push origin --tags && npm publish --tag beta",
