@@ -2,7 +2,6 @@
 
 Thank you for considering contributing to create-request! This document provides guidelines and instructions to help you contribute effectively.
 
-
 ## Development Setup
 
 1. Clone the repository
@@ -32,7 +31,30 @@ Thank you for considering contributing to create-request! This document provides
 4. Add or update tests as necessary
 5. Update documentation to reflect your changes
 6. Run `npm test` to make sure all tests pass
-7. Submit a pull request
+7. Check package size impact (see Package Size Considerations below)
+8. Submit a pull request
+
+## Package Size Considerations
+
+This project maintains strict size limits to ensure optimal bundle sizes for consumers. **All changes must include information about their impact on package size.**
+
+### Checking Package Size
+
+Before submitting a pull request, check the size impact of your changes:
+
+- Run the size check: `npm run check:size`
+
+This will compare your changes against the current size limits defined in `.size-limit.json`.
+
+### Reporting Size Impact
+
+When submitting a pull request, **always include** in your PR description:
+
+- The size impact of your changes (increase/decrease in bytes)
+- Whether the changes stay within the size limits
+- If the size increases, explain why the increase is justified
+
+If your changes exceed the limits, discuss with maintainers before submitting the PR.
 
 ## Commit Message Format
 
