@@ -195,7 +195,7 @@ describe("Retry Delay", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error for negative delay");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("Invalid retry delay: -100"));
+        assert(error.message.includes("Invalid delay: -100"));
       }
     });
 
@@ -213,7 +213,7 @@ describe("Retry Delay", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error for invalid delay");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("Invalid retry delay: invalid"));
+        assert(error.message.includes("Invalid delay: invalid"));
       }
     });
 
@@ -230,7 +230,7 @@ describe("Retry Delay", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error for Infinity delay");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("Invalid retry delay: Infinity"));
+        assert(error.message.includes("Invalid delay: Infinity"));
       }
     });
   });

@@ -76,7 +76,7 @@ export class ResponseWrapper {
     );
     const errorMessage = errorMessages.join(", ");
 
-    throw new RequestError(`GraphQL request failed with errors: ${errorMessage}`, this.url || "", this.method || "", {
+    throw new RequestError(`GraphQL errors: ${errorMessage}`, this.url || "", this.method || "", {
       status: this.response.status,
       response: this.response,
     });

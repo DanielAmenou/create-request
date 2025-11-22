@@ -860,7 +860,7 @@ describe("GraphQL Error Consumption as JSON", { timeout: 10000 }, () => {
         const reqError = error as RequestError;
 
         // Error should contain GraphQL error message
-        assert.match(reqError.message, /GraphQL request failed with errors:/);
+        assert.match(reqError.message, /GraphQL errors:/);
         assert.match(reqError.message, /User not found/);
 
         // Response should be available with status
@@ -899,7 +899,7 @@ describe("GraphQL Error Consumption as JSON", { timeout: 10000 }, () => {
         const reqError = error as RequestError;
 
         // Error message should contain both errors
-        assert.match(reqError.message, /GraphQL request failed with errors:/);
+        assert.match(reqError.message, /GraphQL errors:/);
         assert.match(reqError.message, /Error 1/);
         assert.match(reqError.message, /Error 2/);
 

@@ -174,7 +174,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("control chars");
+          return error.message.includes("Invalid URL");
         }
       );
     });
@@ -188,7 +188,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("control chars");
+          return error.message.includes("Invalid URL");
         }
       );
     });
@@ -202,7 +202,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("control chars");
+          return error.message.includes("Invalid URL");
         }
       );
     });
@@ -345,7 +345,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("control chars");
+          return error.message.includes("Invalid URL");
         }
       );
     });

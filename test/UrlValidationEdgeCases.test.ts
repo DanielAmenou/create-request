@@ -44,7 +44,7 @@ describe("URL Validation Edge Cases", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => request.getResponse(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("control chars");
+          return error instanceof RequestError && error.message.includes("Invalid URL");
         }
       );
     } finally {
@@ -60,7 +60,7 @@ describe("URL Validation Edge Cases", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => request.getResponse(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("control chars");
+          return error instanceof RequestError && error.message.includes("Invalid URL");
         }
       );
     } finally {
@@ -76,7 +76,7 @@ describe("URL Validation Edge Cases", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => request.getResponse(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("control chars");
+          return error instanceof RequestError && error.message.includes("Invalid URL");
         }
       );
     } finally {
@@ -92,7 +92,7 @@ describe("URL Validation Edge Cases", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => request.getResponse(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("control chars");
+          return error instanceof RequestError && error.message.includes("Invalid URL");
         }
       );
     } finally {

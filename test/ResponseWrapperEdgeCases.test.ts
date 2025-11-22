@@ -752,7 +752,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL request failed with errors:/);
+        assert.match(error.message, /GraphQL errors:/);
         assert.equal(error.status, 200);
         assert.ok(error.response);
         assert.equal(error.response, mockResponse);
@@ -780,7 +780,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL request failed with errors:/);
+        assert.match(error.message, /GraphQL errors:/);
         assert.ok(error.message.includes("Error 1"));
         assert.ok(error.message.includes("Error 2"));
         assert.equal(error.status, 200);
@@ -811,7 +811,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL request failed with errors:/);
+        assert.match(error.message, /GraphQL errors:/);
         // Objects without message property are converted to string, which becomes "[object Object]"
         assert.ok(error.message.includes("[object Object]"));
         assert.equal(error.status, 200);
@@ -846,7 +846,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL request failed with errors:/);
+        assert.match(error.message, /GraphQL errors:/);
         assert.ok(error.message.includes("String error"));
         assert.ok(error.message.includes("Object error"));
         // Objects without message property are converted to string, which becomes "[object Object]"
@@ -877,7 +877,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL request failed with errors:/);
+        assert.match(error.message, /GraphQL errors:/);
         assert.equal(error.status, 200);
         assert.equal(error.url, "");
         assert.equal(error.method, "");

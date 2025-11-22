@@ -76,7 +76,7 @@ export abstract class BaseRequest {
   private validateUrl(url: string): void {
     if (!url?.trim()) throw new RequestError("URL cannot be empty", url, this.method);
     if (url.includes("\0") || url.includes("\r") || url.includes("\n")) {
-      throw new RequestError("Invalid URL (control chars)", url, this.method);
+      throw new RequestError("Invalid URL", url, this.method);
     }
     const trimmed = url.trim();
     if (/^https?:\/\//.test(trimmed)) {
@@ -1080,7 +1080,7 @@ export abstract class BaseRequest {
 
           // Validate delay result
           if (typeof delay !== "number" || !Number.isFinite(delay) || delay < 0) {
-            throw new RequestError(`Invalid retry delay: ${delay}`, url, method);
+            throw new RequestError(`Invalid delay: ${delay}`, url, method);
           }
 
           // Wait for the delay
@@ -1092,7 +1092,7 @@ export abstract class BaseRequest {
     }
 
     // This should never happen but is needed for type safety
-    throw new RequestError(`Max retries reached`, url, method);
+    throw new RequestError(`EO`, url, method);
   }
 
   /**
@@ -1118,7 +1118,7 @@ export abstract class BaseRequest {
         currentConfig = result;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new RequestError(`Request interceptor failed: ${errorMessage}`, currentConfig.url, currentConfig.method);
+        throw new RequestError(`Req Interceptor failed: ${errorMessage}`, currentConfig.url, currentConfig.method);
       }
     }
 
@@ -1146,7 +1146,7 @@ export abstract class BaseRequest {
         const errorMessage = error instanceof Error ? error.message : String(error);
         const url = currentResponse.url || "";
         const method = currentResponse.method || "";
-        throw new RequestError(`Response interceptor failed: ${errorMessage}`, url, method);
+        throw new RequestError(`Res Interceptor failed: ${errorMessage}`, url, method);
       }
     }
 
@@ -1184,13 +1184,13 @@ export abstract class BaseRequest {
           const errorMessage = interceptorError instanceof Error ? interceptorError.message : String(interceptorError);
           // Always wrap in RequestError when we have context
           if (currentError instanceof RequestError) {
-            currentError = new RequestError(`Error interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method, {
+            currentError = new RequestError(`Err Interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method, {
               status: currentError.status,
               response: currentError.response,
             });
           } else if (currentError instanceof ResponseWrapper && currentError.url && currentError.method) {
             // If it's a ResponseWrapper, we can still create a proper RequestError from its context
-            currentError = new RequestError(`Error interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method, {
+            currentError = new RequestError(`Err Interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method, {
               status: currentError.status,
             });
           } else {

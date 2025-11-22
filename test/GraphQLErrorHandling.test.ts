@@ -65,7 +65,7 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       } catch (error) {
         assert.ok(error instanceof RequestError);
         const reqError = error;
-        assert.match(reqError.message, /GraphQL request failed with errors:/);
+        assert.match(reqError.message, /GraphQL errors:/);
         assert.match(reqError.message, /Field 'email' is required/);
       }
     });
@@ -292,7 +292,7 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       } catch (error) {
         assert.ok(error instanceof RequestError);
         const reqError = error;
-        assert.match(reqError.message, /GraphQL request failed with errors:/);
+        assert.match(reqError.message, /GraphQL errors:/);
         assert.match(reqError.message, /Cannot query field "test" on type "filterItem"., Syntax error in query/);
       }
     });
@@ -398,7 +398,7 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => response.getJson(),
         (error: Error) => {
-          assert.match(error.message, /GraphQL request failed with errors:/);
+          assert.match(error.message, /GraphQL errors:/);
           return true;
         }
       );
@@ -628,7 +628,7 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error) {
         const reqError = error as RequestError;
-        assert.match(reqError.message, /GraphQL request failed with errors:/);
+        assert.match(reqError.message, /GraphQL errors:/);
         assert.equal(reqError.status, 200);
         assert.ok(reqError.response);
       }
@@ -679,7 +679,7 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error) {
         const reqError = error as RequestError;
-        assert.match(reqError.message, /GraphQL request failed with errors:/);
+        assert.match(reqError.message, /GraphQL errors:/);
         assert.equal(reqError.status, 200);
         assert.ok(reqError.response);
       }
