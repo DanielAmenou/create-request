@@ -53,7 +53,14 @@
     "request",
     "api",
     "xhr",
-    "ajax"
+    "ajax",
+    "typescript",
+    "chainable",
+    "fluent",
+    "retry",
+    "timeout",
+    "graphql",
+    "csrf"
   ],
   "author": "Daniel Amenou <amenou.daniel@gmail.com>",
   "license": "MIT",
