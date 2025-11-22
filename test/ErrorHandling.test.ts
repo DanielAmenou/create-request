@@ -513,7 +513,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error) {
         assert(error instanceof Error);
-          assert(error.message.includes("Data selector failed"));
+        assert(error.message.includes("Data selector failed"));
         assert(error.message.includes("Not a valid number"));
       }
     });

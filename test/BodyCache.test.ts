@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
 import { ResponseWrapper } from "../src/ResponseWrapper.js";
 import { RequestError } from "../src/RequestError.js";
-import { createMockResponse } from "./utils/fetchMock.js";
+import { createMockResponse, FetchMock } from "./utils/fetchMock.js";
 import { PostRequest } from "../src/requestMethods.js";
-import { FetchMock } from "./utils/fetchMock.js";
 
 describe("Body Cache - Multiple Consumption", { timeout: 10000 }, () => {
   describe("getJson() - Multiple Calls", () => {
@@ -319,15 +318,15 @@ describe("Body Cache - Multiple Consumption", { timeout: 10000 }, () => {
       const wrapper = new ResponseWrapper(response, "https://api.example.com/data", "GET");
 
       // First call with selector
-      const users1 = await wrapper.getData(d => d.users);
+      const users1 = await wrapper.getData<typeof data, typeof data.users>(d => d.users);
       assert.deepEqual(users1, [{ id: 1, name: "John" }]);
 
       // Second call with same selector - should use cached JSON
-      const users2 = await wrapper.getData(d => d.users);
+      const users2 = await wrapper.getData<typeof data, typeof data.users>(d => d.users);
       assert.deepEqual(users2, [{ id: 1, name: "John" }]);
 
       // Third call with different selector - should still use cached JSON
-      const count1 = await wrapper.getData(d => d.count);
+      const count1 = await wrapper.getData<typeof data, number>(d => d.count);
       assert.equal(count1, 1);
 
       // Fourth call with no selector - should use cached JSON
@@ -349,9 +348,9 @@ describe("Body Cache - Multiple Consumption", { timeout: 10000 }, () => {
       const wrapper = new ResponseWrapper(response, "https://api.example.com/data", "GET");
 
       // Multiple calls with different selectors
-      const meta = await wrapper.getData(d => d.meta);
-      const items = await wrapper.getData(d => d.items);
-      const status = await wrapper.getData(d => d.status);
+      const meta = await wrapper.getData<typeof data, typeof data.meta>(d => d.meta);
+      const items = await wrapper.getData<typeof data, typeof data.items>(d => d.items);
+      const status = await wrapper.getData<typeof data, string>(d => d.status);
       const full = await wrapper.getData();
 
       // All should work because JSON is cached
@@ -446,9 +445,9 @@ describe("Body Cache - Multiple Consumption", { timeout: 10000 }, () => {
 
       // Interleave calls
       const json1 = await wrapper.getJson();
-      const nested = await wrapper.getData(d => d.nested);
+      const nested = await wrapper.getData<typeof data, typeof data.nested>(d => d.nested);
       const json2 = await wrapper.getJson();
-      const value = await wrapper.getData(d => d.value);
+      const value = await wrapper.getData<typeof data, number>(d => d.value);
       const json3 = await wrapper.getJson();
 
       assert.deepEqual(json1, data);
@@ -608,9 +607,7 @@ describe("GraphQL Error Consumption as JSON", { timeout: 10000 }, () => {
     });
 
     it("should allow using getData() to extract GraphQL errors", async () => {
-      const graphQLErrors = [
-        { message: "Validation error", path: ["input", "email"] },
-      ];
+      const graphQLErrors = [{ message: "Validation error", path: ["input", "email"] }];
 
       FetchMock.mockResponseOnce({
         status: 200,
@@ -632,11 +629,7 @@ describe("GraphQL Error Consumption as JSON", { timeout: 10000 }, () => {
     });
 
     it("should allow consuming GraphQL errors multiple times with getData()", async () => {
-      const graphQLErrors = [
-        { message: "Error 1" },
-        { message: "Error 2" },
-        { message: "Error 3" },
-      ];
+      const graphQLErrors = [{ message: "Error 1" }, { message: "Error 2" }, { message: "Error 3" }];
 
       FetchMock.mockResponseOnce({
         status: 200,
@@ -687,7 +680,7 @@ describe("GraphQL Error Consumption as JSON", { timeout: 10000 }, () => {
       const errorMessages = await response.getData<{ errors: typeof graphQLErrors }, string[]>(d => d.errors.map(e => e.message));
       const errorPaths = await response.getData<{ errors: typeof graphQLErrors }, (string[] | undefined)[]>(d => d.errors.map(e => e.path));
       const errorCodes = await response.getData<{ errors: typeof graphQLErrors }, string[]>(d =>
-        d.errors.map(e => (e.extensions?.code as string) || "")
+        d.errors.map(e => (typeof e.extensions?.code === "string" ? e.extensions.code : ""))
       );
 
       assert.equal(allErrors.length, 2);
@@ -724,8 +717,8 @@ describe("GraphQL Error Consumption as JSON", { timeout: 10000 }, () => {
         errors: { message: string; path: string[] }[];
       }>();
 
-      const userData = await response.getData(d => d.data.user);
-      const errors = await response.getData(d => d.errors);
+      const userData = await response.getData<typeof fullResponse, typeof fullResponse.data.user>(d => d.data.user);
+      const errors = await response.getData<typeof fullResponse, typeof fullResponse.errors>(d => d.errors);
 
       assert.equal(fullResponse.data.user.id, "1");
       assert.equal(fullResponse.data.user.name, "John");
@@ -857,16 +850,19 @@ describe("GraphQL Error Consumption as JSON", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error) {
         assert.ok(error instanceof RequestError);
-        const reqError = error as RequestError;
+        if (!(error instanceof RequestError)) {
+          assert.fail("Expected RequestError");
+          return;
+        }
 
         // Error should contain GraphQL error message
-        assert.match(reqError.message, /GraphQL errors:/);
-        assert.match(reqError.message, /User not found/);
+        assert.match(error.message, /GraphQL errors:/);
+        assert.match(error.message, /User not found/);
 
         // Response should be available with status
-        assert.ok(reqError.response);
-        assert.equal(reqError.status, 200);
-        assert.equal(reqError.response?.status, 200);
+        assert.ok(error.response);
+        assert.equal(error.status, 200);
+        assert.equal(error.response?.status, 200);
 
         // Note: Body is already consumed when GraphQL error is thrown,
         // so we cannot access the response body again from reqError.response
@@ -896,17 +892,19 @@ describe("GraphQL Error Consumption as JSON", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error) {
         assert.ok(error instanceof RequestError);
-        const reqError = error as RequestError;
+        if (!(error instanceof RequestError)) {
+          assert.fail("Expected RequestError");
+          return;
+        }
 
         // Error message should contain both errors
-        assert.match(reqError.message, /GraphQL errors:/);
-        assert.match(reqError.message, /Error 1/);
-        assert.match(reqError.message, /Error 2/);
+        assert.match(error.message, /GraphQL errors:/);
+        assert.match(error.message, /Error 1/);
+        assert.match(error.message, /Error 2/);
 
-        assert.equal(reqError.status, 200);
-        assert.ok(reqError.response);
+        assert.equal(error.status, 200);
+        assert.ok(error.response);
       }
     });
   });
 });
-
