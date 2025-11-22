@@ -534,7 +534,7 @@ describe("API Builder", { timeout: 10000 }, () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
 
       const api = create.api().withBaseURL("https://api.example.com");
-      const result = await api.get(undefined as any).getJson();
+      const result = await api.get(undefined as unknown as string).getJson();
 
       assert.deepEqual(result, { success: true });
       const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
@@ -547,7 +547,7 @@ describe("API Builder", { timeout: 10000 }, () => {
       const api = create.api();
 
       try {
-        await api.get(undefined as any).getJson();
+        await api.get(undefined as unknown as string).getJson();
         assert.fail("Expected validation error for empty URL");
       } catch (error) {
         assert.ok(error instanceof RequestError);
@@ -560,7 +560,7 @@ describe("API Builder", { timeout: 10000 }, () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
 
       const api = create.api().withBaseURL("https://api.example.com");
-      const result = await api.get(null as any).getJson();
+      const result = await api.get(null as unknown as string).getJson();
 
       assert.deepEqual(result, { success: true });
       const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
@@ -573,7 +573,7 @@ describe("API Builder", { timeout: 10000 }, () => {
       const api = create.api();
 
       try {
-        await api.get(null as any).getJson();
+        await api.get(null as unknown as string).getJson();
         assert.fail("Expected validation error for empty URL");
       } catch (error) {
         assert.ok(error instanceof RequestError);
@@ -624,10 +624,7 @@ describe("API Builder", { timeout: 10000 }, () => {
       // Test: if (this.modifiers) for (const modifier of this.modifiers) modifier(request);
       FetchMock.mockResponseOnce();
 
-      const api = create.api()
-        .withBaseURL("https://api.example.com")
-        .withHeaders({ "X-Custom": "value1" })
-        .withTimeout(5000);
+      const api = create.api().withBaseURL("https://api.example.com").withHeaders({ "X-Custom": "value1" }).withTimeout(5000);
       (api as any).withHeaders({ "X-Another": "value2" });
 
       await api.head("/test").getResponse();

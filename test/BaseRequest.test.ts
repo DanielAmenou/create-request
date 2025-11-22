@@ -2602,7 +2602,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
       // Test: const errorObj = error instanceof Error ? error : new Error(String(error));
       // Test line 1406-1407: when error is not an Error instance
       const stringError = "Network connection failed";
-      FetchMock.mockErrorOnce(stringError as any);
+      FetchMock.mockErrorOnce(stringError as unknown as Error);
 
       const request = new GetRequest("https://api.example.com/test");
 
@@ -2621,7 +2621,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
     it("should convert number error to RequestError.networkError", async () => {
       // Test: const errorObj = error instanceof Error ? error : new Error(String(error));
       const numberError = 500;
-      FetchMock.mockErrorOnce(numberError as any);
+      FetchMock.mockErrorOnce(numberError as unknown as Error);
 
       const request = new GetRequest("https://api.example.com/test");
 
@@ -2638,7 +2638,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
     it("should convert object error to RequestError.networkError", async () => {
       // Test: const errorObj = error instanceof Error ? error : new Error(String(error));
       const objectError = { code: "ECONNREFUSED", message: "Connection refused" };
-      FetchMock.mockErrorOnce(objectError as any);
+      FetchMock.mockErrorOnce(objectError as unknown as Error);
 
       const request = new GetRequest("https://api.example.com/test");
 
@@ -2656,7 +2656,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
 
     it("should convert null error to RequestError.networkError", async () => {
       // Test: const errorObj = error instanceof Error ? error : new Error(String(error));
-      FetchMock.mockErrorOnce(null as any);
+      FetchMock.mockErrorOnce(null as unknown as Error);
 
       const request = new GetRequest("https://api.example.com/test");
 
@@ -2672,7 +2672,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
 
     it("should convert undefined error to RequestError.networkError", async () => {
       // Test: const errorObj = error instanceof Error ? error : new Error(String(error));
-      FetchMock.mockErrorOnce(undefined as any);
+      FetchMock.mockErrorOnce(undefined as unknown as Error);
 
       const request = new GetRequest("https://api.example.com/test");
 
