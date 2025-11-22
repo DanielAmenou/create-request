@@ -319,7 +319,7 @@ describe("BodyRequest Edge Cases", { timeout: 10000 }, () => {
           new PostRequest("https://api.example.com/test").withBody(circular);
         },
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("stringify failed");
+          return error instanceof RequestError && error.message.includes("Invalid JSON");
         }
       );
     });
@@ -337,7 +337,7 @@ describe("BodyRequest Edge Cases", { timeout: 10000 }, () => {
           new PostRequest("https://api.example.com/test").withBody(circular);
         },
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("stringify failed");
+          return error instanceof RequestError && error.message.includes("Invalid JSON");
         }
       );
     });

@@ -74,7 +74,7 @@ export abstract class BaseRequest {
   }
 
   private validateUrl(url: string): void {
-    if (!url?.trim()) throw new RequestError("URL cannot be empty", url, this.method);
+    if (!url?.trim()) throw new RequestError("Invalid URL", url, this.method);
     if (url.includes("\0") || url.includes("\r") || url.includes("\n")) {
       throw new RequestError("Invalid URL", url, this.method);
     }
@@ -83,7 +83,7 @@ export abstract class BaseRequest {
       try {
         new URL(trimmed);
       } catch {
-        throw new RequestError(`Invalid URL: ${trimmed}`, trimmed, this.method);
+        throw new RequestError("Invalid URL", trimmed, this.method);
       }
     }
   }
@@ -142,7 +142,7 @@ export abstract class BaseRequest {
    * request.withTimeout(5000); // 5 seconds timeout
    */
   withTimeout(timeout: number): this {
-    if (!Number.isFinite(timeout) || timeout <= 0) throw new RequestError("Timeout must be a positive number", this.url, this.method);
+    if (!Number.isFinite(timeout) || timeout <= 0) throw new RequestError("Invalid timeout", this.url, this.method);
 
     this.requestOptions.timeout = timeout;
     return this;
@@ -692,7 +692,7 @@ export abstract class BaseRequest {
     if (typeof Buffer !== "undefined") return Buffer.from(str).toString("base64");
 
     // Fallback (should never happen in modern environments)
-    throw new RequestError("Base64 encoding is not supported", this.url, this.method);
+    throw new RequestError("Encoding not supported", this.url, this.method);
   }
 
   /**

@@ -48,7 +48,7 @@ export abstract class BodyRequest extends BaseRequest {
         JSON.stringify(body);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new RequestError(`stringify failed ${errorMessage}`, this.url, this.method);
+        throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url, this.method);
       }
     } else {
       this.bodyType = BodyType.BINARY;
@@ -113,7 +113,7 @@ export abstract class BodyRequest extends BaseRequest {
       JSON.stringify(graphQLBody);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new RequestError(`stringify failed ${errorMessage}`, this.url, this.method);
+      throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url, this.method);
     }
 
     this.body = graphQLBody;

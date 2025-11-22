@@ -13,7 +13,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
       // Act & Assert
       assert.throws(() => {
         request.withTimeout(-100);
-      }, /Timeout must be a positive number/);
+      }, /Invalid timeout/);
     });
 
     it("should throw error for zero timeout value", () => {
@@ -23,7 +23,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
       // Act & Assert
       assert.throws(() => {
         request.withTimeout(0);
-      }, /Timeout must be a positive number/);
+      }, /Invalid timeout/);
     });
 
     it("should throw error for non-finite timeout values", () => {
@@ -33,12 +33,12 @@ describe("Request Validation", { timeout: 10000 }, () => {
       // Act & Assert - NaN
       assert.throws(() => {
         request.withTimeout(NaN);
-      }, /Timeout must be a positive number/);
+      }, /Invalid timeout/);
 
       // Act & Assert - Infinity
       assert.throws(() => {
         request.withTimeout(Infinity);
-      }, /Timeout must be a positive number/);
+      }, /Invalid timeout/);
     });
 
     it("should accept valid timeout value", () => {
@@ -114,7 +114,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("URL cannot be empty");
+          return error.message.includes("Invalid URL");
         }
       );
     });
@@ -128,7 +128,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("URL cannot be empty");
+          return error.message.includes("Invalid URL");
         }
       );
     });
@@ -265,7 +265,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("URL cannot be empty");
+          return error.message.includes("Invalid URL");
         }
       );
     });
@@ -286,7 +286,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("URL cannot be empty");
+          return error.message.includes("Invalid URL");
         }
       );
     });
@@ -300,7 +300,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("URL cannot be empty");
+          return error.message.includes("Invalid URL");
         }
       );
     });
