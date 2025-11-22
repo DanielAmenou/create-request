@@ -2455,8 +2455,27 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
   });
 
   describe("combineSignalsManually Edge Cases", () => {
+    // Store original AbortSignal.any if it exists
+    let originalAbortSignalAny: ((signals: AbortSignal[]) => AbortSignal) | undefined;
+
+    beforeEach(() => {
+      // Save original AbortSignal.any
+      originalAbortSignalAny = (AbortSignal as any).any;
+      // Remove AbortSignal.any to force use of combineSignalsManually
+      delete (AbortSignal as any).any;
+    });
+
+    afterEach(() => {
+      // Restore AbortSignal.any if it existed
+      if (originalAbortSignalAny) {
+        (AbortSignal as any).any = originalAbortSignalAny;
+      } else {
+        delete (AbortSignal as any).any;
+      }
+    });
+
     it("should return signal1 immediately if signal1 is already aborted", async () => {
-      // Test: if (signal1.aborted) return signal1;
+      // Test: if (signal1.aborted) return signal1; (line 1274)
       const controller1 = new AbortController();
       controller1.abort(); // Pre-abort signal1
 
@@ -2474,7 +2493,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
     });
 
     it("should return signal2 immediately if signal2 is already aborted", async () => {
-      // Test: if (signal2.aborted) return signal2;
+      // Test: if (signal2.aborted) return signal2; (line 1275)
       const controller = new AbortController();
       // Create a timeout that's already "aborted" by using a very short timeout
       // and then immediately creating the request
@@ -2495,6 +2514,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
 
     it("should combine both signals when neither is aborted initially", async () => {
       // Test the normal combination path: creating a controller and listening to both signals
+      // Tests lines 1277-1284: creating controller and adding event listeners
       const controller = new AbortController();
       FetchMock.mockDelayedResponseOnce(500);
 
@@ -2532,6 +2552,155 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
       } catch (error) {
         assert.ok(error instanceof Error);
         // Should fail immediately because signal1 is already aborted
+      }
+    });
+
+    it("should handle timeout signal aborting the combined signal", async () => {
+      // Test that when timeout signal aborts, the combined signal also aborts
+      // Tests lines 1281-1282: event listener on signal2 (timeout)
+      const controller = new AbortController();
+      FetchMock.mockDelayedResponseOnce(500);
+
+      const request = new GetRequest("https://api.example.com/test").withTimeout(50).withAbortController(controller);
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Expected request to timeout");
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        // Should fail due to timeout
+      }
+    });
+
+    it("should handle both event listeners being called", async () => {
+      // Test that both event listeners work correctly
+      // This tests the full flow: controller creation, event listener setup, and abort handling
+      const controller = new AbortController();
+      FetchMock.mockDelayedResponseOnce(500);
+
+      const request = new GetRequest("https://api.example.com/test").withTimeout(1000).withAbortController(controller);
+
+      const requestPromise = request.getResponse();
+
+      // Wait a bit, then abort the controller
+      await new Promise(resolve => setTimeout(resolve, 50));
+      controller.abort();
+
+      // Act & Assert
+      try {
+        await requestPromise;
+        assert.fail("Expected request to be aborted");
+      } catch (error) {
+        assert.ok(error instanceof Error);
+      }
+    });
+  });
+
+  describe("Error handling when error is not an Error instance", () => {
+    it("should convert string error to RequestError.networkError", async () => {
+      // Test: const errorObj = error instanceof Error ? error : new Error(String(error));
+      // Test line 1406-1407: when error is not an Error instance
+      const stringError = "Network connection failed";
+      FetchMock.mockErrorOnce(stringError as any);
+
+      const request = new GetRequest("https://api.example.com/test");
+
+      try {
+        await request.getResponse();
+        assert.fail("Expected request to throw");
+      } catch (error) {
+        assert.ok(error instanceof RequestError);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+        // The error message should be converted from string
+        assert.ok(error.message.includes("Network connection failed") || error.message.includes("Network error"));
+      }
+    });
+
+    it("should convert number error to RequestError.networkError", async () => {
+      // Test: const errorObj = error instanceof Error ? error : new Error(String(error));
+      const numberError = 500;
+      FetchMock.mockErrorOnce(numberError as any);
+
+      const request = new GetRequest("https://api.example.com/test");
+
+      try {
+        await request.getResponse();
+        assert.fail("Expected request to throw");
+      } catch (error) {
+        assert.ok(error instanceof RequestError);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+      }
+    });
+
+    it("should convert object error to RequestError.networkError", async () => {
+      // Test: const errorObj = error instanceof Error ? error : new Error(String(error));
+      const objectError = { code: "ECONNREFUSED", message: "Connection refused" };
+      FetchMock.mockErrorOnce(objectError as any);
+
+      const request = new GetRequest("https://api.example.com/test");
+
+      try {
+        await request.getResponse();
+        assert.fail("Expected request to throw");
+      } catch (error) {
+        assert.ok(error instanceof RequestError);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+        // Object should be converted to string via String()
+        assert.ok(error.message.includes("[object Object]") || error.message.includes("Network error"));
+      }
+    });
+
+    it("should convert null error to RequestError.networkError", async () => {
+      // Test: const errorObj = error instanceof Error ? error : new Error(String(error));
+      FetchMock.mockErrorOnce(null as any);
+
+      const request = new GetRequest("https://api.example.com/test");
+
+      try {
+        await request.getResponse();
+        assert.fail("Expected request to throw");
+      } catch (error) {
+        assert.ok(error instanceof RequestError);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+      }
+    });
+
+    it("should convert undefined error to RequestError.networkError", async () => {
+      // Test: const errorObj = error instanceof Error ? error : new Error(String(error));
+      FetchMock.mockErrorOnce(undefined as any);
+
+      const request = new GetRequest("https://api.example.com/test");
+
+      try {
+        await request.getResponse();
+        assert.fail("Expected request to throw");
+      } catch (error) {
+        assert.ok(error instanceof RequestError);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+      }
+    });
+
+    it("should handle Error instance normally", async () => {
+      // Test: const errorObj = error instanceof Error ? error : new Error(String(error));
+      // When error IS an Error instance, it should be used directly
+      const errorInstance = new Error("Network error");
+      FetchMock.mockErrorOnce(errorInstance);
+
+      const request = new GetRequest("https://api.example.com/test");
+
+      try {
+        await request.getResponse();
+        assert.fail("Expected request to throw");
+      } catch (error) {
+        assert.ok(error instanceof RequestError);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
       }
     });
   });

@@ -996,6 +996,8 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
 
     it("should handle non-Error exceptions in getBlob", async () => {
       // Create a mock response that throws a non-Error value
+      // Test: const errorMessage = e instanceof Error ? e.message : String(e);
+      // Test lines 175-179: error handling in getBlob when error is not an Error instance
       const mockResponse = new Response("blob content", {
         status: 200,
         headers: { "Content-Type": "application/octet-stream" },
@@ -1014,6 +1016,67 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
         assert.match(error.message, /Read failed:/);
+        assert.ok(error.message.includes("String error in blob"));
+        assert.equal(error.status, 200);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+        assert.ok(error.response);
+      }
+    });
+
+    it("should handle Error instance exceptions in getBlob", async () => {
+      // Test: const errorMessage = e instanceof Error ? e.message : String(e);
+      // Test lines 175-179: error handling in getBlob when error IS an Error instance
+      const mockResponse = new Response("blob content", {
+        status: 200,
+        headers: { "Content-Type": "application/octet-stream" },
+      });
+
+      const errorInstance = new Error("Blob read failed");
+      // Override blob() to throw an Error instance
+      mockResponse.blob = () => {
+        return Promise.reject(errorInstance);
+      };
+
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET");
+
+      try {
+        await wrapper.getBlob();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /Read failed:/);
+        assert.ok(error.message.includes("Blob read failed"));
+        assert.equal(error.status, 200);
+        assert.equal(error.url, "https://api.example.com/test");
+        assert.equal(error.method, "GET");
+        assert.ok(error.response);
+      }
+    });
+
+    it("should handle non-Error exceptions in getBlob with object error", async () => {
+      // Test: const errorMessage = e instanceof Error ? e.message : String(e);
+      // Test lines 175-179: error handling when error is an object (not Error instance)
+      const mockResponse = new Response("blob content", {
+        status: 200,
+        headers: { "Content-Type": "application/octet-stream" },
+      });
+
+      // Override blob() to throw an object
+      mockResponse.blob = () => {
+        return Promise.reject({ code: "EBLOB", message: "Blob error" } as any);
+      };
+
+      const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET");
+
+      try {
+        await wrapper.getBlob();
+        assert.fail("Should have thrown an error");
+      } catch (error: any) {
+        assert.ok(error instanceof RequestError);
+        assert.match(error.message, /Read failed:/);
+        // Object should be converted to string via String()
+        assert.ok(error.message.includes("[object Object]"));
         assert.equal(error.status, 200);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");

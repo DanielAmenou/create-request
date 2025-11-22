@@ -2,6 +2,7 @@ import create from "../src/index.js";
 import assert from "node:assert/strict";
 import { FetchMock } from "./utils/fetchMock.js";
 import { describe, it, beforeEach, afterEach } from "node:test";
+import { RequestError } from "../src/RequestError.js";
 
 describe("API Builder", { timeout: 10000 }, () => {
   beforeEach(() => {
@@ -526,6 +527,129 @@ describe("API Builder", { timeout: 10000 }, () => {
       const baseURL = (api as any).baseURL;
       // baseURL might be undefined or a value, but accessing it should not throw
       assert.ok(true); // Just verify it doesn't throw
+    });
+
+    it("should return baseURL when url is undefined and baseURL is set", async () => {
+      // Test: if (!url) return baseURL || "";
+      FetchMock.mockResponseOnce({ body: { success: true } });
+
+      const api = create.api().withBaseURL("https://api.example.com");
+      const result = await api.get(undefined as any).getJson();
+
+      assert.deepEqual(result, { success: true });
+      const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+      assert.equal(url, "https://api.example.com");
+    });
+
+    it("should return empty string when url is undefined and baseURL is not set", async () => {
+      // Test: if (!url) return baseURL || "";
+      // Note: resolveURL returns "", but then validation fails because "" is not a valid URL
+      const api = create.api();
+
+      try {
+        await api.get(undefined as any).getJson();
+        assert.fail("Expected validation error for empty URL");
+      } catch (error) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Invalid URL") || error.message.includes("empty"));
+      }
+    });
+
+    it("should return baseURL when url is null and baseURL is set", async () => {
+      // Test: if (!url) return baseURL || "";
+      FetchMock.mockResponseOnce({ body: { success: true } });
+
+      const api = create.api().withBaseURL("https://api.example.com");
+      const result = await api.get(null as any).getJson();
+
+      assert.deepEqual(result, { success: true });
+      const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+      assert.equal(url, "https://api.example.com");
+    });
+
+    it("should return empty string when url is null and baseURL is not set", async () => {
+      // Test: if (!url) return baseURL || "";
+      // Note: resolveURL returns "", but then validation fails because "" is not a valid URL
+      const api = create.api();
+
+      try {
+        await api.get(null as any).getJson();
+        assert.fail("Expected validation error for empty URL");
+      } catch (error) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Invalid URL") || error.message.includes("empty"));
+      }
+    });
+
+    it("should return baseURL when url is empty string and baseURL is set", async () => {
+      // Test: if (!url) return baseURL || "";
+      FetchMock.mockResponseOnce({ body: { success: true } });
+
+      const api = create.api().withBaseURL("https://api.example.com");
+      const result = await api.get("").getJson();
+
+      assert.deepEqual(result, { success: true });
+      const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+      assert.equal(url, "https://api.example.com");
+    });
+
+    it("should return empty string when url is empty string and baseURL is not set", async () => {
+      // Test: if (!url) return baseURL || "";
+      // Note: resolveURL returns "", but then validation fails because "" is not a valid URL
+      const api = create.api();
+
+      try {
+        await api.get("").getJson();
+        assert.fail("Expected validation error for empty URL");
+      } catch (error) {
+        assert.ok(error instanceof RequestError);
+        assert.ok(error.message.includes("Invalid URL") || error.message.includes("empty"));
+      }
+    });
+
+    it("should apply modifiers to head requests", async () => {
+      // Test: if (this.modifiers) for (const modifier of this.modifiers) modifier(request);
+      FetchMock.mockResponseOnce();
+
+      const api = create.api().withBaseURL("https://api.example.com").withHeaders({ "X-Custom": "value" });
+      await api.head("/test").getResponse();
+
+      const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
+      const headers = options.headers as Record<string, string>;
+      assert.equal(headers["X-Custom"], "value");
+      assert.equal(options.method, "HEAD");
+    });
+
+    it("should apply multiple modifiers to head requests", async () => {
+      // Test: if (this.modifiers) for (const modifier of this.modifiers) modifier(request);
+      FetchMock.mockResponseOnce();
+
+      const api = create.api()
+        .withBaseURL("https://api.example.com")
+        .withHeaders({ "X-Custom": "value1" })
+        .withTimeout(5000);
+      (api as any).withHeaders({ "X-Another": "value2" });
+
+      await api.head("/test").getResponse();
+
+      const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
+      const headers = options.headers as Record<string, string>;
+      assert.equal(headers["X-Custom"], "value1");
+      assert.equal(headers["X-Another"], "value2");
+      assert.equal(options.method, "HEAD");
+    });
+
+    it("should not apply modifiers when modifiers array is empty", async () => {
+      // Test: if (this.modifiers) for (const modifier of this.modifiers) modifier(request);
+      FetchMock.mockResponseOnce();
+
+      const api = create.api().withBaseURL("https://api.example.com");
+      // No modifiers added, so the condition should be false
+      await api.head("/test").getResponse();
+
+      const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
+      assert.equal(options.method, "HEAD");
+      // Should still work, just without modifiers
     });
   });
 });

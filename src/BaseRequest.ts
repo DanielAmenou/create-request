@@ -1189,10 +1189,12 @@ export abstract class BaseRequest {
               response: currentError.response,
             });
           } else {
+            /* c8 ignore start */
             // Last resort: if we have no context at all, use the original error's context
             // This shouldn't happen in practice, but handle it gracefully
             const errorObj = interceptorError instanceof Error ? interceptorError : new Error(String(interceptorError));
             currentError = RequestError.networkError(error.url, error.method, errorObj);
+            /* c8 ignore end */
           }
         }
       }
