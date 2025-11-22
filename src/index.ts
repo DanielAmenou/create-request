@@ -35,8 +35,28 @@ export { get, post, put, del, patch, head, options } from "./requestFactories.js
 export { api } from "./apiBuilder.js";
 
 /**
- * Main API object for creating HTTP requests
+ * Main API object for creating HTTP requests.
  * Provides factory methods for all HTTP methods and access to global configuration.
+ *
+ * @example
+ * ```typescript
+ * import create from 'create-request';
+ *
+ * // Simple GET request
+ * const users = await create.get('/api/users').getJson();
+ *
+ * // POST request with body
+ * const newUser = await create.post('/api/users')
+ *   .withJson({ name: 'John', email: 'john@example.com' })
+ *   .getJson();
+ *
+ * // Configure API instance with defaults
+ * const api = create.api()
+ *   .withBaseURL('https://api.example.com')
+ *   .withBearerToken('token123');
+ *
+ * const data = await api.get('/users').getJson();
+ * ```
  */
 const create = {
   api,

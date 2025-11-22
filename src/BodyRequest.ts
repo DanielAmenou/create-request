@@ -17,8 +17,39 @@ export abstract class BodyRequest extends BaseRequest {
   }
 
   /**
-   * Sets the body of the request
-   * @param body - The request body
+   * Sets the request body. Automatically detects the body type and sets appropriate Content-Type header.
+   * Supports JSON objects/arrays, strings, FormData, Blob, ArrayBuffer, URLSearchParams, and ReadableStream.
+   *
+   * @param body - The request body. Can be:
+   *   - A JSON-serializable object or array (automatically stringified)
+   *   - A string (sets Content-Type to `text/plain` if not already set)
+   *   - FormData, Blob, File, ArrayBuffer, TypedArray, URLSearchParams, or ReadableStream
+   * @returns The request instance for chaining
+   * @throws {RequestError} If the body is a JSON object that cannot be stringified
+   *
+   * @example
+   * ```typescript
+   * // JSON object (automatically stringified)
+   * request.withBody({ name: 'John', age: 30 });
+   *
+   * @example
+   * // JSON array
+   * request.withBody([1, 2, 3]);
+   *
+   * @example
+   * // String
+   * request.withBody('plain text');
+   *
+   * @example
+   * // FormData
+   * const formData = new FormData();
+   * formData.append('file', fileBlob);
+   * request.withBody(formData);
+   *
+   * @example
+   * // Blob
+   * request.withBody(new Blob(['content'], { type: 'text/plain' }));
+   * ```
    */
   withBody(body: Body): this {
     this.body = body;
@@ -58,26 +89,41 @@ export abstract class BodyRequest extends BaseRequest {
   }
 
   /**
-   * Sets a GraphQL query or mutation as the request body
-   * Automatically formats the body as JSON and sets Content-Type to application/json
+   * Sets a GraphQL query or mutation as the request body.
+   * Automatically formats the body as JSON and sets Content-Type to `application/json`.
+   * If `throwOnError` is enabled in options, the response will be checked for GraphQL errors
+   * and a RequestError will be thrown if any are found.
    *
-   * @param query - The GraphQL query or mutation string
-   * @param variables - Optional variables object to pass with the query
+   * @param query - The GraphQL query or mutation string (e.g., `'query { user { id } }'`)
+   * @param variables - Optional variables object to pass with the query. Must be a plain object.
    * @param options - Optional GraphQL-specific options
+   * @param options.throwOnError - If `true`, throws a RequestError when the GraphQL response contains errors
    * @returns The request instance for chaining
+   * @throws {RequestError} If the query is empty, variables is invalid, or JSON stringification fails
    *
    * @example
-   * const request = new PostRequest('/graphql')
+   * ```typescript
+   * // Simple query with variables
+   * const request = create.post('/graphql')
    *   .withGraphQL('query { user(id: $id) { name email } }', { id: '123' });
+   * const data = await request.getJson();
+   * ```
    *
    * @example
-   * const request = new PostRequest('/graphql')
+   * ```typescript
+   * // Mutation with variables
+   * const request = create.post('/graphql')
    *   .withGraphQL('mutation { createUser(name: $name) { id } }', { name: 'John' });
+   * ```
    *
    * @example
-   * // Throw an error if the GraphQL response contains errors
-   * const request = new PostRequest('/graphql')
+   * ```typescript
+   * // Throw error if GraphQL response contains errors
+   * const request = create.post('/graphql')
    *   .withGraphQL('query { user { id } }', undefined, { throwOnError: true });
+   * // If the response has errors, this will throw a RequestError
+   * const data = await request.getJson();
+   * ```
    */
   withGraphQL(query: string, variables?: Record<string, unknown>, options?: GraphQLOptions): this {
     if (typeof query !== "string" || query.length === 0) {

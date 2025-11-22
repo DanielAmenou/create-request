@@ -567,9 +567,34 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Adds query parameters to the request URL
-   * @param params - An object containing the query parameters
-   * @returns The instance for chaining
+   * Adds query parameters to the request URL.
+   * Multiple calls will append parameters. Array values will create multiple query parameters with the same key.
+   * Null and undefined values are ignored.
+   *
+   * @param params - An object containing query parameter key-value pairs.
+   *   Values can be strings, numbers, booleans, arrays (for multiple values), or null/undefined (ignored).
+   * @returns The request instance for chaining
+   *
+   * @example
+   * ```typescript
+   * // Simple parameters
+   * request.withQueryParams({ page: 1, limit: 10, active: true });
+   * // Results in: ?page=1&limit=10&active=true
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Array values create multiple parameters
+   * request.withQueryParams({ tags: ['js', 'ts', 'node'] });
+   * // Results in: ?tags=js&tags=ts&tags=node
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Null/undefined values are ignored
+   * request.withQueryParams({ page: 1, filter: null, sort: undefined });
+   * // Results in: ?page=1
+   * ```
    */
   withQueryParams(params: Record<string, string | string[] | number | boolean | null | undefined>): this {
     Object.entries(params).forEach(([key, value]) => {
@@ -588,10 +613,25 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Adds a single query parameter
-   * @param key - The parameter name
-   * @param value - The parameter value, can be a single value or array of values
-   * @returns The instance for chaining
+   * Adds a single query parameter to the request URL.
+   * Convenience method for adding one parameter at a time.
+   *
+   * @param key - The query parameter name
+   * @param value - The query parameter value. Can be a string, number, boolean, array (for multiple values), or null/undefined (ignored).
+   * @returns The request instance for chaining
+   *
+   * @example
+   * ```typescript
+   * request.withQueryParam('page', 1).withQueryParam('limit', 10);
+   * // Results in: ?page=1&limit=10
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Array values create multiple parameters
+   * request.withQueryParam('tags', ['js', 'ts']);
+   * // Results in: ?tags=js&tags=ts
+   * ```
    */
   withQueryParam(key: string, value: string | string[] | number | boolean | null | undefined): this {
     return this.withQueryParams({ [key]: value });
@@ -645,28 +685,61 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Shorthand for setting the Content-Type header
-   * @param contentType - The content type
-   * @returns The instance for chaining
+   * Sets the Content-Type header for the request.
+   * Shorthand for `withHeader('Content-Type', contentType)`.
+   *
+   * @param contentType - The MIME type (e.g., `'application/json'`, `'text/plain'`, `'multipart/form-data'`)
+   * @returns The request instance for chaining
+   *
+   * @example
+   * ```typescript
+   * request.withContentType('application/json');
+   * ```
+   *
+   * @example
+   * ```typescript
+   * request.withContentType('application/xml');
+   * ```
    */
   withContentType(contentType: string): this {
     return this.withHeader("Content-Type", contentType);
   }
 
   /**
-   * Shorthand for setting the Authorization header
-   * @param authValue - The authorization value
-   * @returns The instance for chaining
+   * Sets the Authorization header for the request.
+   * Shorthand for `withHeader('Authorization', authValue)`.
+   * For Bearer tokens, use `withBearerToken()` instead. For Basic auth, use `withBasicAuth()`.
+   *
+   * @param authValue - The full authorization header value (e.g., `'Bearer token123'`, `'Basic base64string'`)
+   * @returns The request instance for chaining
+   *
+   * @example
+   * ```typescript
+   * request.withAuthorization('Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...');
+   * ```
+   *
+   * @example
+   * ```typescript
+   * request.withAuthorization('CustomScheme customToken');
+   * ```
    */
   withAuthorization(authValue: string): this {
     return this.withHeader("Authorization", authValue);
   }
 
   /**
-   * Shorthand for setting up Basic authentication
-   * @param username - The username
-   * @param password - The password
-   * @returns The instance for chaining
+   * Sets up HTTP Basic Authentication.
+   * Encodes the username and password in base64 and sets the Authorization header.
+   *
+   * @param username - The username for Basic authentication
+   * @param password - The password for Basic authentication
+   * @returns The request instance for chaining
+   *
+   * @example
+   * ```typescript
+   * request.withBasicAuth('myuser', 'mypassword');
+   * // Sets: Authorization: Basic bXl1c2VyOm15cGFzc3dvcmQ=
+   * ```
    */
   withBasicAuth(username: string, password: string): this {
     const credentials = this.encodeBase64(`${username}:${password}`);
@@ -696,9 +769,17 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets the bearer token for authentication
-   * @param token - The bearer token
-   * @returns The instance for chaining
+   * Sets a Bearer token for authentication.
+   * Shorthand for `withAuthorization('Bearer ' + token)`.
+   *
+   * @param token - The Bearer token (JWT, OAuth token, etc.)
+   * @returns The request instance for chaining
+   *
+   * @example
+   * ```typescript
+   * request.withBearerToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...');
+   * // Sets: Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   * ```
    */
   withBearerToken(token: string): this {
     return this.withAuthorization(`Bearer ${token}`);
@@ -726,9 +807,29 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Sets cookies for the request
-   * @param cookies Object containing cookie name-value pairs or cookie options
-   * @returns The instance for chaining
+   * Sets cookies for the request.
+   * Cookies are sent in the Cookie header. Multiple calls will merge cookies.
+   * Cookie values can be simple strings or objects with additional cookie options.
+   *
+   * @param cookies - An object where keys are cookie names and values are either:
+   *   - A string (the cookie value)
+   *   - A CookieOptions object with `value` and optional properties (secure, httpOnly, sameSite, expires, path, domain, maxAge)
+   * @returns The request instance for chaining
+   *
+   * @example
+   * ```typescript
+   * // Simple string cookies
+   * request.withCookies({ sessionId: 'abc123', userId: '456' });
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Cookies with options (note: options are for documentation only in request cookies)
+   * request.withCookies({
+   *   sessionId: 'abc123',
+   *   token: { value: 'xyz789', secure: true }
+   * });
+   * ```
    */
   withCookies(cookies: CookiesRecord): this {
     const cookieEntries = Object.entries(cookies || {});
@@ -776,20 +877,46 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Set a single cookie
-   * @param name Cookie name
-   * @param value Cookie value or options object
-   * @returns The instance for chaining
+   * Sets a single cookie for the request.
+   * Convenience method for adding one cookie at a time.
+   *
+   * @param name - The cookie name
+   * @param value - The cookie value as a string, or a CookieOptions object with `value` and optional properties
+   * @returns The request instance for chaining
+   *
+   * @example
+   * ```typescript
+   * request.withCookie('sessionId', 'abc123');
+   * ```
+   *
+   * @example
+   * ```typescript
+   * request.withCookie('token', { value: 'xyz789', secure: true });
+   * ```
    */
   withCookie(name: string, value: string | CookieOptions): this {
     return this.withCookies({ [name]: value });
   }
 
   /**
-   * Sets a CSRF token in the request headers
-   * @param token The CSRF token
-   * @param headerName The name of the header to use (default: X-CSRF-Token)
-   * @returns The instance for chaining
+   * Sets a CSRF (Cross-Site Request Forgery) token in the request headers.
+   * This is commonly used to protect against CSRF attacks in web applications.
+   *
+   * @param token - The CSRF token value
+   * @param headerName - The name of the header to use. Defaults to `'X-CSRF-Token'`.
+   * @returns The request instance for chaining
+   *
+   * @example
+   * ```typescript
+   * request.withCsrfToken('csrf-token-123');
+   * // Sets: X-CSRF-Token: csrf-token-123
+   * ```
+   *
+   * @example
+   * ```typescript
+   * request.withCsrfToken('token', 'X-Custom-CSRF-Header');
+   * // Sets: X-Custom-CSRF-Header: token
+   * ```
    */
   withCsrfToken(token: string, headerName = "X-CSRF-Token"): this {
     return this.withHeader(headerName, token);
@@ -914,12 +1041,16 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Execute the request and get the response as text
+   * Execute the request and get the response body as text.
    *
-   * @returns A promise that resolves to the response text
+   * @returns A promise that resolves to the response body as a string
+   * @throws {RequestError} When the request fails or reading the response fails
    *
    * @example
+   * ```typescript
    * const text = await request.getText();
+   * console.log(text); // "Hello, world!"
+   * ```
    */
   async getText(): Promise<string> {
     const response = await this.getResponse();
@@ -927,12 +1058,18 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Execute the request and get the response as a Blob
+   * Execute the request and get the response body as a Blob.
+   * Useful for downloading files or handling binary data.
    *
-   * @returns A promise that resolves to the response Blob
+   * @returns A promise that resolves to the response body as a Blob
+   * @throws {RequestError} When the request fails or reading the response fails
    *
    * @example
+   * ```typescript
    * const blob = await request.getBlob();
+   * const url = URL.createObjectURL(blob);
+   * // Use the blob URL (e.g., for downloading or displaying)
+   * ```
    */
   async getBlob(): Promise<Blob> {
     const response = await this.getResponse();
@@ -940,12 +1077,20 @@ export abstract class BaseRequest {
   }
 
   /**
-   * Execute the request and get the response body as a ReadableStream
+   * Execute the request and get the response body as a ReadableStream.
+   * Note: Unlike other methods, streams cannot be cached. The body can only be consumed once.
    *
-   * @returns A promise that resolves to the response body stream
+   * @returns A promise that resolves to the response body as a ReadableStream, or `null` if the body is not available
+   * @throws {RequestError} When the request fails or the body has already been consumed
    *
    * @example
+   * ```typescript
    * const stream = await request.getBody();
+   * if (stream) {
+   *   const reader = stream.getReader();
+   *   // Process the stream chunk by chunk
+   * }
+   * ```
    */
   async getBody(): Promise<ReadableStream<Uint8Array> | null> {
     const response = await this.getResponse();

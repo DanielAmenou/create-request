@@ -2,10 +2,23 @@ import { RequestError } from "./RequestError.js";
 import type { GraphQLOptions } from "./types.js";
 
 /**
- * Wrapper for HTTP responses with methods to transform the response data
+ * Wrapper for HTTP responses with methods to transform the response data.
+ * Provides convenient methods to parse the response body in different formats.
+ * Response bodies are cached after the first read, so you can call multiple methods
+ * (e.g., `getJson()` and `getText()`) on the same response.
+ *
+ * @example
+ * ```typescript
+ * const response = await create.get('/api/users').getResponse();
+ * console.log(response.status); // 200
+ * console.log(response.ok); // true
+ * const data = await response.getJson();
+ * ```
  */
 export class ResponseWrapper {
+  /** The URL that was requested (if available) */
   public readonly url?: string;
+  /** The HTTP method that was used (if available) */
   public readonly method?: string;
   private readonly response: Response;
   private graphQLOptions?: GraphQLOptions;
@@ -27,23 +40,38 @@ export class ResponseWrapper {
     }
   }
 
-  // Wrapper properties
+  /**
+   * HTTP status code (e.g., 200, 404, 500)
+   */
   get status(): number {
     return this.response.status;
   }
 
+  /**
+   * HTTP status text (e.g., "OK", "Not Found", "Internal Server Error")
+   */
   get statusText(): string {
     return this.response.statusText;
   }
 
+  /**
+   * Response headers as a Headers object
+   */
   get headers(): Headers {
     return this.response.headers;
   }
 
+  /**
+   * Whether the response status is in the 200-299 range (successful)
+   */
   get ok(): boolean {
     return this.response.ok;
   }
 
+  /**
+   * The raw Response object from the fetch API.
+   * Use this if you need direct access to the underlying Response.
+   */
   get raw(): Response {
     return this.response;
   }
@@ -142,13 +170,17 @@ export class ResponseWrapper {
   }
 
   /**
-   * Get the response body as text
+   * Get the response body as text.
+   * The result is cached, so subsequent calls return the same value without re-reading the body.
    *
-   * @returns The response text
-   * @throws {RequestError} When reading fails
+   * @returns A promise that resolves to the response body as a string
+   * @throws {RequestError} When the body has already been consumed or reading fails
    *
    * @example
+   * ```typescript
    * const text = await response.getText();
+   * console.log(text); // "Hello, world!"
+   * ```
    */
   async getText(): Promise<string> {
     if (this.cachedText !== undefined) return this.cachedText;
@@ -169,14 +201,19 @@ export class ResponseWrapper {
   }
 
   /**
-   * Get the response body as a Blob
+   * Get the response body as a Blob.
+   * Useful for downloading files or handling binary data.
+   * The result is cached, so subsequent calls return the same value without re-reading the body.
    *
-   * @returns The response as a Blob
-   * @throws {RequestError} When reading fails
+   * @returns A promise that resolves to the response body as a Blob
+   * @throws {RequestError} When the body has already been consumed or reading fails
    *
    * @example
+   * ```typescript
    * const blob = await response.getBlob();
    * const url = URL.createObjectURL(blob);
+   * // Use the blob URL for downloading or displaying
+   * ```
    */
   async getBlob(): Promise<Blob> {
     if (this.cachedBlob !== undefined) return this.cachedBlob;
@@ -197,14 +234,19 @@ export class ResponseWrapper {
   }
 
   /**
-   * Get the response body as an ArrayBuffer
+   * Get the response body as an ArrayBuffer.
+   * Useful for processing binary data at a low level.
+   * The result is cached, so subsequent calls return the same value without re-reading the body.
    *
-   * @returns The response as an ArrayBuffer
-   * @throws {RequestError} When reading fails
+   * @returns A promise that resolves to the response body as an ArrayBuffer
+   * @throws {RequestError} When the body has already been consumed or reading fails
    *
    * @example
+   * ```typescript
    * const buffer = await response.getArrayBuffer();
    * const uint8Array = new Uint8Array(buffer);
+   * // Process the binary data
+   * ```
    */
   async getArrayBuffer(): Promise<ArrayBuffer> {
     if (this.cachedArrayBuffer !== undefined) {
