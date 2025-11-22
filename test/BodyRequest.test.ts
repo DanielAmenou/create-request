@@ -342,7 +342,7 @@ describe("BodyRequest", { timeout: 10000 }, () => {
       // Act & Assert
       assert.throws(() => {
         new PostRequest("https://api.example.com/graphql").withGraphQL("");
-      }, /Invalid GraphQL query/);
+      }, /Invalid query/);
     });
 
     it("should throw error for invalid variables (array)", () => {

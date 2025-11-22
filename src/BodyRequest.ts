@@ -81,7 +81,7 @@ export abstract class BodyRequest extends BaseRequest {
    */
   withGraphQL(query: string, variables?: Record<string, unknown>, options?: GraphQLOptions): this {
     if (typeof query !== "string" || query.length === 0) {
-      throw new RequestError("Invalid GraphQL query", this.url, this.method);
+      throw new RequestError("Invalid query", this.url, this.method);
     }
 
     const graphQLBody: { query: string; variables?: Record<string, unknown> } = {
