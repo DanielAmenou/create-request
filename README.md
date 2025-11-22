@@ -16,15 +16,16 @@
 - [Why create-request](#why-create-request)
 - [Installation](#installation)
 - [Basic Usage](#basic-usage)
-- [API Builder](#api-builder)
-- [Automatic Retries with Delay](#automatic-retries-with-delay)
-- [Interceptors](#interceptors)
-- [Request Cancellation](#request-cancellation)
 - [URL Handling](#url-handling)
-- [Data Selection](#data-selection)
-- [GraphQL Support](#graphql-requests)
-- [TypeScript Support](#typescript-support)
-- [CSRF Protection](#csrf-protection)
+- [Advanced Usage](#advanced-usage)
+  - [API Builder](#api-builder)
+  - [Automatic Retries with Delay](#automatic-retries-with-delay)
+  - [Interceptors](#interceptors)
+  - [Request Cancellation](#request-cancellation)
+  - [Data Selection](#data-selection)
+  - [TypeScript Support](#typescript-support)
+  - [CSRF Protection](#csrf-protection)
+  - [Subresource Integrity and Cache Control](#subresource-integrity-and-cache-control)
 - [Performance Considerations](#performance-considerations)
 - [Browser Support](#browser-support)
 - [Comparison of JavaScript HTTP Client Libraries](#comparison-of-javascript-http-client-libraries)
@@ -310,44 +311,6 @@ const merged = create
   .withQueryParams({ new: "param" }); // Both existing and new params included
 ```
 
-### Subresource Integrity and Cache Control
-
-The library supports subresource integrity verification and cache control options:
-
-```typescript
-// Subresource Integrity - ensures the fetched resource hasn't been tampered with
-const secureRequest = create
-  .get("https://cdn.example.com/script.js")
-  .withIntegrity("sha256-abcdef1234567890..."); // Browser will verify the hash
-
-// Cache Control - supports all cache modes via fluent API or string values
-const cachedRequest = create.get("https://api.example.com/data").withCache("no-cache"); // Direct string value
-
-// Using fluent API for cache modes
-const fluentCache = create.get("https://api.example.com/data").withCache.NO_CACHE(); // Fluent API method
-
-// All available cache modes:
-create
-  .get("https://api.example.com/data")
-  .withCache.DEFAULT() // Default cache behavior
-  .withCache.NO_STORE() // Don't store in cache
-  .withCache.RELOAD() // Reload from server
-  .withCache.NO_CACHE() // Validate with server before using cache
-  .withCache.FORCE_CACHE() // Use cache even if stale
-  .withCache.ONLY_IF_CACHED(); // Only use cache, don't fetch from server
-
-// Using enum values (import from create-request)
-import { CacheMode } from "create-request";
-
-const enumCache = create.get("https://api.example.com/data").withCache(CacheMode.NO_CACHE);
-
-// Combining integrity and cache
-const secureCached = create
-  .get("https://cdn.example.com/resource.js")
-  .withIntegrity("sha256-abcdef1234567890...")
-  .withCache("no-store"); // Ensure no caching for sensitive resources
-```
-
 ### Executing Requests
 
 ```typescript
@@ -418,7 +381,34 @@ try {
 }
 ```
 
-## API Builder
+## URL Handling
+
+The library handles both absolute and relative URLs, and automatically merges query parameters:
+
+```typescript
+// Relative URLs (preserved as-is)
+const relative = await create.get("/api/users").getJson();
+
+// Absolute URLs
+const absolute = await create.get("https://api.example.com/users").getJson();
+
+// Merging query params with existing URL params
+const merged = await create
+  .get("https://api.example.com/users?page=1")
+  .withQueryParams({ limit: 20, sort: "name" })
+  .getJson();
+// Result: https://api.example.com/users?page=1&limit=20&sort=name
+
+// Special characters and unicode are properly encoded
+const encoded = await create
+  .get("https://api.example.com/search")
+  .withQueryParams({ name: "用户名", filter: "status:active" })
+  .getJson();
+```
+
+## Advanced Usage
+
+### API Builder
 
 The API builder allows you to create configured API instances with default settings that can be reused across your application. This is perfect for setting up a base URL, default headers, timeout values, and other request configurations once and using them for all requests.
 
@@ -600,7 +590,7 @@ async function deleteUser(id: string) {
 }
 ```
 
-## Automatic Retries with Delay
+### Automatic Retries with Delay
 
 The `withRetries()` method supports both simple number-based retries and object-based configuration with customizable delays:
 
@@ -647,7 +637,7 @@ const request4 = create.get("https://api.example.com/data").withRetries({
 })
 ```
 
-## Interceptors
+### Interceptors
 
 Interceptors allow you to modify requests, transform responses, or handle errors globally or per-request. This is perfect for adding authentication tokens, logging, error recovery, and more.
 
@@ -781,7 +771,7 @@ const asyncData = await create
   .getJson();
 ```
 
-## Request Cancellation
+### Request Cancellation
 
 ```typescript
 const controller = new AbortController();
@@ -807,32 +797,7 @@ try {
 }
 ```
 
-## URL Handling
-
-The library handles both absolute and relative URLs, and automatically merges query parameters:
-
-```typescript
-// Relative URLs (preserved as-is)
-const relative = await create.get("/api/users").getJson();
-
-// Absolute URLs
-const absolute = await create.get("https://api.example.com/users").getJson();
-
-// Merging query params with existing URL params
-const merged = await create
-  .get("https://api.example.com/users?page=1")
-  .withQueryParams({ limit: 20, sort: "name" })
-  .getJson();
-// Result: https://api.example.com/users?page=1&limit=20&sort=name
-
-// Special characters and unicode are properly encoded
-const encoded = await create
-  .get("https://api.example.com/search")
-  .withQueryParams({ name: "用户名", filter: "status:active" })
-  .getJson();
-```
-
-## Data Selection
+### Data Selection
 
 The `getData` method provides a powerful way to extract and transform specific data from API responses:
 
@@ -874,7 +839,7 @@ try {
 }
 ```
 
-## TypeScript Support
+### TypeScript Support
 
 ```typescript
 interface User {
@@ -920,7 +885,7 @@ async function getUserById(id: number): Promise<User> {
 }
 ```
 
-## CSRF Protection
+### CSRF Protection
 
 Cross-Site Request Forgery (CSRF) is a type of security vulnerability where unauthorized commands are executed on behalf of an authenticated user. `create-request` provides built-in protection mechanisms to help prevent CSRF attacks.
 
@@ -962,6 +927,44 @@ const request = create
   .withCsrfToken("request-specific-token") // Set a specific token
   .withAntiCsrfHeaders() // Explicitly add X-Requested-With header
   .withoutCsrfProtection(); // Or disable all automatic CSRF protection
+```
+
+### Subresource Integrity and Cache Control
+
+The library supports subresource integrity verification and cache control options:
+
+```typescript
+// Subresource Integrity - ensures the fetched resource hasn't been tampered with
+const secureRequest = create
+  .get("https://cdn.example.com/script.js")
+  .withIntegrity("sha256-abcdef1234567890..."); // Browser will verify the hash
+
+// Cache Control - supports all cache modes via fluent API or string values
+const cachedRequest = create.get("https://api.example.com/data").withCache("no-cache"); // Direct string value
+
+// Using fluent API for cache modes
+const fluentCache = create.get("https://api.example.com/data").withCache.NO_CACHE(); // Fluent API method
+
+// All available cache modes:
+create
+  .get("https://api.example.com/data")
+  .withCache.DEFAULT() // Default cache behavior
+  .withCache.NO_STORE() // Don't store in cache
+  .withCache.RELOAD() // Reload from server
+  .withCache.NO_CACHE() // Validate with server before using cache
+  .withCache.FORCE_CACHE() // Use cache even if stale
+  .withCache.ONLY_IF_CACHED(); // Only use cache, don't fetch from server
+
+// Using enum values (import from create-request)
+import { CacheMode } from "create-request";
+
+const enumCache = create.get("https://api.example.com/data").withCache(CacheMode.NO_CACHE);
+
+// Combining integrity and cache
+const secureCached = create
+  .get("https://cdn.example.com/resource.js")
+  .withIntegrity("sha256-abcdef1234567890...")
+  .withCache("no-store"); // Ensure no caching for sensitive resources
 ```
 
 ## Performance Considerations
