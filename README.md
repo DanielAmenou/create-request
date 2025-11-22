@@ -14,6 +14,7 @@
 
 - [Core Features](#core-features)
 - [Why create-request](#why-create-request)
+- [Mental Model](#mental-model)
 - [Installation](#installation)
 - [Basic Usage](#basic-usage)
 - [URL Handling](#url-handling)
@@ -43,6 +44,7 @@
 - 🔁 **Automatic Retries** - Retry failed requests with customizable settings
 - 📉 **Reduced Boilerplate** - Write 60% less code for common API operations
 - 🔒 **CSRF Protection** - Built-in safeguards against cross-site request forgery
+- 🏗️ **API Builder** - Create configured API instances with reusable default settings
 - 🛑 **Request Cancellation** - Abort requests on demand with AbortController integration
 - 🔌 **Interceptors** - Global and per-request interceptors for requests, responses, and errors
 - 🔷 **GraphQL Support** - Built-in GraphQL query and mutation helpers
@@ -94,6 +96,127 @@ function createUser(userData) {
     });
 }
 ```
+
+## Mental Model
+
+### 1. **Separation of Building and Execution**
+
+Requests are built first, then executed. This separation allows you to:
+
+- Configure requests incrementally
+- Reuse request configurations
+- Pass requests around before executing them
+- Chain configuration methods fluently
+
+```typescript
+// Building phase: configure the request
+const request = create
+  .get("https://api.example.com/users")
+  .withBearerToken(token)
+  .withTimeout(5000);
+
+// Execution phase: actually make the HTTP call
+const data = await request.getJson();
+```
+
+### 2. **Fluent Chainable Interface**
+
+Every configuration method returns the request instance, enabling method chaining. This creates a readable, declarative API that reads like a sentence:
+
+```typescript
+// Reads like: "Create a POST request to users endpoint, with auth, body, and timeout, then get JSON"
+const user = await create
+  .post("https://api.example.com/users")
+  .withBearerToken(token)
+  .withBody(userData)
+  .withTimeout(3000)
+  .getJson();
+```
+
+### 3. **Configuration Layers**
+
+Configuration follows a layered approach, with more specific settings overriding general ones:
+
+1. **Global Configuration** (via `create.config`) - Applies to all requests
+2. **API Builder Defaults** (via `create.api()`) - Applies to requests from that API instance
+3. **Per-Request Configuration** - Specific to individual requests
+
+```typescript
+// Global: all requests get this
+create.config.setCsrfToken("global-token");
+
+// API instance: requests from this API get these defaults
+const api = create
+  .api()
+  .withBaseURL("https://api.example.com")
+  .withBearerToken("default-token");
+
+// Per-request: this specific request overrides the default token
+const user = await api
+  .get("/users")
+  .withBearerToken("specific-token") // Overrides default-token
+  .getJson();
+```
+
+### 4. **Request Definition with `with...` Functions**
+
+All request configuration is done through methods that start with `with...`. This consistent naming convention makes it immediately clear which methods are used for configuration:
+
+```typescript
+// All configuration uses 'with...' prefix
+const request = create
+  .get("https://api.example.com/users")
+  .withHeaders({ "X-API-Key": "abc123" })
+  .withBearerToken("token")
+  .withTimeout(5000)
+  .withRetries(3)
+  .withQueryParams({ page: 1 })
+  .withCookie("session", "abc123");
+```
+
+This pattern makes the API self-documenting - any method starting with `with...` is a configuration method that returns the request instance for chaining.
+
+### 5. **Request Lifecycle**
+
+The typical request lifecycle follows this pattern:
+
+```
+Build → Configure → Execute → Transform → Handle
+```
+
+1. **Build**: Create a request with a method and URL (`create.get(url)`)
+2. **Configure**: Chain configuration methods using `with...` functions (`.withHeaders()`, `.withTimeout()`, etc.)
+3. **Execute**: Call an execution method (`.getJson()`, `.getData()`, etc.)
+4. **Transform**: Optionally transform the response (via `.getData()` selector or interceptors)
+5. **Handle**: Process the result or catch errors
+
+### 6. **Promise-Based Execution**
+
+All execution methods return Promises, making the library compatible with:
+
+- `async/await` syntax (recommended)
+- `.then()/.catch()` chains
+- Promise utilities like `Promise.all()`, `Promise.race()`, etc.
+
+```typescript
+// All of these work:
+const data1 = await request.getJson();
+
+request.getJson().then(data => console.log(data));
+
+const results = await Promise.all([
+  create.get("/users").getJson(),
+  create.get("/posts").getJson(),
+]);
+```
+
+### 7. **Comprehensive JSDoc Documentation**
+
+The library includes extensive JSDoc documentation throughout the codebase. This documentation is valuable for developers of all levels:
+
+- **For Junior Developers**: JSDoc provides clear explanations of what each method does, parameter types, return values, and usage examples directly in your IDE. This helps with learning and understanding the API without constantly referring to external documentation.
+
+- **For Senior Developers**: JSDoc offers detailed type information, edge cases, and implementation details that enable deeper understanding and more advanced usage patterns. The type definitions help with TypeScript inference and ensure type safety.
 
 ## Installation
 
