@@ -48,6 +48,24 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
       }
     });
 
+    it("should preserve original fetch error message for redirect errors", async () => {
+      // Arrange - Simulate fetch throwing TypeError when redirect occurs with redirect: "error"
+      const redirectError = new TypeError("Failed to fetch: redirect");
+      FetchMock.mockErrorOnce(redirectError);
+      const request = create.get("https://api.example.com/redirect").withRedirect.ERROR();
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error: any) {
+        assert(error instanceof RequestError);
+        assert.equal(error.message, "Failed to fetch: redirect");
+        assert.equal(error.url, "https://api.example.com/redirect");
+        assert.equal(error.method, "GET");
+      }
+    });
+
     it("should handle generic 'fetch failed' TypeError with descriptive message", async () => {
       // Arrange - Simulate Node.js/undici behavior where fetch throws TypeError("fetch failed")
       const fetchError = new TypeError("fetch failed");

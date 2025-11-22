@@ -295,6 +295,24 @@ describe("BaseRequest", { timeout: 10000 }, () => {
     assert.equal(options.redirect, "manual");
   });
 
+  it("should preserve original fetch error message when redirect occurs with redirect: error", async () => {
+    // Arrange - Simulate fetch throwing TypeError when redirect occurs with redirect: "error"
+    const redirectError = new TypeError("Failed to fetch: redirect");
+    FetchMock.mockErrorOnce(redirectError);
+    const request = new GetRequest("https://api.example.com/redirect").withRedirect.ERROR();
+
+    // Act & Assert
+    try {
+      await request.getResponse();
+      assert.fail("Request should have failed");
+    } catch (error: any) {
+      assert(error instanceof RequestError);
+      assert.equal(error.message, "Failed to fetch: redirect");
+      assert.equal(error.url, "https://api.example.com/redirect");
+      assert.equal(error.method, "GET");
+    }
+  });
+
   it("should set request mode", async () => {
     // Arrange
     FetchMock.mockResponseOnce();

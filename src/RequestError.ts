@@ -15,9 +15,10 @@ export class RequestError extends Error {
       response?: Response;
       isTimeout?: boolean;
       isAborted?: boolean;
+      cause?: Error;
     } = {}
   ) {
-    super(message);
+    super(message, { cause: options.cause });
     this.name = "RequestError";
     this.url = url;
     this.method = method;
