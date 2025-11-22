@@ -467,8 +467,6 @@ The API builder provides access to all request configuration methods from `BaseR
 - `withReferrer(referrer)` - Set default referrer
 - `withKeepAlive(keepalive)` - Configure keep-alive
 - `withIntegrity(integrity)` - Set integrity check
-- `withQueryParams(params)` - Add default query parameters
-- `withQueryParam(key, value)` - Add a single default query parameter
 
 **CSRF Protection:**
 
@@ -496,26 +494,6 @@ const api = create
 // All requests will include the Bearer token, cookies, timeout, and headers
 await api.get("/users").getJson();
 await api.post("/posts").withBody({ title: "Hello" }).getJson();
-```
-
-#### Methods NOT Available on API Builder
-
-The following methods are **not available** on the API builder because they are request-specific and don't make sense as defaults:
-
-- **`withAbortController(controller)`** - AbortController is per-request, not a default
-- **`withBody(body)`** - Request bodies are different for each request
-- **`withGraphQL(query, variables, options)`** - GraphQL queries are request-specific
-
-These methods should be called directly on individual request instances:
-
-```typescript
-const api = create.api().withBaseURL("https://api.example.com");
-
-// ✅ Good: Use withBody on individual requests
-await api.post("/users").withBody({ name: "John" }).getJson();
-
-// ❌ Bad: withBody is not available on the API builder
-// api.withBody({ name: "John" }); // This will be undefined
 ```
 
 #### URL Resolution

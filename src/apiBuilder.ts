@@ -26,8 +26,6 @@ interface ApiBuilderRequestMethods {
   withCookie(name: string, value: string | CookieOptions): ApiBuilder;
   withRequestInterceptor(interceptor: RequestInterceptor): ApiBuilder;
   withResponseInterceptor(interceptor: ResponseInterceptor): ApiBuilder;
-  withQueryParam(key: string, value: string | string[] | number | boolean | null | undefined): ApiBuilder;
-  withQueryParams(params: Record<string, string | string[] | number | boolean | null | undefined>): ApiBuilder;
 }
 
 /**
@@ -240,7 +238,7 @@ export class ApiBuilder {
           return propertyValue;
         }
         if (typeof prop === "string" && prop.startsWith("with") && prop !== "withBaseURL") {
-          if (prop === "withAbortController" || prop === "withBody" || prop === "withGraphQL") return undefined;
+          if (prop === "withAbortController" || prop === "withBody" || prop === "withGraphQL" || prop === "withQueryParam" || prop === "withQueryParams") return undefined;
           const prototypeMethod = (BaseRequest.prototype as unknown as Record<string, unknown>)[prop];
           if (typeof prototypeMethod === "function") {
             return (...args: unknown[]) => {

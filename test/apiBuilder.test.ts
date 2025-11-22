@@ -506,6 +506,16 @@ describe("API Builder", { timeout: 10000 }, () => {
       assert.equal((api as any).withGraphQL, undefined);
     });
 
+    it("should not allow withQueryParam on API builder", () => {
+      const api = create.api();
+      assert.equal((api as any).withQueryParam, undefined);
+    });
+
+    it("should not allow withQueryParams on API builder", () => {
+      const api = create.api();
+      assert.equal((api as any).withQueryParams, undefined);
+    });
+
     it("should handle property access that is not a function", () => {
       // Test the fallback path when accessing a property that exists but is not a function
       const api = create.api().withBaseURL("https://api.example.com");
