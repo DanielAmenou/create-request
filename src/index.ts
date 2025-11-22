@@ -28,6 +28,12 @@ export { RequestError } from "./RequestError.js";
 // Export request classes
 export { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadRequest, OptionsRequest } from "./requestMethods.js";
 
+// Export request factory functions individually
+export { get, post, put, del, patch, head, options } from "./requestFactories.js";
+
+// Export api function
+export { api } from "./apiBuilder.js";
+
 /**
  * Main API object for creating HTTP requests
  * Provides factory methods for all HTTP methods and access to global configuration.
