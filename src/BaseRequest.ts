@@ -650,9 +650,7 @@ export abstract class BaseRequest {
    * @returns The instance for chaining
    */
   withContentType(contentType: string): this {
-    return this.withHeaders({
-      "Content-Type": contentType,
-    });
+    return this.withHeader("Content-Type", contentType);
   }
 
   /**
@@ -661,9 +659,7 @@ export abstract class BaseRequest {
    * @returns The instance for chaining
    */
   withAuthorization(authValue: string): this {
-    return this.withHeaders({
-      Authorization: authValue,
-    });
+    return this.withHeader("Authorization", authValue);
   }
 
   /**
@@ -1018,9 +1014,7 @@ export abstract class BaseRequest {
         const hasLocalToken = this.hasHeader("X-XSRF-TOKEN") || this.hasHeader(xsrfHeaderName);
 
         if (!hasLocalToken) {
-          this.withHeaders({
-            [xsrfHeaderName]: xsrfToken,
-          });
+          this.withHeader(xsrfHeaderName, xsrfToken);
         }
       }
     }
