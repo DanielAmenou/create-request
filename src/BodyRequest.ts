@@ -90,7 +90,7 @@ export abstract class BodyRequest extends BaseRequest {
 
     if (variables !== undefined) {
       if (typeof variables !== "object" || variables === null || Array.isArray(variables)) {
-        throw new RequestError("Invalid GraphQL vars", this.url, this.method);
+        throw new RequestError("Invalid vars", this.url, this.method);
       }
       graphQLBody.variables = variables;
     }
@@ -98,7 +98,7 @@ export abstract class BodyRequest extends BaseRequest {
     // Store GraphQL options if provided
     if (options !== undefined) {
       if (typeof options !== "object" || options === null || Array.isArray(options)) {
-        throw new RequestError("Invalid GraphQL options", this.url, this.method);
+        throw new RequestError("Invalid options", this.url, this.method);
       }
 
       // Store only the known GraphQL options properties

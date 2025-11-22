@@ -504,29 +504,29 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       }
     });
 
-    it("should handle invalid GraphQL options object", () => {
+    it("should handle invalid options object", () => {
       const query = "query { user { id } }";
 
       assert.throws(
         () => {
-          // @ts-expect-error - Testing invalid GraphQL options
+          // @ts-expect-error - Testing invalid options
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, [] as any);
         },
         (error: Error) => {
-          assert.match(error.message, /Invalid GraphQL options/);
+          assert.match(error.message, /Invalid options/);
           return true;
         }
       );
 
       assert.throws(
         () => {
-          // @ts-expect-error - Testing invalid GraphQL options
+          // @ts-expect-error - Testing invalid options
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, null as any);
         },
         (error: Error) => {
-          assert.match(error.message, /Invalid GraphQL options/);
+          assert.match(error.message, /Invalid options/);
           return true;
         }
       );

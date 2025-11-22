@@ -350,7 +350,7 @@ describe("BodyRequest", { timeout: 10000 }, () => {
       assert.throws(() => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL("query { user { name } }", [] as any);
-      }, /Invalid GraphQL vars/);
+      }, /Invalid vars/);
     });
 
     it("should throw error for invalid variables (null)", () => {
@@ -358,7 +358,7 @@ describe("BodyRequest", { timeout: 10000 }, () => {
       assert.throws(() => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL("query { user { name } }", null as any);
-      }, /Invalid GraphQL vars/);
+      }, /Invalid vars/);
     });
 
     it("should respect existing Content-Type header when using withGraphQL", async () => {
