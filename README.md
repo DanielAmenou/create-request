@@ -1112,26 +1112,27 @@ This library works with all browsers that support the Fetch API:
 
 ## Comparison of JavaScript HTTP Client Libraries
 
-| Feature             | create-request | Fetch  | Axios   | SuperAgent | Got     | Ky     | node-fetch | Redaxios |
-| ------------------- | -------------- | ------ | ------- | ---------- | ------- | ------ | ---------- | -------- |
-| **Size (min+gzip)** | ~5.8KB         | Native | ~13.6KB | ~17.8KB    | ~17.8KB | ~3.4KB | ~7.7KB     | ~1KB     |
-| **Browser**         | Modern         | Modern | IE11+   | IE9+       | ❌ No   | Modern | ❌ No      | Modern   |
-| **Node.js**         | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
-| **HTTP/2**          | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
-| **Auto Retries**    | ✅             | ❌     | 🛠️      | ✅         | ✅      | ✅     | ❌         | ❌       |
-| **Cancellation**    | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
-| **Auto JSON**       | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ✅       |
-| **Timeout**         | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
-| **TypeScript**      | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
-| **Streaming**       | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ❌       |
-| **Progress**        | ❌             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
-| **Cookies**         | ✅             | ✅     | 🛠️      | ✅         | ✅      | ❌     | ❌         | ❌       |
-| **Pagination API**  | ❌             | ❌     | ❌      | ❌         | ✅      | ❌     | ❌         | ❌       |
-| **Zero Deps**       | ✅             | ✅     | ❌      | ❌         | ❌      | ✅     | ✅         | ✅       |
-| **Chainable API**   | ✅             | ❌     | ❌      | ✅         | ✅      | ✅     | ❌         | ❌       |
-| **CSRF Protection** | ✅             | ❌     | ✅      | ❌         | ❌      | ❌     | ❌         | ❌       |
-| **GraphQL Support** | ✅             | ❌     | ❌      | ❌         | ❌      | ❌     | ❌         | ❌       |
-| **Interceptors**    | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
+| Feature               | create-request | Fetch  | Axios   | SuperAgent | Got     | Ky     | node-fetch | Redaxios |
+| --------------------- | -------------- | ------ | ------- | ---------- | ------- | ------ | ---------- | -------- |
+| **Size (min+gzip)**   | ~6.3KB         | Native | ~13.6KB | ~17.8KB    | ~17.8KB | ~3.4KB | ~7.7KB     | ~1KB     |
+| **Browser**           | Modern         | Modern | IE11+   | IE9+       | ❌ No   | Modern | ❌ No      | Modern   |
+| **Node.js**           | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
+| **HTTP/2**            | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
+| **Auto Retries**      | ✅             | ❌     | 🛠️      | ✅         | ✅      | ✅     | ❌         | ❌       |
+| **Cancellation**      | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
+| **Auto JSON**         | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ✅       |
+| **Timeout**           | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
+| **TypeScript**        | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
+| **Streaming**         | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ❌       |
+| **Progress**          | ❌             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
+| **Cookies**           | ✅             | ✅     | 🛠️      | ✅         | ✅      | ❌     | ❌         | ❌       |
+| **Pagination API**    | ❌             | ❌     | ❌      | ❌         | ✅      | ❌     | ❌         | ❌       |
+| **Zero Deps**         | ✅             | ✅     | ❌      | ❌         | ❌      | ✅     | ✅         | ✅       |
+| **Chainable API**     | ✅             | ❌     | ❌      | ✅         | ✅      | ✅     | ❌         | ❌       |
+| **CSRF Protection**   | ✅             | ❌     | ✅      | ❌         | ❌      | ❌     | ❌         | ❌       |
+| **GraphQL Support**   | ✅             | ❌     | ❌      | ❌         | ❌      | ❌     | ❌         | ❌       |
+| **Interceptors**      | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
+| **Instance Creation** | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
 
 **Notes:**
 
@@ -1141,3 +1142,9 @@ This library works with all browsers that support the Fetch API:
 ## License
 
 MIT
+
+---
+
+## Website
+
+Visit [create-request.com](https://create-request.com) for documentation, examples, and more resources.
