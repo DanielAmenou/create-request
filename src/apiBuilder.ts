@@ -7,25 +7,25 @@ type RequestModifier = (request: RequestType) => RequestType;
 type RequestType = GetRequest | PostRequest | PutRequest | DeleteRequest | PatchRequest | HeadRequest | OptionsRequest;
 
 interface ApiBuilderRequestMethods {
-  withoutCsrfProtection(): ApiBuilder;
-  withAntiCsrfHeaders(): ApiBuilder;
-  withTimeout(timeout: number): ApiBuilder;
-  withReferrer(referrer: string): ApiBuilder;
-  withKeepAlive(keepalive: boolean): ApiBuilder;
-  withIntegrity(integrity: string): ApiBuilder;
-  withHeader(key: string, value: string): ApiBuilder;
-  withHeaders(headers: Record<string, string>): ApiBuilder;
-  withRetries(retries: number | RetryConfig): ApiBuilder;
-  withBearerToken(token: string): ApiBuilder;
-  withCookies(cookies: CookiesRecord): ApiBuilder;
-  withContentType(contentType: string): ApiBuilder;
-  withAuthorization(authValue: string): ApiBuilder;
-  withBasicAuth(username: string, password: string): ApiBuilder;
-  withCsrfToken(token: string, headerName?: string): ApiBuilder;
-  withErrorInterceptor(interceptor: ErrorInterceptor): ApiBuilder;
-  withCookie(name: string, value: string | CookieOptions): ApiBuilder;
-  withRequestInterceptor(interceptor: RequestInterceptor): ApiBuilder;
-  withResponseInterceptor(interceptor: ResponseInterceptor): ApiBuilder;
+  withoutCsrfProtection(): ApiBuilder & ApiBuilderRequestMethods;
+  withAntiCsrfHeaders(): ApiBuilder & ApiBuilderRequestMethods;
+  withTimeout(timeout: number): ApiBuilder & ApiBuilderRequestMethods;
+  withReferrer(referrer: string): ApiBuilder & ApiBuilderRequestMethods;
+  withKeepAlive(keepalive: boolean): ApiBuilder & ApiBuilderRequestMethods;
+  withIntegrity(integrity: string): ApiBuilder & ApiBuilderRequestMethods;
+  withHeader(key: string, value: string): ApiBuilder & ApiBuilderRequestMethods;
+  withHeaders(headers: Record<string, string>): ApiBuilder & ApiBuilderRequestMethods;
+  withRetries(retries: number | RetryConfig): ApiBuilder & ApiBuilderRequestMethods;
+  withBearerToken(token: string): ApiBuilder & ApiBuilderRequestMethods;
+  withCookies(cookies: CookiesRecord): ApiBuilder & ApiBuilderRequestMethods;
+  withContentType(contentType: string): ApiBuilder & ApiBuilderRequestMethods;
+  withAuthorization(authValue: string): ApiBuilder & ApiBuilderRequestMethods;
+  withBasicAuth(username: string, password: string): ApiBuilder & ApiBuilderRequestMethods;
+  withCsrfToken(token: string, headerName?: string): ApiBuilder & ApiBuilderRequestMethods;
+  withErrorInterceptor(interceptor: ErrorInterceptor): ApiBuilder & ApiBuilderRequestMethods;
+  withCookie(name: string, value: string | CookieOptions): ApiBuilder & ApiBuilderRequestMethods;
+  withRequestInterceptor(interceptor: RequestInterceptor): ApiBuilder & ApiBuilderRequestMethods;
+  withResponseInterceptor(interceptor: ResponseInterceptor): ApiBuilder & ApiBuilderRequestMethods;
 }
 
 /**
@@ -85,9 +85,9 @@ export class ApiBuilder {
    * await api.get("/users").getJson(); // Requests https://api.example.com/users
    * ```
    */
-  withBaseURL(baseURL: string): this {
+  withBaseURL(baseURL: string): ApiBuilder & ApiBuilderRequestMethods {
     this.baseURL = baseURL;
-    return this;
+    return this as unknown as ApiBuilder & ApiBuilderRequestMethods;
   }
 
   /**
@@ -232,7 +232,7 @@ export class ApiBuilder {
           if (typeof propertyValue === "function") {
             return (...args: unknown[]) => {
               const result = (propertyValue as (...args: unknown[]) => unknown).apply(target, args);
-              return result === target ? proxy : result;
+              return result === target ? (proxy as unknown as ApiBuilder & ApiBuilderRequestMethods) : result;
             };
           }
           return propertyValue;
@@ -243,14 +243,14 @@ export class ApiBuilder {
           if (typeof prototypeMethod === "function") {
             return (...args: unknown[]) => {
               target.addModifier((request: RequestType) => (prototypeMethod as (...args: unknown[]) => RequestType).apply(request, args));
-              return proxy;
+              return proxy as unknown as ApiBuilder & ApiBuilderRequestMethods;
             };
           }
         }
         return undefined;
       },
     });
-    return proxy;
+    return proxy as unknown as ApiBuilder & ApiBuilderRequestMethods;
   }
 }
 
