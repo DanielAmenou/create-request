@@ -19,7 +19,7 @@ module.exports = {
     // TypeScript specific rules
     "@typescript-eslint/explicit-module-boundary-types": "warn",
     "@typescript-eslint/no-explicit-any": "off", // Allow 'any' in this project due to API nature
-    "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+    "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
     "@typescript-eslint/consistent-type-imports": "error",
     "@typescript-eslint/no-floating-promises": "error",
     "@typescript-eslint/return-await": "error",
@@ -55,6 +55,8 @@ module.exports = {
         "@typescript-eslint/no-unsafe-member-access": "off",
         "@typescript-eslint/no-unsafe-call": "off",
         "@typescript-eslint/no-floating-promises": "off",
+        "@typescript-eslint/only-throw-error": "off", // Allow throwing non-Error objects in tests
+        "@typescript-eslint/prefer-promise-reject-errors": "off", // Allow rejecting with non-Error objects in tests
         "@typescript-eslint/no-misused-promises": [
           "error",
           {

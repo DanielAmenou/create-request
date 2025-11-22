@@ -324,7 +324,7 @@ describe("Interceptor Edge Cases", { timeout: 10000 }, () => {
       try {
         await request.getResponse();
         assert.fail("Expected error");
-      } catch (error) {
+      } catch (_error) {
         // Per-request in order, then global in reverse
         assert.deepEqual(order, ["local-1", "local-2", "global-2", "global-1"]);
       }

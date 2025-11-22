@@ -71,9 +71,25 @@ export class ResponseWrapper {
     const responseData = data as { errors?: unknown };
     if (!Array.isArray(responseData.errors) || responseData.errors.length === 0) return;
     const errors = responseData.errors;
-    const errorMessages = errors.map(x =>
-      typeof x === "string" ? x : x && typeof x === "object" && "message" in x ? String((x as { message?: unknown }).message || "Unknown error") : String(x)
-    );
+    const errorMessages = errors.map(x => {
+      if (typeof x === "string") return x;
+      if (x && typeof x === "object" && "message" in x) {
+        const message = (x as { message?: unknown }).message;
+        if (message == null) return "Unknown error";
+        if (typeof message === "string") return message;
+        if (typeof message === "object") {
+          try {
+            return JSON.stringify(message);
+          } catch {
+            return "Unknown error";
+          }
+        }
+        // For primitives (number, boolean, etc.), safe to convert
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+        return String(message);
+      }
+      return String(x);
+    });
     const errorMessage = errorMessages.join(", ");
 
     throw new RequestError(`GraphQL errors: ${errorMessage}`, this.url || "", this.method || "", {

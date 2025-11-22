@@ -1187,7 +1187,7 @@ describe("BaseRequest", { timeout: 10000 }, () => {
     try {
       await request.getResponse();
       assert.fail("Request should have failed after max retries");
-    } catch (error: any) {
+    } catch (_error: any) {
       // Should have exactly 3 retries (original attempt + 3 retries = 4 total attempts)
       assert.equal(retryCount, maxRetries, "Should have attempted exactly the specified number of retries");
       assert.equal(FetchMock.mock.calls.length, maxRetries + 1, "Should have called fetch exactly maxRetries + 1 times");

@@ -1041,7 +1041,7 @@ export abstract class BaseRequest {
       });
 
       return urlObj.toString();
-    } catch (error) {
+    } catch (_error) {
       // Handle relative URLs
       const hasExistingParams = url.includes("?");
       const separator = hasExistingParams ? "&" : "?";

@@ -428,7 +428,7 @@ describe("Error Interceptors", { timeout: 10000 }, () => {
     try {
       await request.getJson();
       assert.fail("Should have thrown error");
-    } catch (error) {
+    } catch (_error) {
       assert.equal(interceptorCalled, true);
     }
   });
@@ -450,7 +450,7 @@ describe("Error Interceptors", { timeout: 10000 }, () => {
     try {
       await request.getJson();
       assert.fail("Should have thrown error");
-    } catch (error) {
+    } catch (_error) {
       assert.equal(interceptorCalled, true);
     }
   });
@@ -475,7 +475,7 @@ describe("Error Interceptors", { timeout: 10000 }, () => {
     try {
       await request.getJson();
       assert.fail("Should have thrown error");
-    } catch (error) {
+    } catch (_error) {
       assert.deepEqual(executionOrder, ["per-request", "global"]);
     }
   });
@@ -533,7 +533,7 @@ describe("Error Interceptors", { timeout: 10000 }, () => {
     try {
       await request.getJson();
       assert.fail("Should have thrown error");
-    } catch (error) {
+    } catch (_error) {
       assert.equal(interceptorCalled, true);
     }
   });
@@ -582,7 +582,7 @@ describe("Error Interceptors", { timeout: 10000 }, () => {
     try {
       await request.getJson();
       assert.fail("Should have thrown error");
-    } catch (error) {
+    } catch (_error) {
       assert.equal(interceptorCalled, false);
     }
   });
@@ -601,7 +601,7 @@ describe("Error Interceptors", { timeout: 10000 }, () => {
     try {
       await request.getJson();
       assert.fail("Should have thrown error");
-    } catch (error) {
+    } catch (_error) {
       assert.ok(capturedErrorType.includes("Network"));
     }
   });
