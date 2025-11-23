@@ -1537,6 +1537,12 @@ export abstract class BaseRequest {
         throw RequestError.networkError(url, method, errorObj);
       }
 
+      // Status 0 indicates the request failed before receiving a proper HTTP response
+      // (e.g., CORS errors, network failures that don't throw). Treat as network error.
+      if (response.status === 0) {
+        throw RequestError.networkError(url, method, new Error("Request failed with status 0 (network error or CORS blocked)"));
+      }
+
       if (!response.ok) {
         throw RequestError.fromResponse(response, url, method);
       }

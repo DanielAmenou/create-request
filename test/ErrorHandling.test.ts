@@ -141,6 +141,36 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
         assert(error.stack?.includes(originalError.stack || ""));
       }
     });
+
+    it("should handle response with status 0 as network error (CORS or network failure)", async () => {
+      // Arrange - Status 0 indicates request failed before receiving HTTP response
+      // This can happen with CORS errors or network failures that don't throw
+      // Note: Response constructor doesn't allow status 0, so we need to create a custom Response-like object
+      FetchMock.mock.mockImplementationOnce(() => {
+        // Create a Response with valid status, then override status to 0
+        const response = new Response("", { status: 200 });
+        // Override the status property to 0 (simulating CORS/network failure)
+        Object.defineProperty(response, "status", { value: 0, writable: false, configurable: true });
+        Object.defineProperty(response, "ok", { value: false, writable: false, configurable: true });
+        return Promise.resolve(response);
+      });
+      const request = create.get("https://api.example.com/data");
+
+      // Act & Assert
+      try {
+        await request.getResponse();
+        assert.fail("Request should have failed");
+      } catch (error) {
+        assert(error instanceof RequestError);
+        // Should be treated as network error, not "HTTP 0"
+        const messageLower = error.message.toLowerCase();
+        assert(messageLower.includes("network error") || messageLower.includes("cors blocked") || messageLower.includes("status 0"), `Expected error message to include network/CORS/status 0, but got: ${error.message}`);
+        assert.equal(error.url, "https://api.example.com/data");
+        assert.equal(error.method, "GET");
+        // Status 0 should not be set as the status (it's not a valid HTTP status)
+        assert.equal(error.status, undefined);
+      }
+    });
   });
 
   // =============== RESPONSE PARSING ERRORS ===============
