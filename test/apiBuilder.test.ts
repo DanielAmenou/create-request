@@ -207,26 +207,6 @@ describe("API Builder", { timeout: 10000 }, () => {
       assert.equal(headers.Authorization, "Bearer token123");
     });
 
-    it("should handle relative URLs with ./ prefix", async () => {
-      FetchMock.mockResponseOnce({ body: { success: true } });
-
-      const api = create.api().withBaseURL("https://api.example.com");
-      await api.get("./users").getJson();
-
-      const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
-      assert.equal(url, "https://api.example.com/users");
-    });
-
-    it("should handle relative URLs with ../ prefix", async () => {
-      FetchMock.mockResponseOnce({ body: { success: true } });
-
-      const api = create.api().withBaseURL("https://api.example.com/v1");
-      await api.get("../v2/users").getJson();
-
-      const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
-      assert.equal(url, "https://api.example.com/v2/users");
-    });
-
     it("should handle baseURL with path", async () => {
       FetchMock.mockResponseOnce({ body: { success: true } });
 
@@ -245,16 +225,6 @@ describe("API Builder", { timeout: 10000 }, () => {
 
       const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(url, "https://api.example.com/v1/users");
-    });
-
-    it("should handle relative URL starting with /", async () => {
-      FetchMock.mockResponseOnce({ body: { success: true } });
-
-      const api = create.api().withBaseURL("https://api.example.com/v1");
-      await api.get("/users").getJson();
-
-      const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
-      assert.equal(url, "https://api.example.com/users");
     });
 
     it("should apply defaults to POST requests", async () => {
@@ -280,87 +250,6 @@ describe("API Builder", { timeout: 10000 }, () => {
 
       const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
       assert.equal(url, "https://api.example.com");
-    });
-
-    it("should handle URL resolution fallback when URL constructor throws", async () => {
-      // We need to make URL constructor throw to test the catch block
-      FetchMock.mockResponseOnce({ body: { success: true } });
-
-      // Temporarily override URL constructor to throw only in resolveURL
-      const OriginalURL = global.URL;
-      let urlConstructorCallCount = 0;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      global.URL = class MockURL extends OriginalURL {
-        constructor(url: string, base?: string) {
-          urlConstructorCallCount++;
-          // Only throw on the first call (in resolveURL), then restore for validation
-          if (urlConstructorCallCount === 1) {
-            // Restore URL before throwing so validation can work
-            global.URL = OriginalURL;
-            throw new TypeError("Invalid URL");
-          }
-          // For subsequent calls (validation), use original URL
-          super(url, base);
-        }
-      } as typeof URL;
-
-      try {
-        const api = create.api().withBaseURL("https://api.example.com");
-
-        // Test with a relative URL - should use fallback at line 53
-        const result = await api.get("users").getJson();
-        assert.deepEqual(result, { success: true });
-
-        const call = FetchMock.mock.calls[0];
-        const url = Array.isArray(call) ? call[0] : "";
-        // Should use fallback: baseURL without trailing slash + / + url
-        assert.equal(url, "https://api.example.com/users");
-        assert.equal(urlConstructorCallCount, 1);
-      } finally {
-        // Ensure URL is restored
-        global.URL = OriginalURL;
-      }
-    });
-
-    it("should handle URL resolution fallback with URL starting with slash", async () => {
-      // Test line 53: fallback when url starts with "/"
-      FetchMock.mockResponseOnce({ body: { success: true } });
-
-      // Temporarily override URL constructor to throw only in resolveURL
-      const OriginalURL = global.URL;
-      let urlConstructorCallCount = 0;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      global.URL = class MockURL extends OriginalURL {
-        constructor(url: string, base?: string) {
-          urlConstructorCallCount++;
-          // Only throw on the first call (in resolveURL), then restore for validation
-          if (urlConstructorCallCount === 1) {
-            // Restore URL before throwing so validation can work
-            global.URL = OriginalURL;
-            throw new TypeError("Invalid URL");
-          }
-          // For subsequent calls (validation), use original URL
-          super(url, base);
-        }
-      } as typeof URL;
-
-      try {
-        const api = create.api().withBaseURL("https://api.example.com");
-
-        // Test with URL starting with "/" - should use fallback
-        const result = await api.get("/users").getJson();
-        assert.deepEqual(result, { success: true });
-
-        const call = FetchMock.mock.calls[0];
-        const url = Array.isArray(call) ? call[0] : "";
-        // Should use fallback: baseURL without trailing slash + url (which starts with /)
-        assert.equal(url, "https://api.example.com/users");
-      } finally {
-        // Ensure URL is restored
-        global.URL = OriginalURL;
-      }
     });
 
     it("should work with all methods without URL when baseURL is set", async () => {

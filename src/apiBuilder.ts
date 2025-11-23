@@ -45,11 +45,7 @@ function resolveURL(baseURL: string | undefined, url: string | undefined): strin
   if (!url) return baseURL || "";
   if (!baseURL) return url;
   if (/^https?:\/\//.test(url)) return url;
-  try {
-    return new URL(url, baseURL.endsWith("/") ? baseURL : baseURL + "/").toString();
-  } catch {
-    return baseURL.replace(/\/$/, "") + (url.startsWith("/") ? url : "/" + url);
-  }
+  return baseURL.replace(/\/$/, "") + "/" + url.replace(/^\//, "");
 }
 
 /**
