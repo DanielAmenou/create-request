@@ -97,6 +97,80 @@ function createUser(userData) {
 }
 ```
 
+### Why Not Object-Based Configuration?
+
+Many HTTP client libraries (like Axios, Got, and even the native Fetch API) use object-based configuration where all options are passed in a single configuration object. While this approach works, it creates a poor developer experience:
+
+**The Developer Experience Problem:**
+
+With object-based configuration, you're constantly context-switching between your code and documentation. You need to:
+
+- Remember exact option names and their structure
+- Look up documentation to discover available options
+- Guess at nested object structures
+- Hope your IDE autocomplete works with complex nested types
+
+```typescript
+// Object-based: What options are available? What's the structure? Need to check docs
+axios.post("https://api.example.com/users", userData, {
+  headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+  timeout: 5000,
+  params: { validate: true },
+  withCredentials: true,
+});
+```
+
+**Superior Developer Experience with Fluent API:**
+
+`create-request`'s fluent API is designed for an exceptional developer experience. Every method is discoverable, self-documenting, and provides rich IDE support:
+
+#### 1. Intelligent Autocomplete & IntelliSense
+
+As you type, your IDE suggests the exact methods you need. No guessing, no documentation lookup:
+
+```typescript
+// Start typing and see all available methods
+create
+  .post(url)
+  .withBearerToken() // ← IDE suggests: withBearerToken(token: string)
+  .withTimeout() // ← IDE suggests: withTimeout(ms: number)
+  .withRetries(); // ← IDE suggests: withRetries(count: number | RetryConfig)
+```
+
+#### 2. Rich JSDoc Documentation in Your IDE
+
+Hover over any method to see comprehensive documentation, examples, and parameter details - all without leaving your editor:
+
+```typescript
+// Hover over withRetries to see:
+// "Configures automatic retry behavior for failed requests.
+//  @param retries - Number of retry attempts or retry configuration object
+//  @example
+//    .withRetries(3)
+//    .withRetries({ attempts: 3, delay: 1000 })"
+create.get(url).withRetries(3);
+```
+
+#### 3. Discoverability Through Method Chaining
+
+Each method reveals what's available next. Explore the API naturally through autocomplete:
+
+```typescript
+// Discover available options as you chain
+create
+  .post(url)
+  .withHeaders() // ← See all header methods
+  .withBearerToken() // ← See all auth methods
+  .withTimeout() // ← See all timeout/retry methods
+  .withQueryParams(); // ← See all query param methods
+```
+
+#### 4. No Context Switching
+
+Stay in your flow. Everything you need is in your IDE - documentation, types, examples, and autocomplete. No alt-tabbing to documentation websites.
+
+This developer-first approach means you spend less time looking things up and more time writing code that works.
+
 ## Mental Model
 
 ### 1. **Separation of Building and Execution**
@@ -180,7 +254,7 @@ This pattern makes the API self-documenting - any method starting with `with...`
 
 The typical request lifecycle follows this pattern:
 
-```
+```text
 Build → Configure → Execute → Transform → Handle
 ```
 
