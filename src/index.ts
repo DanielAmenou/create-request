@@ -32,7 +32,7 @@ export { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadR
 export { get, post, put, del, patch, head, options } from "./requestFactories.js";
 
 // Export api function
-export { api } from "./apiBuilder.js";
+export { api as createApi } from "./apiBuilder.js";
 
 /**
  * Main API object for creating HTTP requests.
