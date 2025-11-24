@@ -164,7 +164,10 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
         assert(error instanceof RequestError);
         // Should be treated as network error, not "HTTP 0"
         const messageLower = error.message.toLowerCase();
-        assert(messageLower.includes("network error") || messageLower.includes("cors blocked") || messageLower.includes("status 0"), `Expected error message to include network/CORS/status 0, but got: ${error.message}`);
+        assert(
+          messageLower.includes("network error") || messageLower.includes("cors blocked") || messageLower.includes("status 0"),
+          `Expected error message to include network/CORS/status 0, but got: ${error.message}`
+        );
         assert.equal(error.url, "https://api.example.com/data");
         assert.equal(error.method, "GET");
         // Status 0 should not be set as the status (it's not a valid HTTP status)
