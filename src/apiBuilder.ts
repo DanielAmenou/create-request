@@ -139,18 +139,15 @@ type ApiBuilder = {
    * - `omit`: Never send credentials
    * - `same-origin` (default): Only send credentials with same-origin requests
    *
+   * Note: Use direct call pattern. Fluent API (e.g., `.withCredentials.INCLUDE()`) is not supported in ApiBuilder.
+   *
    * @param credentials - The credentials policy
    * @returns The API builder instance for chaining
    *
    * @example
    * ```typescript
    * api.withCredentials('include'); // Send cookies with cross-origin requests
-   * ```
-   *
-   * @example
-   * ```typescript
-   * // Fluent API also works
-   * api.withCredentials(CredentialsPolicy.Include);
+   * api.withCredentials(CredentialsPolicy.INCLUDE);
    * ```
    */
   withCredentials(credentials: CredentialsPolicy): ApiBuilder;
@@ -189,6 +186,7 @@ type ApiBuilder = {
    * @example
    * ```typescript
    * api.withReferrerPolicy('no-referrer');
+   * api.withReferrerPolicy(ReferrerPolicy.NO_REFERRER); // Using enum
    * ```
    */
   withReferrerPolicy(policy: ReferrerPolicy): ApiBuilder;
@@ -206,6 +204,7 @@ type ApiBuilder = {
    * @example
    * ```typescript
    * api.withRedirect('error'); // Throw an error on redirect
+   * api.withRedirect(RedirectMode.ERROR); // Using enum
    * ```
    */
   withRedirect(redirect: RedirectMode): ApiBuilder;
@@ -238,6 +237,7 @@ type ApiBuilder = {
    * @example
    * ```typescript
    * api.withPriority('high'); // Mark as high priority
+   * api.withPriority(RequestPriority.HIGH); // Using enum
    * ```
    */
   withPriority(priority: RequestPriority): ApiBuilder;
@@ -274,10 +274,6 @@ type ApiBuilder = {
    * @example
    * ```typescript
    * api.withCache('no-store'); // Don't cache this request
-   * ```
-   *
-   * @example
-   * ```typescript
    * api.withCache('force-cache'); // Use cache even if stale
    * ```
    */
@@ -299,11 +295,7 @@ type ApiBuilder = {
    * @example
    * ```typescript
    * api.withMode('same-origin'); // Only allow same-origin requests
-   * ```
-   *
-   * @example
-   * ```typescript
-   * api.withMode('no-cors'); // Cross-origin without CORS (limited response)
+   * api.withMode(RequestMode.SAME_ORIGIN); // Using enum
    * ```
    */
   withMode(mode: RequestMode): ApiBuilder;
@@ -504,6 +496,38 @@ type ApiBuilder = {
    * });
    */
   withErrorInterceptor(interceptor: ErrorInterceptor): ApiBuilder;
+
+  /**
+   * Adds default query parameters to all requests made through this API instance.
+   *
+   * @param params - An object containing query parameter key-value pairs
+   * @returns The API builder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const api = createApi()
+   *   .withBaseURL('https://api.example.com')
+   *   .withQueryParams({ apiVersion: 'v2', format: 'json' });
+   * // All requests will include ?apiVersion=v2&format=json
+   * ```
+   */
+  withQueryParams(params: Record<string, string | string[] | number | boolean | null | undefined>): ApiBuilder;
+
+  /**
+   * Adds a single default query parameter to all requests made through this API instance.
+   *
+   * @param key - The query parameter name
+   * @param value - The query parameter value
+   * @returns The API builder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const api = createApi()
+   *   .withBaseURL('https://api.example.com')
+   *   .withQueryParam('apiKey', 'abc123');
+   * ```
+   */
+  withQueryParam(key: string, value: string | string[] | number | boolean | null | undefined): ApiBuilder;
 };
 
 /**
@@ -523,9 +547,7 @@ class ApiBuilderImpl {
     if (!url) return this.baseURL || "";
     if (/^https?:\/\//.test(url)) return url;
     if (!this.baseURL) return url;
-    const base = this.baseURL.endsWith("/") ? this.baseURL.slice(0, -1) : this.baseURL;
-    const path = url.startsWith("/") ? url : `/${url}`;
-    return base + path;
+    return this.baseURL.replace(/\/$/, "") + (url[0] === "/" ? url : "/" + url);
   }
 
   private applyModifiers(request: BaseRequest): void {
@@ -587,7 +609,7 @@ class ApiBuilderImpl {
   }
 
   private createProxy(): ApiBuilder {
-    const disallowedMethods = new Set(["withBody", "withGraphQL", "withQueryParams", "withQueryParam", "withAbortController"]);
+    const disallowedMethods = new Set(["withBody", "withGraphQL", "withAbortController"]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     return new Proxy(this as any, {

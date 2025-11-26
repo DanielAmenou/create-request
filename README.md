@@ -379,15 +379,15 @@ const request = create
 
   // Fetch API options
   // Note: These methods support three styles - Fluent API (shown below), Enum-based (e.g., .withMode(RequestMode.CORS)), or String-based (e.g., .withMode("cors"))
-  .withCredentials.INCLUDE() // Includes cookies with cross-origin requests
+  .withCredentials.INCLUDE() // Includes cookies with cross-origin requests (Fluent API)
   .withMode.CORS() // Controls CORS behavior
-  .withRedirect.FOLLOW() // Controls redirect behavior (follow, error, manual)
+  .withRedirect.FOLLOW() // Controls redirect behavior
   .withReferrer("https://example.com") // Sets request referrer
   .withReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE() // Controls referrer policy
   .withPriority.HIGH() // Sets request priority
   .withKeepAlive(true) // Keeps connection alive after the page is unloaded
   .withIntegrity("sha256-abcdef1234567890...") // Sets subresource integrity hash
-  .withCache("no-cache"); // Controls cache behavior (or use .withCache.NO_CACHE())
+  .withCache("no-cache"); // Direct string value (or use .withCache.NO_CACHE() for Fluent API)
 ```
 
 Each configuration method returns the request object, allowing for a fluent interface where methods can be chained together. You can configure only what you need for a specific request:
@@ -631,7 +631,14 @@ const newUser = await api.post().withBody({ name: "John" }).getJson();
 
 #### Available Request Methods
 
-The API builder provides access to all request configuration methods from `BaseRequest` that can be used as defaults. These methods will apply to all requests made through the API instance:
+The API builder provides access to most request configuration methods from `BaseRequest` that can be used as defaults. These methods will apply to all requests made through the API instance.
+
+**Important limitations:**
+
+- Methods that are request-specific (like `withBody`, `withGraphQL`, `withAbortController`) are not available in ApiBuilder
+- The Fluent API (e.g., `.withCache.NO_STORE()`) is not supported - use direct calls with string or enum values instead
+
+Available methods:
 
 **Authentication & Headers:**
 
@@ -647,13 +654,24 @@ The API builder provides access to all request configuration methods from `BaseR
 - `withCookies(cookies)` - Add cookies to all requests
 - `withCookie(name, value)` - Add a single cookie
 
+**Query Parameters:**
+
+- `withQueryParams(params)` - Add default query parameters to all requests
+- `withQueryParam(key, value)` - Add a single default query parameter
+
 **Request Configuration:**
 
 - `withTimeout(timeout)` - Set default timeout for all requests
 - `withRetries(retries)` - Configure default retry behavior
 - `withReferrer(referrer)` - Set default referrer
+- `withReferrerPolicy(policy)` - Set default referrer policy (use string or enum)
 - `withKeepAlive(keepalive)` - Configure keep-alive
 - `withIntegrity(integrity)` - Set integrity check
+- `withMode(mode)` - Set request mode (use string or enum)
+- `withCredentials(credentials)` - Set credentials policy (use string or enum)
+- `withRedirect(redirect)` - Set redirect behavior (use string or enum)
+- `withPriority(priority)` - Set request priority (use string or enum)
+- `withCache(cache)` - Set cache mode (use string or enum)
 
 **CSRF Protection:**
 
@@ -670,15 +688,23 @@ The API builder provides access to all request configuration methods from `BaseR
 These methods can be chained together and will apply to all requests made through the API instance:
 
 ```typescript
+import { CacheMode, CredentialsPolicy, RequestMode } from "create-request";
+
 const api = create
   .api()
   .withBaseURL("https://api.example.com")
   .withBearerToken("token123")
   .withCookies({ session: "abc123" })
   .withTimeout(5000)
-  .withHeaders({ "X-Custom": "value" });
+  .withHeaders({ "X-Custom": "value" })
+  .withQueryParams({ apiVersion: "v2" }) // Default query params
+  .withCache("no-store") // Direct string value
+  // Or use enum: .withCache(CacheMode.NO_STORE)
+  .withCredentials("include"); // Direct string value
+// Or use enum: .withCredentials(CredentialsPolicy.INCLUDE)
+// Note: Fluent API like .withCache.NO_STORE() is NOT supported in ApiBuilder
 
-// All requests will include the Bearer token, cookies, timeout, and headers
+// All requests will include the Bearer token, cookies, timeout, headers, query params, and cache settings
 await api.get("/users").getJson();
 await api.post("/posts").withBody({ title: "Hello" }).getJson();
 ```
@@ -761,13 +787,17 @@ const api = create
 
 ```typescript
 // Set up your API once
+import { CacheMode } from "create-request";
+
 const api = create
   .api()
   .withBaseURL("https://api.example.com/v1")
   .withHeaders({ "Content-Type": "application/json" })
   .withCookies({ session: "abc123" })
   .withBearerToken("token123")
-  .withTimeout(20000);
+  .withTimeout(20000)
+  .withQueryParams({ format: "json" })
+  .withCache(CacheMode.NO_CACHE);
 
 // Use throughout your application
 async function getUsers() {

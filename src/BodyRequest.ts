@@ -79,7 +79,7 @@ export abstract class BodyRequest extends BaseRequest {
         JSON.stringify(body);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url, this.method);
+        throw new RequestError(`Bad JSON: ${errorMessage}`, this.url, this.method);
       }
     } else {
       this.bodyType = BodyType.BINARY;
@@ -127,7 +127,7 @@ export abstract class BodyRequest extends BaseRequest {
    */
   withGraphQL(query: string, variables?: Record<string, unknown>, options?: GraphQLOptions): this {
     if (typeof query !== "string" || query.length === 0) {
-      throw new RequestError("Invalid query", this.url, this.method);
+      throw new RequestError("Bad query", this.url, this.method);
     }
 
     const graphQLBody: { query: string; variables?: Record<string, unknown> } = {
@@ -136,7 +136,7 @@ export abstract class BodyRequest extends BaseRequest {
 
     if (variables !== undefined) {
       if (typeof variables !== "object" || variables === null || Array.isArray(variables)) {
-        throw new RequestError("Invalid vars", this.url, this.method);
+        throw new RequestError("Bad vars", this.url, this.method);
       }
       graphQLBody.variables = variables;
     }
@@ -144,7 +144,7 @@ export abstract class BodyRequest extends BaseRequest {
     // Store GraphQL options if provided
     if (options !== undefined) {
       if (typeof options !== "object" || options === null || Array.isArray(options)) {
-        throw new RequestError("Invalid options", this.url, this.method);
+        throw new RequestError("Bad opts", this.url, this.method);
       }
 
       // Store only the known GraphQL options properties
@@ -159,7 +159,7 @@ export abstract class BodyRequest extends BaseRequest {
       JSON.stringify(graphQLBody);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url, this.method);
+      throw new RequestError(`Bad JSON: ${errorMessage}`, this.url, this.method);
     }
 
     this.body = graphQLBody;

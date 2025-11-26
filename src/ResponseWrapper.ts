@@ -120,7 +120,7 @@ export class ResponseWrapper {
     });
     const errorMessage = errorMessages.join(", ");
 
-    throw new RequestError(`GraphQL errors: ${errorMessage}`, this.url || "", this.method || "", {
+    throw new RequestError(`GraphQL: ${errorMessage}`, this.url || "", this.method || "", {
       status: this.response.status,
       response: this.response,
     });
@@ -162,7 +162,7 @@ export class ResponseWrapper {
         throw error;
       }
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url || "", this.method || "", {
+      throw new RequestError(`Bad JSON: ${errorMessage}`, this.url || "", this.method || "", {
         status: this.response.status,
         response: this.response,
       });
@@ -193,7 +193,7 @@ export class ResponseWrapper {
       return text;
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
-      throw new RequestError(`Read failed: ${errorMessage}`, this.url || "", this.method || "", {
+      throw new RequestError(`Read: ${errorMessage}`, this.url || "", this.method || "", {
         status: this.response.status,
         response: this.response,
       });
@@ -226,7 +226,7 @@ export class ResponseWrapper {
       return blob;
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
-      throw new RequestError(`Read failed: ${errorMessage}`, this.url || "", this.method || "", {
+      throw new RequestError(`Read: ${errorMessage}`, this.url || "", this.method || "", {
         status: this.response.status,
         response: this.response,
       });
@@ -261,7 +261,7 @@ export class ResponseWrapper {
       return arrayBuffer;
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
-      throw new RequestError(`Read failed: ${errorMessage}`, this.url || "", this.method || "", {
+      throw new RequestError(`Read: ${errorMessage}`, this.url || "", this.method || "", {
         status: this.response.status,
         response: this.response,
       });
@@ -332,7 +332,7 @@ export class ResponseWrapper {
       // Enhance selector errors with context
       if (selector) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new RequestError(`Data selector failed: ${errorMessage}`, this.url || "", this.method || "", {
+        throw new RequestError(`Selector: ${errorMessage}`, this.url || "", this.method || "", {
           status: this.response.status,
           response: this.response,
         });
