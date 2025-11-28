@@ -74,16 +74,16 @@ export abstract class BaseRequest {
   }
 
   private validateUrl(url: string): void {
-    if (!url?.trim()) throw new RequestError("Bad URL", url, this.method);
+    if (!url?.trim()) throw new RequestError("Invalid URL", url, this.method);
     if (url.includes("\0") || url.includes("\r") || url.includes("\n")) {
-      throw new RequestError("Bad URL", url, this.method);
+      throw new RequestError("Invalid URL", url, this.method);
     }
     const trimmed = url.trim();
     if (/^https?:\/\//.test(trimmed)) {
       try {
         new URL(trimmed);
       } catch {
-        throw new RequestError("Bad URL", trimmed, this.method);
+        throw new RequestError("Invalid URL", trimmed, this.method);
       }
     }
   }
@@ -142,7 +142,7 @@ export abstract class BaseRequest {
    * request.withTimeout(5000); // 5 seconds timeout
    */
   withTimeout(timeout: number): this {
-    if (!Number.isFinite(timeout) || timeout <= 0) throw new RequestError("Bad timeout", this.url, this.method);
+    if (!Number.isFinite(timeout) || timeout <= 0) throw new RequestError("Invalid timeout", this.url, this.method);
 
     this.requestOptions.timeout = timeout;
     return this;
@@ -183,22 +183,22 @@ export abstract class BaseRequest {
   withRetries(retries: number | RetryConfig): this {
     if (typeof retries === "number") {
       if (!Number.isInteger(retries) || retries < 0) {
-        throw new RequestError(`Bad retries: ${retries}`, this.url, this.method);
+        throw new RequestError(`Invalid retries: ${retries}`, this.url, this.method);
       }
       this.requestOptions.retries = retries;
     } else {
       // Validate RetryConfig
       if (!Number.isInteger(retries.attempts) || retries.attempts < 0) {
-        throw new RequestError(`Bad attempts: ${retries.attempts}`, this.url, this.method);
+        throw new RequestError(`Invalid attempts: ${retries.attempts}`, this.url, this.method);
       }
       // Validate delay if provided
       if (retries.delay !== undefined) {
         if (typeof retries.delay === "number") {
           if (!Number.isFinite(retries.delay) || retries.delay < 0) {
-            throw new RequestError(`Bad delay: ${retries.delay}`, this.url, this.method);
+            throw new RequestError(`Invalid delay: ${retries.delay}`, this.url, this.method);
           }
         } else if (typeof retries.delay !== "function") {
-          throw new RequestError(`Bad delay: ${typeof retries.delay}`, this.url, this.method);
+          throw new RequestError(`Invalid delay: ${typeof retries.delay}`, this.url, this.method);
         }
       }
       this.requestOptions.retries = retries;
@@ -765,7 +765,7 @@ export abstract class BaseRequest {
     if (typeof Buffer !== "undefined") return Buffer.from(str).toString("base64");
 
     // Fallback (should never happen in modern environments)
-    throw new RequestError("No encoder", this.url, this.method);
+    throw new RequestError("Encoding not supported", this.url, this.method);
   }
 
   /**
@@ -1225,7 +1225,7 @@ export abstract class BaseRequest {
 
           // Validate delay result
           if (typeof delay !== "number" || !Number.isFinite(delay) || delay < 0) {
-            throw new RequestError(`Bad delay: ${delay}`, url, method);
+            throw new RequestError(`Invalid delay: ${delay}`, url, method);
           }
 
           // Wait for the delay
@@ -1263,7 +1263,7 @@ export abstract class BaseRequest {
         currentConfig = result;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new RequestError(`Req interceptor: ${errorMessage}`, currentConfig.url, currentConfig.method);
+        throw new RequestError(`Req Interceptor failed: ${errorMessage}`, currentConfig.url, currentConfig.method);
       }
     }
 
@@ -1291,7 +1291,7 @@ export abstract class BaseRequest {
         const errorMessage = error instanceof Error ? error.message : String(error);
         const url = currentResponse.url || "";
         const method = currentResponse.method || "";
-        throw new RequestError(`Res interceptor: ${errorMessage}`, url, method);
+        throw new RequestError(`Res Interceptor failed: ${errorMessage}`, url, method);
       }
     }
 
@@ -1329,7 +1329,7 @@ export abstract class BaseRequest {
           const errorMessage = interceptorError instanceof Error ? interceptorError.message : String(interceptorError);
           // Always wrap in RequestError when we have context
           if (currentError instanceof RequestError) {
-            currentError = new RequestError(`Err interceptor ${i + 1}: ${errorMessage}`, currentError.url, currentError.method, {
+            currentError = new RequestError(`Err Interceptor ${i + 1} failed: ${errorMessage}`, currentError.url, currentError.method, {
               status: currentError.status,
               response: currentError.response,
             });

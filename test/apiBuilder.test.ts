@@ -396,14 +396,384 @@ describe("API Builder", { timeout: 10000 }, () => {
       assert.equal((api as any).withGraphQL, undefined);
     });
 
-    it("should not allow withQueryParam on API builder", () => {
-      const api = create.api();
-      assert.equal((api as any).withQueryParam, undefined);
+    describe("withQueryParam on API builder", () => {
+      it("should add a single query parameter to all requests", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParam("key", "value");
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("key"), "value");
+      });
+
+      it("should handle string values", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParam("search", "test");
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("search"), "test");
+      });
+
+      it("should handle number values", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParam("page", 42);
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("page"), "42");
+      });
+
+      it("should handle boolean values", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParam("active", true);
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("active"), "true");
+      });
+
+      it("should handle array values", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParam("tags", ["js", "ts", "node"]);
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        const tags = parsedUrl.searchParams.getAll("tags");
+        assert.deepEqual(tags, ["js", "ts", "node"]);
+      });
+
+      it("should ignore null values", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create
+          .api()
+          .withBaseURL("https://api.example.com")
+          .withQueryParam("valid", "value")
+          .withQueryParam("nullValue", null as string | null);
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("valid"), "value");
+        assert.equal(parsedUrl.searchParams.has("nullValue"), false);
+      });
+
+      it("should ignore undefined values", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create
+          .api()
+          .withBaseURL("https://api.example.com")
+          .withQueryParam("valid", "value")
+          .withQueryParam("undefinedValue", undefined as string | undefined);
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("valid"), "value");
+        assert.equal(parsedUrl.searchParams.has("undefinedValue"), false);
+      });
+
+      it("should allow multiple calls to withQueryParam", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParam("page", 1).withQueryParam("limit", 10).withQueryParam("sort", "name");
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("page"), "1");
+        assert.equal(parsedUrl.searchParams.get("limit"), "10");
+        assert.equal(parsedUrl.searchParams.get("sort"), "name");
+      });
+
+      it("should apply to all HTTP methods", async () => {
+        FetchMock.mockResponseOnce();
+        FetchMock.mockResponseOnce();
+        FetchMock.mockResponseOnce();
+        FetchMock.mockResponseOnce();
+
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParam("apiKey", "secret123");
+
+        await api.get("/test").getResponse();
+        await api.post("/test").withBody({}).getResponse();
+        await api.put("/test").withBody({}).getResponse();
+        await api.del("/test").getResponse();
+
+        assert.equal(FetchMock.mock.calls.length, 4);
+        for (const call of FetchMock.mock.calls) {
+          const [url] = call as [string, RequestInit];
+          const parsedUrl = new URL(url);
+          assert.equal(parsedUrl.searchParams.get("apiKey"), "secret123");
+        }
+      });
+
+      it("should work with requests that have existing query params in URL", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParam("default", "value");
+        await api.get("/test?existing=param").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("existing"), "param");
+        assert.equal(parsedUrl.searchParams.get("default"), "value");
+      });
+
+      it("should allow per-request override of default query params", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParam("page", 1);
+        await api.get("/test").withQueryParam("page", 2).getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        // The per-request param should be added, but both may exist (append behavior)
+        const pages = parsedUrl.searchParams.getAll("page");
+        assert.ok(pages.includes("1"));
+        assert.ok(pages.includes("2"));
+      });
     });
 
-    it("should not allow withQueryParams on API builder", () => {
-      const api = create.api();
-      assert.equal((api as any).withQueryParams, undefined);
+    describe("withQueryParams on API builder", () => {
+      it("should add multiple query parameters to all requests", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParams({ page: 1, limit: 10 });
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("page"), "1");
+        assert.equal(parsedUrl.searchParams.get("limit"), "10");
+      });
+
+      it("should handle mixed value types", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParams({
+          page: 1,
+          limit: 20,
+          active: true,
+          name: "test",
+          price: 99.99,
+        });
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("page"), "1");
+        assert.equal(parsedUrl.searchParams.get("limit"), "20");
+        assert.equal(parsedUrl.searchParams.get("active"), "true");
+        assert.equal(parsedUrl.searchParams.get("name"), "test");
+        assert.equal(parsedUrl.searchParams.get("price"), "99.99");
+      });
+
+      it("should handle array values", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create
+          .api()
+          .withBaseURL("https://api.example.com")
+          .withQueryParams({
+            tags: ["javascript", "typescript", "node"],
+          });
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        const tags = parsedUrl.searchParams.getAll("tags");
+        assert.deepEqual(tags, ["javascript", "typescript", "node"]);
+      });
+
+      it("should handle multiple array query params", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create
+          .api()
+          .withBaseURL("https://api.example.com")
+          .withQueryParams({
+            tags: ["js", "ts"],
+            categories: ["frontend", "backend"],
+          });
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        const tags = parsedUrl.searchParams.getAll("tags");
+        const categories = parsedUrl.searchParams.getAll("categories");
+        assert.deepEqual(tags, ["js", "ts"]);
+        assert.deepEqual(categories, ["frontend", "backend"]);
+      });
+
+      it("should ignore null and undefined values", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        const api = create
+          .api()
+          .withBaseURL("https://api.example.com")
+          .withQueryParams({
+            valid: "value",
+            nullValue: null,
+            undefinedValue: undefined,
+            other: "other",
+          } as Record<string, string | string[] | number | boolean | null | undefined>);
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("valid"), "value");
+        assert.equal(parsedUrl.searchParams.get("other"), "other");
+        assert.equal(parsedUrl.searchParams.has("nullValue"), false);
+        assert.equal(parsedUrl.searchParams.has("undefinedValue"), false);
+      });
+
+      it("should handle special characters", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParams({
+          search: "test@example.com",
+          filter: "status:active",
+          path: "/api/users",
+        });
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("search"), "test@example.com");
+        assert.equal(parsedUrl.searchParams.get("filter"), "status:active");
+        assert.equal(parsedUrl.searchParams.get("path"), "/api/users");
+      });
+
+      it("should handle unicode characters", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParams({
+          name: "用户名",
+          description: "Описание",
+        });
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("name"), "用户名");
+        assert.equal(parsedUrl.searchParams.get("description"), "Описание");
+      });
+
+      it("should allow multiple calls to withQueryParams", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create
+          .api()
+          .withBaseURL("https://api.example.com")
+          .withQueryParams({ page: 1, limit: 20 })
+          .withQueryParams({ sort: "name", order: "asc" })
+          .withQueryParams({ filter: "active" });
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("page"), "1");
+        assert.equal(parsedUrl.searchParams.get("limit"), "20");
+        assert.equal(parsedUrl.searchParams.get("sort"), "name");
+        assert.equal(parsedUrl.searchParams.get("order"), "asc");
+        assert.equal(parsedUrl.searchParams.get("filter"), "active");
+      });
+
+      it("should append duplicate keys when calling withQueryParams multiple times", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create
+          .api()
+          .withBaseURL("https://api.example.com")
+          .withQueryParams({ tag: "javascript" })
+          .withQueryParams({ tag: "typescript" })
+          .withQueryParams({ tag: "nodejs" });
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        const tags = parsedUrl.searchParams.getAll("tag");
+        assert.ok(tags.includes("javascript"));
+        assert.ok(tags.includes("typescript"));
+        assert.ok(tags.includes("nodejs"));
+      });
+
+      it("should apply to all HTTP methods", async () => {
+        FetchMock.mockResponseOnce();
+        FetchMock.mockResponseOnce();
+        FetchMock.mockResponseOnce();
+        FetchMock.mockResponseOnce();
+
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParams({ apiVersion: "v2", format: "json" });
+
+        await api.get("/test").getResponse();
+        await api.post("/test").withBody({}).getResponse();
+        await api.put("/test").withBody({}).getResponse();
+        await api.del("/test").getResponse();
+
+        assert.equal(FetchMock.mock.calls.length, 4);
+        for (const call of FetchMock.mock.calls) {
+          const [url] = call as [string, RequestInit];
+          const parsedUrl = new URL(url);
+          assert.equal(parsedUrl.searchParams.get("apiVersion"), "v2");
+          assert.equal(parsedUrl.searchParams.get("format"), "json");
+        }
+      });
+
+      it("should work with requests that have existing query params in URL", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParams({ default: "value", other: "param" });
+        await api.get("/test?existing=param").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("existing"), "param");
+        assert.equal(parsedUrl.searchParams.get("default"), "value");
+        assert.equal(parsedUrl.searchParams.get("other"), "param");
+      });
+
+      it("should allow mixing withQueryParams and withQueryParam", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create
+          .api()
+          .withBaseURL("https://api.example.com")
+          .withQueryParams({ page: 1, limit: 20 })
+          .withQueryParam("sort", "name")
+          .withQueryParam("order", ["asc", "desc"]);
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        assert.equal(parsedUrl.searchParams.get("page"), "1");
+        assert.equal(parsedUrl.searchParams.get("limit"), "20");
+        assert.equal(parsedUrl.searchParams.get("sort"), "name");
+        const orders = parsedUrl.searchParams.getAll("order");
+        assert.deepEqual(orders, ["asc", "desc"]);
+      });
+
+      it("should allow per-request override of default query params", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParams({ page: 1, limit: 10 });
+        await api.get("/test").withQueryParams({ page: 2, offset: 20 }).getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        // The per-request params should be added, but both may exist (append behavior)
+        const pages = parsedUrl.searchParams.getAll("page");
+        assert.ok(pages.includes("1"));
+        assert.ok(pages.includes("2"));
+        assert.equal(parsedUrl.searchParams.get("limit"), "10");
+        assert.equal(parsedUrl.searchParams.get("offset"), "20");
+      });
+
+      it("should handle empty arrays", async () => {
+        FetchMock.mockResponseOnce({ body: { success: true } });
+        const api = create.api().withBaseURL("https://api.example.com").withQueryParams({
+          tags: [],
+          other: "value",
+        });
+        await api.get("/test").getJson();
+
+        const [url] = FetchMock.mock.calls[0] as [string, RequestInit];
+        const parsedUrl = new URL(url);
+        const tags = parsedUrl.searchParams.getAll("tags");
+        assert.deepEqual(tags, []);
+        assert.equal(parsedUrl.searchParams.get("other"), "value");
+      });
     });
 
     it("should handle property access that is not a function", () => {
