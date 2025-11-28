@@ -1299,7 +1299,7 @@ export abstract class BaseRequest {
     const globalInterceptors = globalConfig.getResponseInterceptors();
 
     // Per-request in order, then global in reverse
-    const allInterceptors = [...this.responseInterceptors, ...globalInterceptors.reverse()];
+    const allInterceptors = [...this.responseInterceptors, ...[...globalInterceptors].reverse()];
 
     let currentResponse = response;
 
@@ -1327,7 +1327,7 @@ export abstract class BaseRequest {
     const globalInterceptors = globalConfig.getErrorInterceptors();
 
     // Per-request in order, then global in reverse
-    const allInterceptors = [...this.errorInterceptors, ...globalInterceptors.reverse()];
+    const allInterceptors = [...this.errorInterceptors, ...[...globalInterceptors].reverse()];
 
     let currentError: RequestError | ResponseWrapper = error;
 
