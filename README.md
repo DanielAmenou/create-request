@@ -28,7 +28,7 @@
   - [CSRF Protection](#csrf-protection)
   - [Subresource Integrity and Cache Control](#subresource-integrity-and-cache-control)
 - [Performance Considerations](#performance-considerations)
-- [Browser Support](#browser-support)
+- [Browser & Node.js Support](#browser--nodejs-support)
 - [Comparison of JavaScript HTTP Client Libraries](#comparison-of-javascript-http-client-libraries)
 - [License](#license)
 
@@ -1204,7 +1204,7 @@ create-request is designed to be lightweight and efficient:
 - **Memory Efficient**: Doesn't create unnecessary objects
 - **Clean API**: Simple and intuitive interface
 
-## Browser Support
+## Browser & Node.js Support
 
 This library works with all browsers that support the Fetch API:
 
@@ -1214,11 +1214,15 @@ This library works with all browsers that support the Fetch API:
 - Edge 14+
 - Opera 29+
 
+For Node.js:
+
+- Node.js 18.3.0+ (native fetch support required)
+
 ## Comparison of JavaScript HTTP Client Libraries
 
 | Feature               | create-request | Fetch  | Axios   | SuperAgent | Got     | Ky     | node-fetch | Redaxios |
 | --------------------- | -------------- | ------ | ------- | ---------- | ------- | ------ | ---------- | -------- |
-| **Size (min+gzip)**   | ~6.3KB         | Native | ~13.6KB | ~17.8KB    | ~17.8KB | ~3.4KB | ~7.7KB     | ~1KB     |
+| **Size (min+gzip)**   | ~6.5KB         | Native | ~13.6KB | ~17.8KB    | ~17.8KB | ~3.4KB | ~7.7KB     | ~1KB     |
 | **Browser**           | Modern         | Modern | IE11+   | IE9+       | ❌ No   | Modern | ❌ No      | Modern   |
 | **Node.js**           | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
 | **HTTP/2**            | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
