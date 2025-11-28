@@ -16,6 +16,8 @@
 - [Why create-request](#why-create-request)
 - [Mental Model](#mental-model)
 - [Installation](#installation)
+- [Named Exports](#named-exports)
+- [Tree-Shaking Guide](#tree-shaking-guide)
 - [Basic Usage](#basic-usage)
 - [URL Handling](#url-handling)
 - [Advanced Usage](#advanced-usage)
@@ -303,6 +305,68 @@ yarn add create-request
 
 # pnpm
 pnpm add create-request
+```
+
+## Named Exports
+
+The library provides both default and named exports:
+
+**Default Export:**
+
+- `create` - Main API object with factory methods (`get`, `post`, `put`, `del`, `patch`, `head`, `options`, `api`) and global `config`
+
+**Named Exports:**
+
+**Enums:**
+
+- `HttpMethod`, `RequestPriority`, `CredentialsPolicy`, `RequestMode`, `RedirectMode`, `SameSitePolicy`, `ReferrerPolicy`, `CacheMode`
+
+**Types:**
+
+- `RetryCallback`, `RetryConfig`, `CookiesRecord`, `CookieOptions`, `RequestConfig`, `GraphQLOptions`, `RequestOptions`, `ErrorInterceptor`, `RequestInterceptor`, `RetryDelayFunction`, `ResponseInterceptor`
+
+**Classes:**
+
+- `ResponseWrapper`, `CookieUtils`, `RequestError`
+
+**Request Classes:**
+
+- `GetRequest`, `PostRequest`, `PutRequest`, `DeleteRequest`, `PatchRequest`, `HeadRequest`, `OptionsRequest`
+
+**Factory Functions:**
+
+- `createGet`, `createPost`, `createPut`, `createDelete`, `createPatch`, `createHead`, `createOptions`, `createApi`
+
+```typescript
+// Default export
+import create from "create-request";
+
+// Named exports
+import { RequestError, CacheMode, createGet } from "create-request";
+```
+
+## Tree-Shaking Guide
+
+All named exports are tree-shakeable. The library is marked with `"sideEffects": false`, enabling bundlers to eliminate unused code.
+
+**Tree-shakeable:**
+
+- ✅ All named exports (enums, types, classes, factory functions)
+- ✅ Individual factory functions (`createGet`, `createPost`, etc.)
+- ✅ Individual request classes (`GetRequest`, `PostRequest`, etc.)
+
+**Not tree-shakeable:**
+
+- Default export (`create`) - imports the entire API object (library is small, so this is usually fine)
+
+**Tip:** For maximum tree-shaking, you can use named exports when you only need specific functionality:
+
+```typescript
+// Tree-shakeable - only imports what you use
+import { createGet } from "create-request";
+
+// Imports entire library (recommended for most use cases)
+import create from "create-request";
 ```
 
 ## Basic Usage
