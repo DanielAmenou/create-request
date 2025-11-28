@@ -463,7 +463,7 @@ describe("Integration Scenarios", { timeout: 10000 }, () => {
         async () => response.getText(),
         (error: Error) => {
           assert(error instanceof RequestError);
-          assert(error.message.includes("Body already consumed"));
+          assert(error.message.includes("Body used"));
           return true;
         }
       );

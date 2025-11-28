@@ -472,7 +472,7 @@ describe("Body Cache - Multiple Consumption", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => wrapper.getText(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Body already consumed");
+          return error instanceof RequestError && error.message.includes("Body used");
         }
       );
     });
@@ -490,7 +490,7 @@ describe("Body Cache - Multiple Consumption", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => wrapper.getJson(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Body already consumed");
+          return error instanceof RequestError && error.message.includes("Body used");
         }
       );
     });
@@ -507,7 +507,7 @@ describe("Body Cache - Multiple Consumption", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => wrapper.getBlob(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Body already consumed");
+          return error instanceof RequestError && error.message.includes("Body used");
         }
       );
     });
@@ -524,7 +524,7 @@ describe("Body Cache - Multiple Consumption", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => wrapper.getArrayBuffer(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Body already consumed");
+          return error instanceof RequestError && error.message.includes("Body used");
         }
       );
     });
@@ -856,7 +856,7 @@ describe("GraphQL Error Consumption as JSON", { timeout: 10000 }, () => {
         }
 
         // Error should contain GraphQL error message
-        assert.match(error.message, /GraphQL errors:/);
+        assert.match(error.message, /GQL:/);
         assert.match(error.message, /User not found/);
 
         // Response should be available with status
@@ -898,7 +898,7 @@ describe("GraphQL Error Consumption as JSON", { timeout: 10000 }, () => {
         }
 
         // Error message should contain both errors
-        assert.match(error.message, /GraphQL errors:/);
+        assert.match(error.message, /GQL:/);
         assert.match(error.message, /Error 1/);
         assert.match(error.message, /Error 2/);
 

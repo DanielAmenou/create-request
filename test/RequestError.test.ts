@@ -36,7 +36,7 @@ describe("RequestError", { timeout: 10000 }, () => {
     const error = RequestError.timeout("https://api.example.com", "GET", 5000);
 
     // Assert
-    assert.equal(error.message, "Timeout 5000ms");
+    assert.equal(error.message, "Timeout:5000");
     assert.equal(error.url, "https://api.example.com");
     assert.equal(error.method, "GET");
     assert.equal(error.isTimeout, true);

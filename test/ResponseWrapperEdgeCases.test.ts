@@ -21,7 +21,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
 
@@ -40,7 +40,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
 
@@ -59,7 +59,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
 
@@ -78,7 +78,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
 
@@ -115,7 +115,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
   });
@@ -189,7 +189,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
   });
@@ -360,7 +360,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
       }
@@ -380,7 +380,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
 
@@ -398,7 +398,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
 
@@ -416,7 +416,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
 
@@ -434,7 +434,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
 
@@ -470,7 +470,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed") || error.message.includes("unusable") || error.message.includes("locked"));
+        assert.ok(error.message.includes("Body used") || error.message.includes("unusable") || error.message.includes("locked"));
       }
     });
 
@@ -504,7 +504,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
       }
@@ -523,7 +523,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
 
@@ -546,7 +546,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
       } catch (error: any) {
         // Should be RequestError (always throws RequestError, even without url/method)
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed") || error.message.includes("unusable") || error.message.includes("locked"));
+        assert.ok(error.message.includes("Body used") || error.message.includes("unusable") || error.message.includes("locked"));
       }
     });
 
@@ -571,7 +571,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.ok(error instanceof RequestError);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
-        assert.ok(error.message.includes("Body already consumed") || error.message.includes("unusable") || error.message.includes("locked"));
+        assert.ok(error.message.includes("Body used") || error.message.includes("unusable") || error.message.includes("locked"));
       }
     });
 
@@ -659,7 +659,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         }
         assert.fail("Should have thrown error");
       } catch (error: any) {
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
 
@@ -678,7 +678,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         }
         assert.fail("Should have thrown error");
       } catch (error: any) {
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
       }
     });
   });
@@ -704,7 +704,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Invalid JSON/);
+        assert.match(error.message, /Bad JSON/);
         assert.equal(error.status, 200);
         assert.ok(error.response);
       }
@@ -724,7 +724,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Invalid JSON/);
+        assert.match(error.message, /Bad JSON/);
         assert.equal(error.status, 200);
         assert.ok(error.response);
       }
@@ -752,7 +752,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL errors:/);
+        assert.match(error.message, /GQL:/);
         assert.equal(error.status, 200);
         assert.ok(error.response);
         assert.equal(error.response, mockResponse);
@@ -780,7 +780,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL errors:/);
+        assert.match(error.message, /GQL:/);
         assert.ok(error.message.includes("Error 1"));
         assert.ok(error.message.includes("Error 2"));
         assert.equal(error.status, 200);
@@ -811,7 +811,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL errors:/);
+        assert.match(error.message, /GQL:/);
         // Objects without message property are converted to string, which becomes "[object Object]"
         assert.ok(error.message.includes("[object Object]"));
         assert.equal(error.status, 200);
@@ -846,7 +846,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL errors:/);
+        assert.match(error.message, /GQL:/);
         assert.ok(error.message.includes("String error"));
         assert.ok(error.message.includes("Object error"));
         // Objects without message property are converted to string, which becomes "[object Object]"
@@ -877,7 +877,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /GraphQL errors:/);
+        assert.match(error.message, /GQL:/);
         assert.equal(error.status, 200);
         assert.equal(error.url, "");
         assert.equal(error.method, "");
@@ -904,7 +904,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Invalid JSON/);
+        assert.match(error.message, /Bad JSON/);
         assert.equal(error.status, 500);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "POST");
@@ -932,7 +932,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Invalid JSON/);
+        assert.match(error.message, /Bad JSON/);
         assert.equal(error.status, 400);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "PUT");
@@ -959,7 +959,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Read failed:/);
+        assert.match(error.message, /Read:/);
         assert.equal(error.status, 200);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
@@ -986,7 +986,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Read failed:/);
+        assert.match(error.message, /Read:/);
         assert.equal(error.status, 200);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
@@ -1015,7 +1015,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Read failed:/);
+        assert.match(error.message, /Read:/);
         assert.ok(error.message.includes("String error in blob"));
         assert.equal(error.status, 200);
         assert.equal(error.url, "https://api.example.com/test");
@@ -1045,7 +1045,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Read failed:/);
+        assert.match(error.message, /Read:/);
         assert.ok(error.message.includes("Blob read failed"));
         assert.equal(error.status, 200);
         assert.equal(error.url, "https://api.example.com/test");
@@ -1074,7 +1074,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Read failed:/);
+        assert.match(error.message, /Read:/);
         // Object should be converted to string via String()
         assert.ok(error.message.includes("[object Object]"));
         assert.equal(error.status, 200);
@@ -1103,7 +1103,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Read failed:/);
+        assert.match(error.message, /Read:/);
         assert.equal(error.status, 200);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
@@ -1125,7 +1125,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body already consumed"));
+        assert.ok(error.message.includes("Body used"));
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
       }
@@ -1148,7 +1148,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.match(error.message, /Data selector failed/);
+        assert.match(error.message, /Selector:/);
         assert.equal(error.status, 200);
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
@@ -1176,7 +1176,7 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
         // Should be wrapped as networkError when no selector
-        assert.ok(error.message.includes("Network error") || error.message.includes("String error in getData"));
+        assert.ok(error.message.includes("Net:") || error.message.includes("String error in getData"));
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
       }

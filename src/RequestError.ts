@@ -87,7 +87,7 @@ export class RequestError extends Error {
    * ```
    */
   static timeout(url: string, method: string, timeoutMs: number): RequestError {
-    return new RequestError(`Timeout ${timeoutMs}ms`, url, method, {
+    return new RequestError(`Timeout:${timeoutMs}`, url, method, {
       isTimeout: true,
     });
   }
@@ -175,13 +175,13 @@ export class RequestError extends Error {
       const isConnectionError = !isTimeoutError && (errorCode === "ECONNREFUSED" || errorCode === "ECONNRESET" || stack.includes("ECONNREFUSED") || stack.includes("connect"));
 
       if (isTimeoutError) {
-        message = `Timeout ${url}`;
+        message = `Timeout:${url}`;
       } else if (isDnsError) {
-        message = `DNS error ${url}`;
+        message = `DNS:${url}`;
       } else if (isConnectionError) {
-        message = `Connection refused ${url}`;
+        message = `Conn:${url}`;
       } else {
-        message = `Network error ${url}`;
+        message = `Net:${url}`;
       }
     }
 

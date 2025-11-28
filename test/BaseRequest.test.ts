@@ -2329,7 +2329,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Req Interceptor failed"));
+        assert.ok(error.message.includes("ReqI:"));
         assert.ok(error.message.includes("String error"));
       }
     });
@@ -2346,7 +2346,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Req Interceptor failed"));
+        assert.ok(error.message.includes("ReqI:"));
         assert.ok(error.message.includes("Error object"));
       }
     });
@@ -2364,7 +2364,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Res Interceptor failed"));
+        assert.ok(error.message.includes("ResI:"));
         // Should convert object to string
         assert.ok(error.message.includes("[object Object]") || error.message.includes("Object error"));
       }
@@ -2384,7 +2384,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Err Interceptor"));
+        assert.ok(error.message.includes("ErrI"));
         assert.ok(error.message.includes("12345"));
       }
     });
@@ -2406,7 +2406,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Err Interceptor"));
+        assert.ok(error.message.includes("ErrI"));
         assert.ok(error.message.includes("Global interceptor error"));
         // Should have context from original RequestError
         assert.equal(error.url, "https://api.example.com/test");
@@ -2460,7 +2460,7 @@ describe("BaseRequest Coverage - Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Err Interceptor"));
+        assert.ok(error.message.includes("ErrI"));
         // Should convert object to string
         assert.ok(error.message.includes("[object Object]") || error.message.includes("custom"));
       } finally {

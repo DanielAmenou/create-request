@@ -12,7 +12,7 @@ describe("URL Validation Edge Cases", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => request.getResponse(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Invalid URL");
+          return error instanceof RequestError && error.message.includes("Bad URL");
         }
       );
     } finally {
@@ -28,7 +28,7 @@ describe("URL Validation Edge Cases", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => request.getResponse(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Invalid URL");
+          return error instanceof RequestError && error.message.includes("Bad URL");
         }
       );
     } finally {
@@ -44,7 +44,7 @@ describe("URL Validation Edge Cases", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => request.getResponse(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Invalid URL");
+          return error instanceof RequestError && error.message.includes("Bad URL");
         }
       );
     } finally {
@@ -60,7 +60,7 @@ describe("URL Validation Edge Cases", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => request.getResponse(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Invalid URL");
+          return error instanceof RequestError && error.message.includes("Bad URL");
         }
       );
     } finally {
@@ -76,7 +76,7 @@ describe("URL Validation Edge Cases", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => request.getResponse(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Invalid URL");
+          return error instanceof RequestError && error.message.includes("Bad URL");
         }
       );
     } finally {
@@ -92,7 +92,7 @@ describe("URL Validation Edge Cases", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => request.getResponse(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Invalid URL");
+          return error instanceof RequestError && error.message.includes("Bad URL");
         }
       );
     } finally {
@@ -108,7 +108,7 @@ describe("URL Validation Edge Cases", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => request.getResponse(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Invalid URL");
+          return error instanceof RequestError && error.message.includes("Bad URL");
         }
       );
     } finally {
@@ -124,7 +124,7 @@ describe("URL Validation Edge Cases", { timeout: 10000 }, () => {
       await assert.rejects(
         async () => request.getResponse(),
         (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Invalid URL");
+          return error instanceof RequestError && error.message.includes("Bad URL");
         }
       );
     } finally {

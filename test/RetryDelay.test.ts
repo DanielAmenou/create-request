@@ -35,14 +35,14 @@ describe("Retry Delay", { timeout: 10000 }, () => {
       const request = new GetRequest("https://api.example.com/test");
       assert.throws(() => {
         request.withRetries(-1);
-      }, /Invalid retries: -1/);
+      }, /Bad retries: -1/);
     });
 
     it("should throw error for non-integer number", () => {
       const request = new GetRequest("https://api.example.com/test");
       assert.throws(() => {
         request.withRetries(1.5);
-      }, /Invalid retries: 1.5/);
+      }, /Bad retries: 1.5/);
     });
   });
 
@@ -93,7 +93,7 @@ describe("Retry Delay", { timeout: 10000 }, () => {
           attempts: 1,
           delay: -100,
         });
-      }, /Invalid delay: -100/);
+      }, /Bad delay: -100/);
     });
 
     it("should throw error for non-finite delay", () => {
@@ -103,7 +103,7 @@ describe("Retry Delay", { timeout: 10000 }, () => {
           attempts: 1,
           delay: Infinity,
         });
-      }, /Invalid delay: Infinity/);
+      }, /Bad delay: Infinity/);
     });
 
     it("should throw error for invalid delay type", () => {
@@ -113,7 +113,7 @@ describe("Retry Delay", { timeout: 10000 }, () => {
           attempts: 1,
           delay: "invalid" as any,
         });
-      }, /Invalid delay: string/);
+      }, /Bad delay: string/);
     });
   });
 
@@ -195,7 +195,7 @@ describe("Retry Delay", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error for negative delay");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("Invalid delay: -100"));
+        assert(error.message.includes("Bad delay: -100"));
       }
     });
 
@@ -213,7 +213,7 @@ describe("Retry Delay", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error for invalid delay");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("Invalid delay: invalid"));
+        assert(error.message.includes("Bad delay: invalid"));
       }
     });
 
@@ -230,7 +230,7 @@ describe("Retry Delay", { timeout: 10000 }, () => {
         assert.fail("Should have thrown error for Infinity delay");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("Invalid delay: Infinity"));
+        assert(error.message.includes("Bad delay: Infinity"));
       }
     });
   });
@@ -490,7 +490,7 @@ describe("Retry Delay", { timeout: 10000 }, () => {
           attempts: -1,
           delay: 100,
         });
-      }, /Invalid attempts: -1/);
+      }, /Bad attempts: -1/);
     });
 
     it("should throw error for non-integer count in config", () => {
@@ -500,7 +500,7 @@ describe("Retry Delay", { timeout: 10000 }, () => {
           attempts: 1.5,
           delay: 100,
         });
-      }, /Invalid attempts: 1.5/);
+      }, /Bad attempts: 1.5/);
     });
 
     it("should accept config without delay", async () => {

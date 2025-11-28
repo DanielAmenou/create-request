@@ -810,7 +810,7 @@ describe("API Builder", { timeout: 10000 }, () => {
         assert.fail("Expected validation error for empty URL");
       } catch (error) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Invalid URL") || error.message.includes("empty"));
+        assert.ok(error.message.includes("Bad URL") || error.message.includes("empty"));
       }
     });
 
@@ -836,7 +836,7 @@ describe("API Builder", { timeout: 10000 }, () => {
         assert.fail("Expected validation error for empty URL");
       } catch (error) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Invalid URL") || error.message.includes("empty"));
+        assert.ok(error.message.includes("Bad URL") || error.message.includes("empty"));
       }
     });
 
@@ -862,7 +862,7 @@ describe("API Builder", { timeout: 10000 }, () => {
         assert.fail("Expected validation error for empty URL");
       } catch (error) {
         assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Invalid URL") || error.message.includes("empty"));
+        assert.ok(error.message.includes("Bad URL") || error.message.includes("empty"));
       }
     });
 

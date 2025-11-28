@@ -82,7 +82,7 @@ export class ResponseWrapper {
    */
   private checkBodyNotConsumed(): void {
     if (this.response.bodyUsed) {
-      throw new RequestError("Body already consumed", this.url || "", this.method || "", {
+      throw new RequestError("Body used", this.url || "", this.method || "", {
         status: this.response.status,
         response: this.response,
       });
@@ -120,7 +120,7 @@ export class ResponseWrapper {
     });
     const errorMessage = errorMessages.join(", ");
 
-    throw new RequestError(`GraphQL errors: ${errorMessage}`, this.url || "", this.method || "", {
+    throw new RequestError(`GQL: ${errorMessage}`, this.url || "", this.method || "", {
       status: this.response.status,
       response: this.response,
     });
@@ -161,8 +161,7 @@ export class ResponseWrapper {
       if (error instanceof RequestError) {
         throw error;
       }
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new RequestError(`Invalid JSON: ${errorMessage}`, this.url || "", this.method || "", {
+      throw new RequestError(`Bad JSON: ${error instanceof Error ? error.message : String(error)}`, this.url || "", this.method || "", {
         status: this.response.status,
         response: this.response,
       });
@@ -192,8 +191,7 @@ export class ResponseWrapper {
       this.cachedText = text;
       return text;
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      throw new RequestError(`Read failed: ${errorMessage}`, this.url || "", this.method || "", {
+      throw new RequestError(`Read: ${e instanceof Error ? e.message : String(e)}`, this.url || "", this.method || "", {
         status: this.response.status,
         response: this.response,
       });
@@ -225,8 +223,7 @@ export class ResponseWrapper {
       this.cachedBlob = blob;
       return blob;
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      throw new RequestError(`Read failed: ${errorMessage}`, this.url || "", this.method || "", {
+      throw new RequestError(`Read: ${e instanceof Error ? e.message : String(e)}`, this.url || "", this.method || "", {
         status: this.response.status,
         response: this.response,
       });
@@ -260,8 +257,7 @@ export class ResponseWrapper {
       this.cachedArrayBuffer = arrayBuffer;
       return arrayBuffer;
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      throw new RequestError(`Read failed: ${errorMessage}`, this.url || "", this.method || "", {
+      throw new RequestError(`Read: ${e instanceof Error ? e.message : String(e)}`, this.url || "", this.method || "", {
         status: this.response.status,
         response: this.response,
       });
@@ -331,8 +327,7 @@ export class ResponseWrapper {
 
       // Enhance selector errors with context
       if (selector) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new RequestError(`Data selector failed: ${errorMessage}`, this.url || "", this.method || "", {
+        throw new RequestError(`Selector: ${error instanceof Error ? error.message : String(error)}`, this.url || "", this.method || "", {
           status: this.response.status,
           response: this.response,
         });

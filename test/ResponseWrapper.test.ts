@@ -146,7 +146,7 @@ describe("ResponseWrapper", { timeout: 10000 }, () => {
       assert.fail("Should have thrown an error for empty body with JSON content type");
     } catch (error) {
       assert(error instanceof RequestError);
-      assert(error.message.includes("Invalid JSON") || error.message.includes("Unexpected end of JSON input"));
+      assert(error.message.includes("Bad JSON") || error.message.includes("Unexpected end of JSON input"));
     }
   });
 
@@ -164,7 +164,7 @@ describe("ResponseWrapper", { timeout: 10000 }, () => {
 
     // Assert
     assert.deepEqual(jsonResult, data);
-    await assert.rejects(() => wrapper.getText(), /Body already consumed/);
+    await assert.rejects(() => wrapper.getText(), /Body used/);
   });
 
   it("should throw error when getting JSON after text", async () => {
@@ -181,7 +181,7 @@ describe("ResponseWrapper", { timeout: 10000 }, () => {
 
     // Assert
     assert.equal(textResult, jsonString);
-    await assert.rejects(() => wrapper.getJson(), /Body already consumed/);
+    await assert.rejects(() => wrapper.getJson(), /Body used/);
   });
 
   it("should throw error when getting blob after text", async () => {
@@ -197,7 +197,7 @@ describe("ResponseWrapper", { timeout: 10000 }, () => {
 
     // Assert
     assert.equal(text, content);
-    await assert.rejects(() => wrapper.getBlob(), /Body already consumed/);
+    await assert.rejects(() => wrapper.getBlob(), /Body used/);
   });
 
   it("should throw a descriptive error when body stream is locked", async () => {
@@ -246,6 +246,6 @@ describe("ResponseWrapper", { timeout: 10000 }, () => {
     await wrapper.getText();
 
     // Assert
-    await assert.rejects(() => wrapper.getArrayBuffer(), /Body already consumed/);
+    await assert.rejects(() => wrapper.getArrayBuffer(), /Body used/);
   });
 });

@@ -148,7 +148,7 @@ describe("BodyRequest", { timeout: 10000 }, () => {
     // Act & Assert
     assert.throws(() => {
       new PostRequest("https://api.example.com/test").withBody(circularObj as Body);
-    }, /Invalid JSON/);
+    }, /Bad JSON/);
   });
 
   it("should respect existing Content-Type header when using withBody", async () => {
@@ -342,7 +342,7 @@ describe("BodyRequest", { timeout: 10000 }, () => {
       // Act & Assert
       assert.throws(() => {
         new PostRequest("https://api.example.com/graphql").withGraphQL("");
-      }, /Invalid query/);
+      }, /Bad query/);
     });
 
     it("should throw error for invalid variables (array)", () => {
@@ -350,7 +350,7 @@ describe("BodyRequest", { timeout: 10000 }, () => {
       assert.throws(() => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL("query { user { name } }", [] as any);
-      }, /Invalid vars/);
+      }, /Bad vars/);
     });
 
     it("should throw error for invalid variables (null)", () => {
@@ -358,7 +358,7 @@ describe("BodyRequest", { timeout: 10000 }, () => {
       assert.throws(() => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL("query { user { name } }", null as any);
-      }, /Invalid vars/);
+      }, /Bad vars/);
     });
 
     it("should respect existing Content-Type header when using withGraphQL", async () => {
@@ -438,7 +438,7 @@ describe("BodyRequest", { timeout: 10000 }, () => {
       assert.throws(() => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
-      }, /Invalid JSON/);
+      }, /Bad JSON/);
     });
 
     it("should throw error when variables contain non-serializable values", () => {
@@ -452,7 +452,7 @@ describe("BodyRequest", { timeout: 10000 }, () => {
       assert.throws(() => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         new PostRequest("https://api.example.com/graphql").withGraphQL(query, variables);
-      }, /Invalid JSON/);
+      }, /Bad JSON/);
     });
 
     it("should handle variables with undefined values (which get omitted)", async () => {

@@ -27,7 +27,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("Network error") || error.message === "Failed to connect");
+        assert(error.message.includes("Net:") || error.message === "Failed to connect");
         assert.equal(error.url, "https://api.example.com/data");
         assert.equal(error.method, "GET");
       }
@@ -44,7 +44,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("DNS error") || error.message.includes("Network error") || error.message.includes("Failed to resolve"));
+        assert(error.message.includes("DNS:") || error.message.includes("Net:") || error.message.includes("Failed to resolve"));
       }
     });
 
@@ -82,7 +82,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
       } catch (error) {
         assert(error instanceof RequestError);
         assert.equal(error.name, "RequestError");
-        assert(error.message.includes("DNS error"));
+        assert(error.message.includes("DNS:"));
         assert(error.message.includes("https://jsonplaceholder.typicode.wrong-url.com/posts/1"));
         assert.equal(error.url, "https://jsonplaceholder.typicode.wrong-url.com/posts/1");
         assert.equal(error.method, "GET");
@@ -103,7 +103,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
       } catch (error) {
         assert(error instanceof RequestError);
         assert.equal(error.name, "RequestError");
-        assert(error.message.includes("Network error"));
+        assert(error.message.includes("Net:"));
         assert(error.message.includes("https://example.wrong-url.com/data"));
       }
     });
@@ -165,7 +165,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
         // Should be treated as network error, not "HTTP 0"
         const messageLower = error.message.toLowerCase();
         assert(
-          messageLower.includes("network error") || messageLower.includes("cors blocked") || messageLower.includes("status 0"),
+          messageLower.includes("network error") || messageLower.includes("cors blocked") || messageLower.includes("status 0") || messageLower.includes("failed with status 0"),
           `Expected error message to include network/CORS/status 0, but got: ${error.message}`
         );
         assert.equal(error.url, "https://api.example.com/data");
@@ -350,7 +350,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
       } catch (error) {
         assert(error instanceof RequestError);
         assert.equal(error.isTimeout, true);
-        assert(error.message.includes("Timeout 100ms"));
+        assert(error.message.includes("Timeout:100"));
       }
     });
 
@@ -537,7 +537,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
       } catch (error) {
         assert(error instanceof RequestError || error instanceof Error);
         if (error instanceof RequestError) {
-          assert(error.message.includes("Data selector failed"));
+          assert(error.message.includes("Selector:"));
         } else {
           assert(error.message.includes("Users property not found"));
         }
@@ -564,7 +564,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error) {
         assert(error instanceof Error);
-        assert(error.message.includes("Data selector failed"));
+        assert(error.message.includes("Selector:"));
         assert(error.message.includes("Not a valid number"));
       }
     });
@@ -868,7 +868,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("Connection refused"));
+        assert(error.message.includes("Conn:"));
         assert(error.message.includes("https://api.example.com/data"));
       }
     });
@@ -887,7 +887,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("Connection refused"));
+        assert(error.message.includes("Conn:"));
       }
     });
 
@@ -905,7 +905,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("DNS error"));
+        assert(error.message.includes("DNS:"));
       }
     });
 
@@ -923,7 +923,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("DNS error"));
+        assert(error.message.includes("DNS:"));
       }
     });
 
@@ -1503,7 +1503,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
       } catch (error) {
         // Assert - Should throw RequestError when body already consumed
         assert(error instanceof RequestError);
-        assert(error.message.includes("Body already consumed"));
+        assert(error.message.includes("Body used"));
       }
     });
 

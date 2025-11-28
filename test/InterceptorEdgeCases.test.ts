@@ -88,7 +88,7 @@ describe("Interceptor Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Expected interceptor error");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("Req Interceptor failed"));
+        assert(error.message.includes("ReqI:"));
         assert(error.message.includes("Interceptor error"));
       }
     });
@@ -194,7 +194,7 @@ describe("Interceptor Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Expected interceptor error");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("Res Interceptor failed"));
+        assert(error.message.includes("ResI:"));
       }
     });
 
@@ -291,7 +291,7 @@ describe("Interceptor Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Expected interceptor error");
       } catch (error) {
         assert(error instanceof RequestError);
-        assert(error.message.includes("Err Interceptor"));
+        assert(error.message.includes("ErrI"));
       }
     });
 

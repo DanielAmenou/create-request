@@ -13,7 +13,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
       // Act & Assert
       assert.throws(() => {
         request.withTimeout(-100);
-      }, /Invalid timeout/);
+      }, /Bad timeout/);
     });
 
     it("should throw error for zero timeout value", () => {
@@ -23,7 +23,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
       // Act & Assert
       assert.throws(() => {
         request.withTimeout(0);
-      }, /Invalid timeout/);
+      }, /Bad timeout/);
     });
 
     it("should throw error for non-finite timeout values", () => {
@@ -33,12 +33,12 @@ describe("Request Validation", { timeout: 10000 }, () => {
       // Act & Assert - NaN
       assert.throws(() => {
         request.withTimeout(NaN);
-      }, /Invalid timeout/);
+      }, /Bad timeout/);
 
       // Act & Assert - Infinity
       assert.throws(() => {
         request.withTimeout(Infinity);
-      }, /Invalid timeout/);
+      }, /Bad timeout/);
     });
 
     it("should accept valid timeout value", () => {
@@ -60,7 +60,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
       // Act & Assert
       assert.throws(() => {
         request.withRetries(-1);
-      }, /Invalid retries: -1/);
+      }, /Bad retries: -1/);
     });
 
     it("should throw error for non-integer retry count", () => {
@@ -70,7 +70,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
       // Act & Assert
       assert.throws(() => {
         request.withRetries(1.5);
-      }, /Invalid retries: 1.5/);
+      }, /Bad retries: 1.5/);
     });
 
     it("should throw error for NaN retry count", () => {
@@ -80,7 +80,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
       // Act & Assert
       assert.throws(() => {
         request.withRetries(NaN);
-      }, /Invalid retries: NaN/);
+      }, /Bad retries: NaN/);
     });
 
     it("should accept zero retry count", () => {
@@ -114,7 +114,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("Invalid URL");
+          return error.message.includes("Bad URL");
         }
       );
     });
@@ -128,7 +128,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("Invalid URL");
+          return error.message.includes("Bad URL");
         }
       );
     });
@@ -144,7 +144,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         },
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("Invalid URL");
+          return error.message.includes("Bad URL");
         }
       );
     });
@@ -160,7 +160,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         },
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("Invalid URL");
+          return error.message.includes("Bad URL");
         }
       );
     });
@@ -174,7 +174,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("Invalid URL");
+          return error.message.includes("Bad URL");
         }
       );
     });
@@ -188,7 +188,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("Invalid URL");
+          return error.message.includes("Bad URL");
         }
       );
     });
@@ -202,7 +202,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("Invalid URL");
+          return error.message.includes("Bad URL");
         }
       );
     });
@@ -265,7 +265,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("Invalid URL");
+          return error.message.includes("Bad URL");
         }
       );
     });
@@ -286,7 +286,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("Invalid URL");
+          return error.message.includes("Bad URL");
         }
       );
     });
@@ -300,7 +300,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("Invalid URL");
+          return error.message.includes("Bad URL");
         }
       );
     });
@@ -327,7 +327,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         },
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("Invalid URL");
+          return error.message.includes("Bad URL");
         }
       );
     });
@@ -345,7 +345,7 @@ describe("Request Validation", { timeout: 10000 }, () => {
         () => request.getResponse(),
         (error: unknown) => {
           assert(error instanceof Error);
-          return error.message.includes("Invalid URL");
+          return error.message.includes("Bad URL");
         }
       );
     });

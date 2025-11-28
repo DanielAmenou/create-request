@@ -330,7 +330,7 @@ describe("Response Chaining API", { timeout: 10000 }, () => {
       assert.fail("Should have thrown a RequestError for malformed JSON");
     } catch (error) {
       assert(error instanceof RequestError);
-      assert.ok(error.message.includes("Invalid JSON"));
+      assert.ok(error.message.includes("Bad JSON"));
     }
   });
 
@@ -469,7 +469,7 @@ describe("Response Chaining API", { timeout: 10000 }, () => {
       assert.fail("Should have thrown an error when parsing text as JSON");
     } catch (error) {
       assert(error instanceof RequestError);
-      assert.ok(error.message.includes("Invalid JSON"));
+      assert.ok(error.message.includes("Bad JSON"));
     }
 
     // Second request - getting it as text should work
