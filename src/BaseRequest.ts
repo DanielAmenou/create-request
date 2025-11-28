@@ -1077,6 +1077,25 @@ export abstract class BaseRequest {
   }
 
   /**
+   * Execute the request and get the response body as an ArrayBuffer.
+   * Useful for processing binary data at a low level.
+   *
+   * @returns A promise that resolves to the response body as an ArrayBuffer
+   * @throws {RequestError} When the request fails or reading the response fails
+   *
+   * @example
+   * ```typescript
+   * const buffer = await request.getArrayBuffer();
+   * const uint8Array = new Uint8Array(buffer);
+   * // Process the binary data
+   * ```
+   */
+  async getArrayBuffer(): Promise<ArrayBuffer> {
+    const response = await this.getResponse();
+    return response.getArrayBuffer();
+  }
+
+  /**
    * Execute the request and get the response body as a ReadableStream.
    * Note: Unlike other methods, streams cannot be cached. The body can only be consumed once.
    *

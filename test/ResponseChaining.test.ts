@@ -53,6 +53,18 @@ describe("Response Chaining API", { timeout: 10000 }, () => {
     assert(result instanceof Blob);
   });
 
+  it("should support chained getArrayBuffer() call after sendTo", async () => {
+    // Arrange
+    FetchMock.mockResponseOnce({ body: "Binary data" });
+    const request = new GetRequest("https://api.example.com/test");
+
+    // Act
+    const result = await request.getArrayBuffer();
+
+    // Assert
+    assert(result instanceof ArrayBuffer);
+  });
+
   it("should support chained getBody() call to get ReadableStream", async () => {
     // Arrange
     FetchMock.mockResponseOnce({ body: "Binary data" });

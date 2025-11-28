@@ -563,6 +563,21 @@ describe("BaseRequest", { timeout: 10000 }, () => {
     assert.equal(text, content);
   });
 
+  it("should get response as array buffer using chained method", async () => {
+    // Arrange
+    const content = "ArrayBuffer content";
+    FetchMock.mockResponseOnce({ body: content });
+    const request = new GetRequest("https://api.example.com/test");
+
+    // Act
+    const result = await request.getArrayBuffer();
+
+    // Assert
+    assert(result instanceof ArrayBuffer);
+    const text = new TextDecoder().decode(result);
+    assert.equal(text, content);
+  });
+
   it("should get response body using chained method", async () => {
     // Arrange
     const content = "Stream content";
