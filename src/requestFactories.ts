@@ -25,7 +25,7 @@ export function get(url: string): GetRequest {
  *
  * @example
  * const request = post('/api/users')
- *   .withJson({ name: 'John', email: 'john@example.com' });
+ *   .withBody({ name: 'John', email: 'john@example.com' });
  * const newUser = await request.getData();
  */
 export function post(url: string): PostRequest {
@@ -41,7 +41,7 @@ export function post(url: string): PostRequest {
  *
  * @example
  * const request = put('/api/users/123')
- *   .withJson({ name: 'John Updated', email: 'john@example.com' });
+ *   .withBody({ name: 'John Updated', email: 'john@example.com' });
  * const updatedUser = await request.getData();
  */
 export function put(url: string): PutRequest {
@@ -72,7 +72,7 @@ export function del(url: string): DeleteRequest {
  *
  * @example
  * const request = patch('/api/users/123')
- *   .withJson({ status: 'active' });
+ *   .withBody({ status: 'active' });
  * const patchedUser = await request.getData();
  */
 export function patch(url: string): PatchRequest {

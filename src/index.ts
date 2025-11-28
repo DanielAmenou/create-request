@@ -47,7 +47,7 @@ export { api as createApi } from "./apiBuilder.js";
  *
  * // POST request with body
  * const newUser = await create.post('/api/users')
- *   .withJson({ name: 'John', email: 'john@example.com' })
+ *   .withBody({ name: 'John', email: 'john@example.com' })
  *   .getJson();
  *
  * // Configure API instance with defaults

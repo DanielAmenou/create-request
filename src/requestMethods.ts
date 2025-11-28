@@ -73,7 +73,7 @@ export class DeleteRequest extends BaseRequest {
  *
  * @example
  * const request = new PostRequest('/api/users')
- *   .withJson({ name: 'John', email: 'john@example.com' });
+ *   .withBody({ name: 'John', email: 'john@example.com' });
  * const data = await request.getData();
  */
 export class PostRequest extends BodyRequest {
@@ -90,7 +90,7 @@ export class PostRequest extends BodyRequest {
  *
  * @example
  * const request = new PutRequest('/api/users/123')
- *   .withJson({ id: '123', name: 'John', email: 'john@example.com' });
+ *   .withBody({ id: '123', name: 'John', email: 'john@example.com' });
  * const data = await request.getData();
  */
 export class PutRequest extends BodyRequest {
@@ -107,7 +107,7 @@ export class PutRequest extends BodyRequest {
  *
  * @example
  * const request = new PatchRequest('/api/users/123')
- *   .withJson({ email: 'new.email@example.com' });
+ *   .withBody({ email: 'new.email@example.com' });
  * const data = await request.getData();
  */
 export class PatchRequest extends BodyRequest {
