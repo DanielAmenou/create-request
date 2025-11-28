@@ -26,9 +26,9 @@ export class RequestError extends Error {
   /** The HTTP method that was used (e.g., 'GET', 'POST') */
   public readonly method: string;
   /** Whether the request failed due to a timeout */
-  public readonly isTimeout?: boolean;
+  public readonly isTimeout: boolean;
   /** Whether the request was aborted (cancelled) */
-  public readonly isAborted?: boolean;
+  public readonly isAborted: boolean;
 
   /**
    * Creates a new RequestError instance.
@@ -61,8 +61,8 @@ export class RequestError extends Error {
     this.method = method;
     this.status = options.status;
     this.response = options.response;
-    this.isTimeout = options.isTimeout;
-    this.isAborted = options.isAborted;
+    this.isTimeout = !!options.isTimeout;
+    this.isAborted = !!options.isAborted;
 
     // For better stack traces in modern environments
     if (Error.captureStackTrace) {

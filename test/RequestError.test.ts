@@ -15,7 +15,8 @@ describe("RequestError", { timeout: 10000 }, () => {
     assert.equal(error.name, "RequestError");
     assert.equal(error.status, undefined);
     assert.equal(error.response, undefined);
-    assert.equal(error.isTimeout, undefined);
+    assert.equal(error.isTimeout, false);
+    assert.equal(error.isAborted, false);
   });
 
   it("should create a RequestError with status and response", () => {
@@ -55,7 +56,7 @@ describe("RequestError", { timeout: 10000 }, () => {
     assert.equal(error.message, "Connection failed");
     assert.equal(error.url, "https://api.example.com");
     assert.equal(error.method, "GET");
-    assert.equal(error.isTimeout, undefined);
+    assert.equal(error.isTimeout, false);
   });
 
   it("should detect TimeoutError from Node.js/undici and set isTimeout", () => {
@@ -114,7 +115,7 @@ describe("RequestError", { timeout: 10000 }, () => {
     const error = RequestError.networkError("https://api.example.com", "GET", networkError);
 
     // Assert
-    assert.equal(error.isTimeout, undefined);
+    assert.equal(error.isTimeout, false);
   });
 
   it("should handle error without stack property", () => {
