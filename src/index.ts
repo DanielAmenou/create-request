@@ -29,7 +29,15 @@ export { RequestError } from "./RequestError.js";
 export { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadRequest, OptionsRequest } from "./requestMethods.js";
 
 // Export request factory functions individually
-export { get, post, put, del, patch, head, options } from "./requestFactories.js";
+export {
+  get as createGet,
+  post as createPost,
+  put as createPut,
+  del as createDelete,
+  patch as createPatch,
+  head as createHead,
+  options as createOptions,
+} from "./requestFactories.js";
 
 // Export api function
 export { api as createApi } from "./apiBuilder.js";
