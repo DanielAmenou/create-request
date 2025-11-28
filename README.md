@@ -1286,7 +1286,7 @@ For Node.js:
 
 | Feature               | create-request | Fetch  | Axios   | SuperAgent | Got     | Ky     | node-fetch | Redaxios |
 | --------------------- | -------------- | ------ | ------- | ---------- | ------- | ------ | ---------- | -------- |
-| **Size (min+gzip)**   | ~6.5KB         | Native | ~13.6KB | ~17.8KB    | ~17.8KB | ~3.4KB | ~7.7KB     | ~1KB     |
+| **Size (min+gzip)**   | ~6.4KB         | Native | ~13.6KB | ~17.8KB    | ~17.8KB | ~3.4KB | ~7.7KB     | ~1KB     |
 | **Browser**           | Modern         | Modern | IE11+   | IE9+       | ❌ No   | Modern | ❌ No      | Modern   |
 | **Node.js**           | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
 | **HTTP/2**            | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
