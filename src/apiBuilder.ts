@@ -8,13 +8,13 @@ import type { CredentialsPolicy, RedirectMode, RequestPriority, ReferrerPolicy, 
  */
 type ApiBuilder = {
   withBaseURL(baseURL: string): ApiBuilder;
-  get(path: string): GetRequest;
-  post(path: string): PostRequest;
-  put(path: string): PutRequest;
-  del(path: string): DeleteRequest;
-  patch(path: string): PatchRequest;
-  head(path: string): HeadRequest;
-  options(path: string): OptionsRequest;
+  get(path?: string): GetRequest;
+  post(path?: string): PostRequest;
+  put(path?: string): PutRequest;
+  del(path?: string): DeleteRequest;
+  patch(path?: string): PatchRequest;
+  head(path?: string): HeadRequest;
+  options(path?: string): OptionsRequest;
 
   /**
    * Add multiple HTTP headers to the request.
