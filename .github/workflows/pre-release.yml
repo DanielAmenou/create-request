@@ -6,6 +6,9 @@ on:
       - alpha
       - beta
       - rc
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - '.release-please-manifest.json'
   workflow_dispatch:
 
 permissions:
