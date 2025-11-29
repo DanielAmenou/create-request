@@ -55,3 +55,4 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           target-branch: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
