@@ -79,10 +79,6 @@ git push origin main
 
 ### Beta/RC/Alpha Pre-release (e.g., 1.6.0-beta.0)
 
-You have **two options** for creating pre-releases:
-
-#### Option 1: Branch-Based (Recommended) 🎯
-
 Use a dedicated branch (`beta`, `rc`, or `alpha`) for pre-releases:
 
 ```bash
@@ -94,40 +90,67 @@ git push origin beta
 git commit -m "feat: add new feature"
 git push origin beta
 
-# 3. Release-please creates PR on the beta branch (e.g., for 1.6.0)
-# 4. Edit the version in the PR to add the pre-release suffix:
-#    - .release-please-manifest.json: "1.6.0" → "1.6.0-beta.0"
-#    - package.json: "version": "1.6.0" → "version": "1.6.0-beta.0"
-#    - CHANGELOG.md: "## [1.6.0]" → "## [1.6.0-beta.0]"
-# 5. Merge the PR
+# 3. Release-please creates PR on the beta branch automatically
+#    With prerelease.config.json, it will create versions like 1.6.0-beta.0
+# 4. Merge the PR
 # → Published as npm tag 'beta' (users install with npm install create-request@beta)
 ```
 
 **For subsequent beta versions** (e.g., `1.6.0-beta.1`):
 
 - Make more commits on the `beta` branch
-- Release-please creates a new PR
-- Edit version to increment: `1.6.0-beta.1`, `1.6.0-beta.2`, etc.
+- Release-please automatically increments: `1.6.0-beta.1`, `1.6.0-beta.2`, etc.
+
+**If you need to override the version:**
+
+Use the `Release-As` method (see "Overriding the Suggested Version" section below):
+
+```bash
+# Close the existing PR, then:
+git commit --allow-empty -m "chore: release 2.0.0-beta.1" -m "Release-As: 2.0.0-beta.1"
+git push origin beta
+# → New PR created with version 2.0.0-beta.1
+```
 
 **For RC/Alpha releases:**
 
 - Use `rc` or `alpha` branches instead
-- Same process, but versions will be `1.6.0-rc.0`, `1.6.0-alpha.0`, etc.
+- Same process, versions will be `1.6.0-rc.0`, `1.6.0-alpha.0`, etc.
 
-#### Option 2: Manual Version Edit on Main
+## Overriding the Suggested Version
+
+### Method: Use Release-As Footer (Recommended) ✅
+
+This is cleaner than manually editing PR files because release-please will automatically create a new PR with your specified version.
+
+**Steps:**
+
+1. **Create an empty commit** with `Release-As` footer specifying your desired version
+2. **Push to the branch** (main, beta, alpha, or rc)
+3. **Release-please will create a new PR** with your specified version automatically
+
+### Examples
 
 ```bash
-# 1. Make commits on main
-git commit -m "feat: new feature"
+git commit --allow-empty -m "chore: release 2.0.0" -m "Release-As: 2.0.0"
 git push origin main
-
-# 2. Release-please creates PR (e.g., for 1.6.0)
-# 3. Edit these files in the PR:
-#    - .release-please-manifest.json: "1.6.0" → "1.6.0-beta.0"
-#    - package.json: "version": "1.6.0" → "version": "1.6.0-beta.0"
-#    - CHANGELOG.md: "## [1.6.0]" → "## [1.6.0-beta.0]"
-# 4. Merge the PR
+# → New PR created with version 2.0.0
 ```
+
+#### Override Pre-release Version (2.0.0 → 2.0.0-beta.1)
+
+```bash
+git commit --allow-empty -m "chore: release 2.0.0-beta.1" -m "Release-As: 2.0.0-beta.1"
+git push origin beta
+# → New PR created with version 2.0.0-beta.1
+```
+
+### Important Notes
+
+- ✅ **The `Release-As` version must be higher** than the current version in `.release-please-manifest.json`
+- ✅ **Works for all version types**: major, minor, patch, and pre-releases
+- ✅ **Automatically updates all files**: `.release-please-manifest.json`, `package.json`, and `CHANGELOG.md`
+- ✅ **No manual editing needed**: Release-please handles everything
 
 ## Commit Types Reference
 
