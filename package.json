@@ -93,7 +93,7 @@
     "eslint-plugin-jsonc": "^2.11.0",
     "eslint-plugin-prettier": "^5.0.1",
     "glob": "^11.1.0",
-    "husky": "^9.0.0",
+    "husky": "^9.1.7",
     "prettier": "^3.1.1",
     "rollup": "^2.75.5",
     "rollup-plugin-cleaner": "^1.0.0",
