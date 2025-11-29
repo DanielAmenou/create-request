@@ -50,7 +50,7 @@ jobs:
       - name: Run release-please
         uses: googleapis/release-please-action@v4
         with:
-          config-file: release-please-config.json
+          config-file: release.config.json
           manifest-file: .release-please-manifest.json
           target-branch: main
           token: ${{ secrets.GITHUB_TOKEN }}
