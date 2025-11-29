@@ -1,9 +1,11 @@
-name: Release
+name: Pre-Release
 
 on:
   push:
     branches:
-      - main
+      - alpha
+      - beta
+      - rc
   workflow_dispatch:
 
 permissions:
@@ -49,4 +51,4 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-          target-branch: main
+          target-branch: ${{ github.ref_name }}

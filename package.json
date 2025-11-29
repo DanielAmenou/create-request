@@ -41,13 +41,8 @@
     "test:coverage": "c8 --reporter=text --reporter=html --reporter=lcov npm test",
     "prepare": "husky",
     "prepack": "npm run build",
-    "preversion": "npm run check",
     "prepublishOnly": "npm run build && npm test",
-    "publish:beta": "npm version prerelease --preid=beta -m \"chore(release): %s\" && git push origin --follow-tags && npm publish --tag beta",
-    "publish:rc": "npm version prerelease --preid=rc -m \"chore(release): %s\" && git push origin --follow-tags && npm publish --tag rc",
-    "publish:patch": "npm version patch -m \"chore(release): %s\" && git push origin --follow-tags && npm publish",
-    "publish:minor": "npm version minor -m \"chore(release): %s\" && git push origin --follow-tags && npm publish",
-    "publish:major": "npm version major -m \"chore(release): %s\" && git push origin --follow-tags && npm publish"
+    "release:dry-run": "npm run build && npm test && npm pack --dry-run"
   },
   "keywords": [
     "fetch",

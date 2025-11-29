@@ -1,0 +1,117 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          registry-url: "https://registry.npmjs.org"
+          # OIDC authentication is automatically used when id-token: write permission is set
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Create GitHub Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tagName = context.ref.replace('refs/tags/', '');
+            const fs = require('fs');
+
+            // Read CHANGELOG.md
+            let changelogContent = '';
+            try {
+              changelogContent = fs.readFileSync('CHANGELOG.md', 'utf8');
+
+              // Extract the section for this version (handle [1.5.0], 1.5.0, v1.5.0, and pre-release formats)
+              const versionNumber = tagName.replace(/^v/, ''); // Remove v prefix if present
+              const escapedVersion = versionNumber.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              // Match version with or without brackets, handling pre-release versions like 1.5.0-beta.0
+              const versionRegex = new RegExp(`## \\[?${escapedVersion}\\]?[\\s\\S]*?(?=## |$)`);
+              const match = changelogContent.match(versionRegex);
+              if (match) {
+                changelogContent = match[0].trim();
+              } else {
+                changelogContent = `## ${tagName}\n\nSee [CHANGELOG.md](CHANGELOG.md) for details.`;
+              }
+            } catch (error) {
+              console.log('Could not read CHANGELOG.md, using default notes');
+              changelogContent = `## ${tagName}\n\nSee [CHANGELOG.md](CHANGELOG.md) for details.`;
+            }
+
+            // Determine if this is a pre-release
+            const isPrerelease = tagName.includes('-alpha') ||
+                                 tagName.includes('-beta') ||
+                                 tagName.includes('-rc');
+
+            // Check if release already exists
+            let release;
+            try {
+              const existing = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: tagName,
+              });
+              release = existing.data;
+              console.log(`Release already exists: ${release.html_url}`);
+
+              // Update release body if it's different
+              if (release.body !== changelogContent) {
+                await github.rest.repos.updateRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id,
+                  body: changelogContent,
+                });
+                console.log(`Release body updated`);
+              }
+            } catch (error) {
+              // Release doesn't exist, create it
+              const { data: newRelease } = await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tagName,
+                name: tagName,
+                body: changelogContent,
+                draft: false,
+                prerelease: isPrerelease,
+              });
+              release = newRelease;
+              console.log(`Release created: ${release.html_url}`);
+            }
+
+      - name: Publish to npm
+        run: |
+          set -e  # Exit on error
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          if [[ "$TAG_NAME" =~ -(alpha|beta|rc) ]]; then
+            PRE_ID=$(echo "$TAG_NAME" | grep -oE '(alpha|beta|rc)' | head -1)
+            echo "Publishing pre-release version $TAG_NAME with npm tag: $PRE_ID"
+            npm publish --tag "$PRE_ID" --provenance --access public
+          else
+            echo "Publishing stable version $TAG_NAME"
+            npm publish --provenance --access public
+          fi
