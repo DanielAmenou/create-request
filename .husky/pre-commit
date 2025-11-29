@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
 . "$(dirname "$0")/_/husky.sh"
 
-npx concurrently --kill-others-on-fail "npm run lint" "npm run test"
+npx concurrently --kill-others-on-fail --raw "npm run lint:quiet" "npm run test:quiet"
 
