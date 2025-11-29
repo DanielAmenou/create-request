@@ -7,8 +7,8 @@ on:
       - beta
       - rc
     paths-ignore:
-      - 'CHANGELOG.md'
-      - '.release-please-manifest.json'
+      - "CHANGELOG.md"
+      - ".release-please-manifest.json"
   workflow_dispatch:
 
 permissions:
