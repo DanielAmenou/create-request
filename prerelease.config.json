@@ -2,6 +2,7 @@
   "packages": {
     ".": {
       "release-type": "node",
+      "prerelease": true,
       "changelog-sections": [
         {
           "type": "feat",
