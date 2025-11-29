@@ -64,7 +64,7 @@ export abstract class BodyRequest extends BaseRequest {
       !(
         body instanceof FormData ||
         body instanceof Blob ||
-        body instanceof File ||
+        (typeof File !== "undefined" && body instanceof File) ||
         body instanceof ArrayBuffer ||
         ArrayBuffer.isView(body) || // Handles TypedArray and DataView
         body instanceof URLSearchParams ||
