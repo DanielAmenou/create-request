@@ -65,7 +65,7 @@ export abstract class BaseRequest {
     });
 
     // Create the callable setter
-    const callable = (value: T | string): BaseRequest => {
+    const callable = (value: T): BaseRequest => {
       (this.requestOptions as Record<string, unknown>)[optionName] = value;
       return this;
     };
@@ -248,7 +248,7 @@ export abstract class BaseRequest {
    * // Using fluent API
    * request.withCredentials.INCLUDE()
    */
-  get withCredentials(): ((credentialsPolicy: CredentialsPolicy | string) => BaseRequest) & {
+  get withCredentials(): ((credentialsPolicy: CredentialsPolicy) => BaseRequest) & {
     INCLUDE: () => BaseRequest;
     OMIT: () => BaseRequest;
     SAME_ORIGIN: () => BaseRequest;
@@ -257,7 +257,7 @@ export abstract class BaseRequest {
       INCLUDE: CredentialsPolicy.INCLUDE,
       OMIT: CredentialsPolicy.OMIT,
       SAME_ORIGIN: CredentialsPolicy.SAME_ORIGIN,
-    }) as ((credentialsPolicy: CredentialsPolicy | string) => BaseRequest) & {
+    }) as ((credentialsPolicy: CredentialsPolicy) => BaseRequest) & {
       INCLUDE: () => BaseRequest;
       OMIT: () => BaseRequest;
       SAME_ORIGIN: () => BaseRequest;
@@ -346,7 +346,7 @@ export abstract class BaseRequest {
    * // Using fluent API
    * request.withReferrerPolicy.NO_REFERRER()
    */
-  get withReferrerPolicy(): ((policy: ReferrerPolicy | string) => BaseRequest) & {
+  get withReferrerPolicy(): ((policy: ReferrerPolicy) => BaseRequest) & {
     ORIGIN: () => BaseRequest;
     UNSAFE_URL: () => BaseRequest;
     SAME_ORIGIN: () => BaseRequest;
@@ -365,7 +365,7 @@ export abstract class BaseRequest {
       ORIGIN_WHEN_CROSS_ORIGIN: ReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN,
       NO_REFERRER_WHEN_DOWNGRADE: ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE,
       STRICT_ORIGIN_WHEN_CROSS_ORIGIN: ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN,
-    }) as ((policy: ReferrerPolicy | string) => BaseRequest) & {
+    }) as ((policy: ReferrerPolicy) => BaseRequest) & {
       ORIGIN: () => BaseRequest;
       UNSAFE_URL: () => BaseRequest;
       SAME_ORIGIN: () => BaseRequest;
@@ -403,7 +403,7 @@ export abstract class BaseRequest {
    * // Fail on redirects
    * request.withRedirect.ERROR()
    */
-  get withRedirect(): ((redirect: RedirectMode | string) => BaseRequest) & {
+  get withRedirect(): ((redirect: RedirectMode) => BaseRequest) & {
     FOLLOW: () => BaseRequest;
     ERROR: () => BaseRequest;
     MANUAL: () => BaseRequest;
@@ -412,7 +412,7 @@ export abstract class BaseRequest {
       FOLLOW: RedirectMode.FOLLOW,
       ERROR: RedirectMode.ERROR,
       MANUAL: RedirectMode.MANUAL,
-    }) as ((redirect: RedirectMode | string) => BaseRequest) & {
+    }) as ((redirect: RedirectMode) => BaseRequest) & {
       FOLLOW: () => BaseRequest;
       ERROR: () => BaseRequest;
       MANUAL: () => BaseRequest;
@@ -466,7 +466,7 @@ export abstract class BaseRequest {
    * // Low priority for non-critical requests
    * request.withPriority.LOW()
    */
-  get withPriority(): ((priority: RequestPriority | string) => BaseRequest) & {
+  get withPriority(): ((priority: RequestPriority) => BaseRequest) & {
     HIGH: () => BaseRequest;
     LOW: () => BaseRequest;
     AUTO: () => BaseRequest;
@@ -475,7 +475,7 @@ export abstract class BaseRequest {
       HIGH: RequestPriority.HIGH,
       LOW: RequestPriority.LOW,
       AUTO: RequestPriority.AUTO,
-    }) as ((priority: RequestPriority | string) => BaseRequest) & {
+    }) as ((priority: RequestPriority) => BaseRequest) & {
       HIGH: () => BaseRequest;
       LOW: () => BaseRequest;
       AUTO: () => BaseRequest;
@@ -666,7 +666,7 @@ export abstract class BaseRequest {
    * // Restrict to same-origin only
    * request.withMode.SAME_ORIGIN()
    */
-  get withMode(): ((mode: RequestMode | string) => BaseRequest) & {
+  get withMode(): ((mode: RequestMode) => BaseRequest) & {
     CORS: () => BaseRequest;
     NO_CORS: () => BaseRequest;
     SAME_ORIGIN: () => BaseRequest;
@@ -677,7 +677,7 @@ export abstract class BaseRequest {
       NO_CORS: RequestMode.NO_CORS,
       SAME_ORIGIN: RequestMode.SAME_ORIGIN,
       NAVIGATE: RequestMode.NAVIGATE,
-    }) as ((mode: RequestMode | string) => BaseRequest) & {
+    }) as ((mode: RequestMode) => BaseRequest) & {
       CORS: () => BaseRequest;
       NO_CORS: () => BaseRequest;
       SAME_ORIGIN: () => BaseRequest;
@@ -1453,7 +1453,7 @@ export abstract class BaseRequest {
   private createRequestConfig(url: string, fetchOptions: RequestInit): RequestConfig {
     const method = typeof fetchOptions.method === "string" ? fetchOptions.method : "GET";
     const headers = this.getHeadersRecord();
-    const extendedOptions = fetchOptions as RequestInit & { priority?: RequestPriority | string };
+    const extendedOptions = fetchOptions as RequestInit & { priority?: RequestPriority };
 
     return {
       url,
@@ -1462,8 +1462,8 @@ export abstract class BaseRequest {
       body: fetchOptions.body as Body | undefined,
       signal: fetchOptions.signal || undefined,
       credentials: fetchOptions.credentials,
-      mode: fetchOptions.mode,
-      redirect: fetchOptions.redirect,
+      mode: fetchOptions.mode as RequestMode | undefined,
+      redirect: fetchOptions.redirect as RedirectMode | undefined,
       referrer: fetchOptions.referrer,
       referrerPolicy: fetchOptions.referrerPolicy as ReferrerPolicy | undefined,
       keepalive: fetchOptions.keepalive,
@@ -1485,7 +1485,7 @@ export abstract class BaseRequest {
       fetchOptions.integrity = config.integrity;
     }
     if (config.cache !== undefined) {
-      fetchOptions.cache = config.cache as RequestCache;
+      fetchOptions.cache = config.cache;
     }
   }
 

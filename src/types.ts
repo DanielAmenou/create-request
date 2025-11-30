@@ -123,14 +123,14 @@ export interface RequestConfig {
   body?: Body;
   signal?: AbortSignal;
   credentials?: RequestCredentials;
-  mode?: RequestMode | string;
-  redirect?: RedirectMode | string;
+  mode?: RequestMode;
+  redirect?: RedirectMode;
   referrer?: string;
   referrerPolicy?: ReferrerPolicy;
   keepalive?: boolean;
-  priority?: RequestPriority | string;
+  priority?: RequestPriority;
   integrity?: string;
-  cache?: CacheMode | RequestCache;
+  cache?: RequestCache;
 }
 
 /**
@@ -311,11 +311,11 @@ export interface RequestOptions extends Omit<RequestInit, "signal" | "body" | "m
   retries?: number | RetryConfig;
   onRetry?: RetryCallback;
   body?: Body;
-  credentials?: CredentialsPolicy | RequestCredentials;
+  credentials?: RequestCredentials;
   mode?: RequestMode;
-  redirect?: RedirectMode | RequestRedirect;
-  priority?: RequestPriority | string;
+  redirect?: RequestRedirect;
+  priority?: RequestPriority;
   keepalive?: boolean;
   integrity?: string;
-  cache?: CacheMode | RequestCache;
+  cache?: RequestCache;
 }

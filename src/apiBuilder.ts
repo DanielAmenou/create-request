@@ -611,7 +611,7 @@ class ApiBuilderImpl {
   private createProxy(): ApiBuilder {
     const disallowedMethods = new Set(["withBody", "withGraphQL", "withAbortController"]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return new Proxy(this as any, {
       get(target: unknown, prop: string | symbol): unknown {
         const implTarget = target as ApiBuilderImpl;
