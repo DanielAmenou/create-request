@@ -1,15 +1,5 @@
 {
-  "exclude": [
-    "test/**",
-    "**/*.test.ts",
-    "**/*.test.js",
-    "node_modules/**",
-    "dist/**",
-    "coverage/**"
-  ],
-  "include": [
-    "src/**"
-  ],
+  "exclude": ["test/**", "**/*.test.ts", "**/*.test.js", "node_modules/**", "dist/**", "coverage/**"],
+  "include": ["src/**"],
   "reporter": ["text", "html", "lcov"]
 }
-
