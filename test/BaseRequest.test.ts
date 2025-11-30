@@ -2095,7 +2095,6 @@ describe("Header Case Sensitivity", () => {
   it("should handle non-Error exceptions in executeRequest", async () => {
     // Arrange - Use FetchMock to throw a non-Error value
     FetchMock.install();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     FetchMock.mockErrorOnce("String error" as unknown as Error); // Throw a non-Error value
 
     const request = new GetRequest("https://api.example.com/test");
@@ -2118,7 +2117,6 @@ describe("Header Case Sensitivity", () => {
   it("should handle non-Error exceptions with custom error message", async () => {
     // Arrange - Use FetchMock to throw a non-Error object
     FetchMock.install();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     FetchMock.mockErrorOnce({ code: "CUSTOM_ERROR", message: "Custom error" } as unknown as Error);
 
     const request = new GetRequest("https://api.example.com/test");
@@ -2143,7 +2141,6 @@ describe("Header Case Sensitivity", () => {
     // Arrange - Use FetchMock to throw a non-Error value during retry
     FetchMock.install();
     // First attempt fails with non-Error, second succeeds
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     FetchMock.mockErrorOnce("String error in retry" as unknown as Error);
     FetchMock.mockResponseOnce({ body: { success: true } });
 
@@ -2159,9 +2156,7 @@ describe("Header Case Sensitivity", () => {
   it("should handle non-Error exceptions in retry logic that exhausts retries", async () => {
     // Arrange - Use FetchMock to throw a non-Error value, exhaust retries
     FetchMock.install();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     FetchMock.mockErrorOnce("String error" as unknown as Error);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     FetchMock.mockErrorOnce("String error retry" as unknown as Error);
 
     const request = new GetRequest("https://api.example.com/test").withRetries(1);

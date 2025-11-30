@@ -307,7 +307,6 @@ describe("Query Parameters Advanced", { timeout: 10000 }, () => {
       for (let i = 0; i < 100; i++) {
         params[`key${i}`] = `value${i}`;
       }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const request = new GetRequest("https://api.example.com/test").withQueryParams(params as Record<string, string | string[] | number | boolean | null | undefined>);
 
       await request.getResponse();

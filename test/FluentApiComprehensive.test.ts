@@ -119,7 +119,6 @@ describe("Fluent API Comprehensive Tests", { timeout: 10000 }, () => {
         FetchMock.reset();
         FetchMock.mockResponseOnce();
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const request = new GetRequest("https://api.example.com/test").withReferrerPolicy[method as keyof typeof request.withReferrerPolicy]() as any;
 
         await request.getResponse();
@@ -215,7 +214,6 @@ describe("Fluent API Comprehensive Tests", { timeout: 10000 }, () => {
         FetchMock.reset();
         FetchMock.mockResponseOnce();
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const request = new GetRequest("https://api.example.com/test").withMode[method as keyof typeof request.withMode]() as any;
 
         await request.getResponse();
@@ -342,7 +340,6 @@ describe("Fluent API Comprehensive Tests", { timeout: 10000 }, () => {
     it("should handle custom string values that are not in enum", async () => {
       FetchMock.mockResponseOnce();
       // Using a custom string value that's not in the enum
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const request = new GetRequest("https://api.example.com/test").withCredentials("custom-value" as string);
 
       await request.getResponse();

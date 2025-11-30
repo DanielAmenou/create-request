@@ -498,7 +498,6 @@ describe("BodyRequest", { timeout: 10000 }, () => {
       // Arrange - Test the branch where throwOnError is not a boolean
       FetchMock.mockResponseOnce();
       const query = "query { user { name } }";
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: "true" as any });
 
       // Act

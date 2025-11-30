@@ -605,7 +605,6 @@ describe("API Builder", { timeout: 10000 }, () => {
 
       it("should ignore null and undefined values", async () => {
         FetchMock.mockResponseOnce({ body: { success: true } });
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const api = create
           .api()
           .withBaseURL("https://api.example.com")

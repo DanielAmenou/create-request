@@ -40,7 +40,6 @@ describe("Referrer Policy and Priority", { timeout: 10000 }, () => {
         await request.getResponse();
 
         const [, options] = FetchMock.mock.calls[0];
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         assert.equal((options as RequestInit).referrerPolicy, value);
       }
     });
@@ -110,7 +109,6 @@ describe("Referrer Policy and Priority", { timeout: 10000 }, () => {
       await request.getResponse();
 
       const [, options] = FetchMock.mock.calls[0];
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       assert.equal((options as RequestInit).referrerPolicy, ReferrerPolicy.STRICT_ORIGIN);
       const headers = options.headers as Record<string, string>;
       assert.equal(headers["X-Custom"], "value");
@@ -146,7 +144,6 @@ describe("Referrer Policy and Priority", { timeout: 10000 }, () => {
         await request.getResponse();
 
         const [, options] = FetchMock.mock.calls[0];
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         assert.equal((options as RequestInit).priority, value);
       }
     });
