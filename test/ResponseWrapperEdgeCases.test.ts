@@ -6,7 +6,7 @@ import { createMockResponse } from "./utils/fetchMock.js";
 
 describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
   describe("Body Consumption - Single Use Only", () => {
-    it("should throw error when getting text after JSON", async () => {
+    it("should allow getting text after JSON because text is cached", async () => {
       const response = createMockResponse({
         body: { name: "John", age: 30 },
         headers: { "content-type": "application/json" },
@@ -16,13 +16,9 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
       const json = await wrapper.getJson();
       assert.deepEqual(json, { name: "John", age: 30 });
 
-      try {
-        await wrapper.getText();
-        assert.fail("Should have thrown error");
-      } catch (error: any) {
-        assert.ok(error instanceof RequestError);
-        assert.ok(error.message.includes("Body used"));
-      }
+      // getText() works after getJson() because text is cached during JSON parsing
+      const text = await wrapper.getText();
+      assert.equal(text, '{"name":"John","age":30}');
     });
 
     it("should throw error when getting JSON after text", async () => {
@@ -1156,17 +1152,12 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
       }
     });
 
-    it("should handle non-Error exceptions in getData without selector", async () => {
-      // Create a mock response that throws a non-Error value during JSON parsing
+    it("should handle invalid JSON in getData without selector", async () => {
+      // Create a mock response with invalid JSON and JSON content type
       const mockResponse = new Response("invalid json", {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-
-      // Override json() to throw a non-Error value
-      mockResponse.json = () => {
-        return Promise.reject("String error in getData" as any);
-      };
 
       const wrapper = new ResponseWrapper(mockResponse, "https://api.example.com/test", "GET");
 
@@ -1175,8 +1166,8 @@ describe("ResponseWrapper Edge Cases", { timeout: 10000 }, () => {
         assert.fail("Should have thrown an error");
       } catch (error: any) {
         assert.ok(error instanceof RequestError);
-        // Should be wrapped as networkError when no selector
-        assert.ok(error.message.includes("Net:") || error.message.includes("String error in getData"));
+        // Should throw Bad JSON error for invalid JSON with application/json content type
+        assert.ok(error.message.includes("Bad JSON"));
         assert.equal(error.url, "https://api.example.com/test");
         assert.equal(error.method, "GET");
       }

@@ -130,12 +130,17 @@ export class ResponseWrapper {
    * Parse the response body as JSON
    * If GraphQL options are set with throwOnError=true, will check for GraphQL errors and throw.
    *
-   * @returns The parsed JSON data
+   * Returns `null` for empty responses (204 No Content, content-length: 0, or empty body).
+   * This handles common API patterns where PUT/DELETE operations return no content on success.
+   *
+   * @returns The parsed JSON data, or `null` for empty responses
    * @throws {RequestError} When the request fails, JSON parsing fails, or GraphQL errors occur (if throwOnError enabled).
    *
    * @example
    * const data = await response.getJson();
-   * console.log(data.items);
+   * if (data !== null) {
+   *   console.log(data.items);
+   * }
    *
    * @example
    * // Error handling - errors are always RequestError
@@ -147,16 +152,34 @@ export class ResponseWrapper {
    *   }
    * }
    */
-  async getJson<T = unknown>(): Promise<T> {
-    if (this.cachedJson !== undefined) return this.cachedJson as T;
+  async getJson<T = unknown>(): Promise<T | null> {
+    if (this.cachedJson !== undefined) return this.cachedJson as T | null;
+
+    // Handle empty responses: 204 No Content or content-length: 0
+    const contentLength = this.response.headers.get("content-length");
+    if (this.response.status === 204 || contentLength === "0") {
+      this.cachedJson = null;
+      return null;
+    }
 
     this.checkBodyNotConsumed();
 
     try {
-      const parsed: unknown = await this.response.json();
+      // Read as text first to handle empty bodies and cache for getText()
+      const text = await this.response.text();
+      this.cachedText = text;
+
+      // Handle empty or whitespace-only responses
+      if (!text || text.trim() === "") {
+        this.cachedJson = null;
+        return null;
+      }
+
+      // Parse the text as JSON
+      const parsed = JSON.parse(text) as T;
       this.cachedJson = parsed;
       this.checkGraphQLErrors(parsed);
-      return parsed as T;
+      return parsed;
     } catch (error) {
       if (error instanceof RequestError) {
         throw error;
@@ -289,16 +312,23 @@ export class ResponseWrapper {
    * Extract specific data using a selector function
    * If no selector is provided, returns the full JSON response.
    *
+   * Returns `null` for empty responses (204 No Content, content-length: 0, or empty body).
+   * If a selector is provided and data is `null`, the selector will receive `null`.
+   *
    * @param selector - Optional function to extract and transform data
-   * @returns A promise that resolves to the selected data
+   * @returns A promise that resolves to the selected data, or `null` for empty responses
    * @throws {RequestError} When the request fails, JSON parsing fails, or the selector throws an error
    *
    * @example
    * // Get full response
    * const data = await response.getData();
+   * if (data !== null) {
+   *   console.log(data.items);
+   * }
    *
-   * // Extract specific data
-   * const users = await response.getData(data => data.results.users);
+   * @example
+   * // Extract specific data (use null-safe selector for empty responses)
+   * const users = await response.getData(data => data?.results?.users);
    *
    * @example
    * // Error handling - errors are always RequestError
@@ -310,14 +340,14 @@ export class ResponseWrapper {
    *   }
    * }
    */
-  async getData<T = unknown, R = T>(selector?: (data: T) => R): Promise<T | R> {
+  async getData<T = unknown, R = T>(selector?: (data: T | null) => R): Promise<T | R | null> {
     try {
       const data = await this.getJson<T>();
 
-      // If no selector is provided, return the raw JSON data
+      // If no selector is provided, return the raw JSON data (may be null)
       if (!selector) return data;
 
-      // Apply the selector if provided
+      // Apply the selector if provided (selector receives null for empty responses)
       return selector(data);
     } catch (error) {
       // If it's already a RequestError, re-throw it

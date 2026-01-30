@@ -458,15 +458,9 @@ describe("Integration Scenarios", { timeout: 10000 }, () => {
 
       assert.deepEqual(json, { data: "test" });
 
-      // Second call should throw body already consumed error
-      await assert.rejects(
-        async () => response.getText(),
-        (error: Error) => {
-          assert(error instanceof RequestError);
-          assert(error.message.includes("Body used"));
-          return true;
-        }
-      );
+      // getText() works after getJson() because text is cached during JSON parsing
+      const text = await response.getText();
+      assert.equal(text, '{"data":"test"}');
     });
   });
 });

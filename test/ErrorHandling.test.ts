@@ -207,16 +207,11 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
       });
       const request = create.get("https://api.example.com/data");
 
-      // Act & Assert
-      try {
-        await request.getJson();
-        assert.fail("Should have thrown a JSON parsing error");
-      } catch (error) {
-        assert(error instanceof RequestError);
-        assert(error.message.includes("JSON"));
-        assert.equal(error.url, "https://api.example.com/data");
-        assert.equal(error.method, "GET");
-      }
+      // Act - Empty responses now return null instead of throwing
+      const result = await request.getJson();
+
+      // Assert
+      assert.strictEqual(result, null);
     });
 
     it("should throw appropriate error when trying to get JSON but response is not JSON", async () => {

@@ -459,22 +459,19 @@ describe("Body Cache - Multiple Consumption", { timeout: 10000 }, () => {
   });
 
   describe("Error Cases - Body Already Consumed by Different Method", () => {
-    it("should throw error when calling getText() after getJson()", async () => {
+    it("should allow getText() after getJson() because text is cached", async () => {
       const response = createMockResponse({
         body: { name: "John" },
         headers: { "content-type": "application/json" },
       });
       const wrapper = new ResponseWrapper(response, "https://api.example.com/test", "GET");
 
-      await wrapper.getJson();
+      const jsonResult = await wrapper.getJson();
+      // getText() works after getJson() because text is cached during JSON parsing
+      const textResult = await wrapper.getText();
 
-      // Try to get text - should fail because body is consumed
-      await assert.rejects(
-        async () => wrapper.getText(),
-        (error: unknown) => {
-          return error instanceof RequestError && error.message.includes("Body used");
-        }
-      );
+      assert.deepEqual(jsonResult, { name: "John" });
+      assert.equal(textResult, '{"name":"John"}');
     });
 
     it("should throw error when calling getJson() after getText()", async () => {

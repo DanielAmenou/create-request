@@ -1020,11 +1020,16 @@ export abstract class BaseRequest {
   /**
    * Execute the request and parse the response as JSON
    *
-   * @returns A promise that resolves to the parsed JSON data
+   * Returns `null` for empty responses (204 No Content, content-length: 0, or empty body).
+   *
+   * @returns A promise that resolves to the parsed JSON data, or `null` for empty responses
    * @throws {RequestError} When the request fails, JSON parsing fails, GraphQL errors occur (if throwOnError enabled), or body is already consumed
    *
    * @example
    * const users = await request.getJson<User[]>();
+   * if (users !== null) {
+   *   users.forEach(u => console.log(u.name));
+   * }
    *
    * @example
    * // Error handling - errors are always RequestError
@@ -1036,7 +1041,7 @@ export abstract class BaseRequest {
    *   }
    * }
    */
-  async getJson<T = unknown>(): Promise<T> {
+  async getJson<T = unknown>(): Promise<T | null> {
     const response = await this.getResponse();
     return response.getJson<T>();
   }
@@ -1121,16 +1126,23 @@ export abstract class BaseRequest {
    * Execute the request and extract specific data using a selector function
    * If no selector is provided, returns the full JSON response.
    *
-   * @param selector - Optional function to extract and transform data
-   * @returns A promise that resolves to the selected data
+   * Returns `null` for empty responses (204 No Content, content-length: 0, or empty body).
+   * If a selector is provided and data is `null`, the selector will receive `null`.
+   *
+   * @param selector - Optional function to extract and transform data (receives `null` for empty responses)
+   * @returns A promise that resolves to the selected data, or `null` for empty responses
    * @throws {RequestError} When the request fails, JSON parsing fails, or the selector throws an error
    *
    * @example
    * // Get full response
    * const data = await request.getData();
+   * if (data !== null) {
+   *   console.log(data.items);
+   * }
    *
-   * // Extract specific data
-   * const users = await request.getData(data => data.results.users);
+   * @example
+   * // Extract specific data (use null-safe selector for empty responses)
+   * const users = await request.getData(data => data?.results?.users);
    *
    * @example
    * // Error handling - errors are always RequestError
@@ -1142,7 +1154,7 @@ export abstract class BaseRequest {
    *   }
    * }
    */
-  async getData<T = unknown, R = T>(selector?: (data: T) => R): Promise<T | R> {
+  async getData<T = unknown, R = T>(selector?: (data: T | null) => R): Promise<T | R | null> {
     const response = await this.getResponse();
     return response.getData<T, R>(selector);
   }

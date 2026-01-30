@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { Blob } from "node:buffer";
 import { describe, it } from "node:test";
 
-import { RequestError } from "../src/RequestError.js";
 import { ResponseWrapper } from "../src/ResponseWrapper.js";
 
 describe("ResponseWrapper", { timeout: 10000 }, () => {
@@ -140,17 +139,14 @@ describe("ResponseWrapper", { timeout: 10000 }, () => {
     });
     const wrapper = new ResponseWrapper(mockResponse);
 
-    // Act & Assert
-    try {
-      await wrapper.getJson();
-      assert.fail("Should have thrown an error for empty body with JSON content type");
-    } catch (error) {
-      assert(error instanceof RequestError);
-      assert(error.message.includes("Bad JSON") || error.message.includes("Unexpected end of JSON input"));
-    }
+    // Act - Empty responses now return null instead of throwing
+    const result = await wrapper.getJson();
+
+    // Assert
+    assert.strictEqual(result, null);
   });
 
-  it("should throw error when getting text after JSON", async () => {
+  it("should allow getting text after JSON (text is cached)", async () => {
     // Arrange
     const data = { name: "John", age: 30 };
     const jsonString = JSON.stringify(data);
@@ -161,10 +157,11 @@ describe("ResponseWrapper", { timeout: 10000 }, () => {
 
     // Act
     const jsonResult = await wrapper.getJson();
+    const textResult = await wrapper.getText();
 
-    // Assert
+    // Assert - both work because text is cached during JSON parsing
     assert.deepEqual(jsonResult, data);
-    await assert.rejects(() => wrapper.getText(), /Body used/);
+    assert.equal(textResult, jsonString);
   });
 
   it("should throw error when getting JSON after text", async () => {
