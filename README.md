@@ -6,7 +6,7 @@
 [![npm version](https://img.shields.io/npm/v/create-request.svg)](https://www.npmjs.com/package/create-request)
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/create-request)](https://bundlephobia.com/package/create-request)
 [![TypeScript](https://img.shields.io/badge/TypeScript-4.7%2B-blue)](https://www.typescriptlang.org/)
-[![Known Vulnerabilities](https://snyk.io/test/github/DanielAmenou/create-request/badge.svg)](https://snyk.io/test/github/DanielAmenou/create-request)
+[![Snyk security report](https://img.shields.io/badge/Snyk-security%20report-4C1A51?logo=snyk)](https://security.snyk.io/package/npm/create-request)
 
 `create-request` is a modern TypeScript library that transforms how you make API calls. Built as an elegant wrapper around the native Fetch API, it provides a chainable, fluent interface that dramatically reduces boilerplate while adding powerful features like automatic retries, timeout handling, and comprehensive error management.
 
