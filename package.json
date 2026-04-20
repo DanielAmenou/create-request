@@ -77,6 +77,10 @@
   "bugs": {
     "url": "https://github.com/DanielAmenou/create-request/issues"
   },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/DanielAmenou"
+  },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",

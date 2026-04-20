@@ -33,6 +33,8 @@
 - [Browser & Node.js Support](#browser--nodejs-support)
 - [Comparison of JavaScript HTTP Client Libraries](#comparison-of-javascript-http-client-libraries)
 - [License](#license)
+- [Website](#website)
+- [Sponsor](#sponsor)
 
 ## Core Features
 
@@ -1320,3 +1322,7 @@ MIT
 ## Website
 
 Visit [create-request.com](https://create-request.com) for documentation, examples, and more resources.
+
+## Sponsor
+
+If `create-request` helps your work, you can support ongoing development through [GitHub Sponsors](https://github.com/sponsors/DanielAmenou).
