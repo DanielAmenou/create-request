@@ -11,6 +11,8 @@
  *    console.log(`URL: ${error.url}`);
  *    console.log(`Method: ${error.method}`);
  *    console.log(`Status: ${error.status}`);
+ *    console.log(`Body: ${error.body}`); // Raw response body (if available)
+ *    console.log(error.getJson()); // Body parsed as JSON (or undefined)
  *    console.log(`Is timeout: ${error.isTimeout}`);
  *    console.log(`Is aborted: ${error.isAborted}`);
  * }
@@ -21,6 +23,12 @@ export class RequestError extends Error {
   public readonly status?: number;
   /** The Response object if the request received a response before failing */
   public readonly response?: Response;
+  /**
+   * The raw response body as text, if a response was received and its body could be read.
+   * `undefined` for errors without a response (network errors, timeouts, aborts)
+   * or when the body could not be read.
+   */
+  public readonly body?: string;
   /** The URL that was requested */
   public readonly url: string;
   /** The HTTP method that was used (e.g., 'GET', 'POST') */
@@ -29,6 +37,9 @@ export class RequestError extends Error {
   public readonly isTimeout: boolean;
   /** Whether the request was aborted (cancelled) */
   public readonly isAborted: boolean;
+
+  /** Cached result of parsing `body` as JSON (lazily populated by getJson) */
+  private parsedBody?: unknown;
 
   /**
    * Creates a new RequestError instance.
@@ -39,6 +50,7 @@ export class RequestError extends Error {
    * @param options - Additional error context
    * @param options.status - HTTP status code if available
    * @param options.response - The Response object if available
+   * @param options.body - The raw response body as text, if available
    * @param options.isTimeout - Whether this was a timeout error
    * @param options.isAborted - Whether the request was aborted
    * @param options.cause - The underlying error that caused this error
@@ -50,6 +62,7 @@ export class RequestError extends Error {
     options: {
       status?: number;
       response?: Response;
+      body?: string;
       isTimeout?: boolean;
       isAborted?: boolean;
       cause?: Error;
@@ -61,6 +74,7 @@ export class RequestError extends Error {
     this.method = method;
     this.status = options.status;
     this.response = options.response;
+    this.body = options.body;
     this.isTimeout = !!options.isTimeout;
     this.isAborted = !!options.isAborted;
 
@@ -71,6 +85,61 @@ export class RequestError extends Error {
 
     // Maintains proper prototype chain for instanceof checks
     Object.setPrototypeOf(this, RequestError.prototype);
+  }
+
+  /**
+   * Parses the captured response body (`body`) as JSON.
+   * The result is cached, so repeated calls don't re-parse.
+   * This method never throws - it returns `undefined` when there is no body
+   * or the body is not valid JSON, making it safe to use in error handlers.
+   *
+   * @returns The parsed JSON body, or `undefined` if no body was captured or it isn't valid JSON
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   await create.post('/api/users').withBody(user).getJson();
+   * } catch (error) {
+   *   if (error instanceof RequestError) {
+   *     const details = error.getJson<{ message: string; code: string }>();
+   *     console.log(details?.message ?? error.body ?? error.message);
+   *   }
+   * }
+   * ```
+   */
+  getJson<T = unknown>(): T | undefined {
+    if (this.parsedBody === undefined && this.body) {
+      try {
+        this.parsedBody = JSON.parse(this.body);
+      } catch {
+        // Body is not valid JSON - leave parsedBody undefined
+      }
+    }
+    return this.parsedBody as T | undefined;
+  }
+
+  /**
+   * Safely reads the body of a Response as text without consuming it.
+   * The response is cloned before reading, so the original body remains readable.
+   * Never throws - returns `undefined` if the body is unavailable or cannot be read
+   * (e.g., already consumed, locked stream, or read failure).
+   *
+   * @param response - The Response to read the body from
+   * @returns The body as text, or `undefined` if it could not be read
+   *
+   * @example
+   * ```typescript
+   * const body = await RequestError.captureBody(response);
+   * throw RequestError.fromResponse(response, url, 'GET', body);
+   * ```
+   */
+  static async captureBody(response: Response): Promise<string | undefined> {
+    try {
+      if (!response.bodyUsed) return await response.clone().text();
+    } catch {
+      // Body could not be read (e.g., locked stream or read failure)
+    }
+    return undefined;
   }
 
   /**
@@ -99,20 +168,23 @@ export class RequestError extends Error {
    * @param response - The Response object from the failed request
    * @param url - The URL that was requested
    * @param method - The HTTP method that was used
-   * @returns A RequestError with the status code and response object
+   * @param body - The response body as text, if already read (see {@link RequestError.captureBody})
+   * @returns A RequestError with the status code, response object, and body (if provided)
    *
    * @example
    * ```typescript
    * const response = await fetch('/api/users');
    * if (!response.ok) {
-   *   throw RequestError.fromResponse(response, '/api/users', 'GET');
+   *   const body = await RequestError.captureBody(response);
+   *   throw RequestError.fromResponse(response, '/api/users', 'GET', body);
    * }
    * ```
    */
-  static fromResponse(response: Response, url: string, method: string): RequestError {
+  static fromResponse(response: Response, url: string, method: string, body?: string): RequestError {
     return new RequestError(`HTTP ${response.status}`, url, method, {
       status: response.status,
       response,
+      body,
     });
   }
 

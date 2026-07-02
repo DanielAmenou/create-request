@@ -169,4 +169,141 @@ describe("RequestError", { timeout: 10000 }, () => {
     assert.ok(error instanceof Error);
     assert.ok(error instanceof RequestError);
   });
+
+  describe("body property", () => {
+    it("should create a RequestError with a body", () => {
+      // Arrange & Act
+      const error = new RequestError("HTTP 400", "https://api.example.com", "POST", {
+        status: 400,
+        body: '{"message":"Invalid email"}',
+      });
+
+      // Assert
+      assert.equal(error.body, '{"message":"Invalid email"}');
+    });
+
+    it("should leave body undefined when not provided", () => {
+      // Arrange & Act
+      const error = new RequestError("Test error", "https://api.example.com", "GET");
+
+      // Assert
+      assert.equal(error.body, undefined);
+    });
+
+    it("should include the body in fromResponse when provided", () => {
+      // Arrange
+      const mockResponse = new Response('{"error":"Not found"}', { status: 404 });
+
+      // Act
+      const error = RequestError.fromResponse(mockResponse, "https://api.example.com", "GET", '{"error":"Not found"}');
+
+      // Assert
+      assert.equal(error.status, 404);
+      assert.equal(error.body, '{"error":"Not found"}');
+    });
+
+    it("should keep fromResponse backward compatible without a body", () => {
+      // Arrange
+      const mockResponse = new Response("Not found", { status: 404 });
+
+      // Act
+      const error = RequestError.fromResponse(mockResponse, "https://api.example.com", "GET");
+
+      // Assert
+      assert.equal(error.message, "HTTP 404");
+      assert.equal(error.body, undefined);
+    });
+  });
+
+  describe("getJson()", () => {
+    it("should parse a JSON body", () => {
+      // Arrange
+      const error = new RequestError("HTTP 422", "https://api.example.com", "POST", {
+        status: 422,
+        body: '{"message":"Validation failed","fields":["email"]}',
+      });
+
+      // Act
+      const data = error.getJson<{ message: string; fields: string[] }>();
+
+      // Assert
+      assert.deepEqual(data, { message: "Validation failed", fields: ["email"] });
+    });
+
+    it("should return undefined for a non-JSON body", () => {
+      // Arrange
+      const error = new RequestError("HTTP 500", "https://api.example.com", "GET", {
+        status: 500,
+        body: "<html>Internal Server Error</html>",
+      });
+
+      // Act & Assert - must not throw
+      assert.equal(error.getJson(), undefined);
+    });
+
+    it("should return undefined when there is no body", () => {
+      // Arrange
+      const error = new RequestError("Aborted", "https://api.example.com", "GET", { isAborted: true });
+
+      // Act & Assert
+      assert.equal(error.getJson(), undefined);
+    });
+
+    it("should return undefined for an empty body", () => {
+      // Arrange
+      const error = new RequestError("HTTP 404", "https://api.example.com", "GET", { status: 404, body: "" });
+
+      // Act & Assert
+      assert.equal(error.getJson(), undefined);
+    });
+
+    it("should cache the parsed body across calls", () => {
+      // Arrange
+      const error = new RequestError("HTTP 400", "https://api.example.com", "GET", {
+        status: 400,
+        body: '{"a":1}',
+      });
+
+      // Act
+      const first = error.getJson();
+      const second = error.getJson();
+
+      // Assert - the same object reference is returned (parsed only once)
+      assert.equal(first, second);
+      assert.deepEqual(first, { a: 1 });
+    });
+  });
+
+  describe("captureBody()", () => {
+    it("should read the body without consuming the original response", async () => {
+      // Arrange
+      const response = new Response('{"error":"Not found"}', { status: 404 });
+
+      // Act
+      const body = await RequestError.captureBody(response);
+
+      // Assert
+      assert.equal(body, '{"error":"Not found"}');
+      assert.equal(response.bodyUsed, false);
+      // The original response body is still readable
+      assert.deepEqual(await response.json(), { error: "Not found" });
+    });
+
+    it("should return undefined when the body was already consumed", async () => {
+      // Arrange
+      const response = new Response("data", { status: 500 });
+      await response.text();
+
+      // Act & Assert
+      assert.equal(await RequestError.captureBody(response), undefined);
+    });
+
+    it("should return an empty string for an empty body", async () => {
+      // Arrange
+      const response = new Response(null, { status: 404 });
+
+      // Act & Assert
+      assert.equal(await RequestError.captureBody(response), "");
+    });
+  });
 });

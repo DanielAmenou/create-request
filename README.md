@@ -635,6 +635,7 @@ try {
   console.log(error.method); // HTTP method
   console.log(error.isTimeout); // Whether it was a timeout
   console.log(error.isAborted); // Whether it was aborted/cancelled
+  console.log(error.body); // Raw response body as text (if available)
 
   // Access the original response if available
   if (error.response) {
@@ -643,6 +644,32 @@ try {
   }
 }
 ```
+
+#### Error Response Body
+
+When a request fails with an HTTP error (e.g., 400, 404, 500), the response body is automatically captured and available directly on the error - no need to read it from `error.response` manually:
+
+```typescript
+try {
+  await create.post("https://api.example.com/users").withBody(newUser).getJson();
+} catch (error) {
+  // Raw body as text (undefined for network errors, timeouts, and aborts)
+  console.log(error.body); // '{"message":"Email already taken","code":"DUPLICATE_EMAIL"}'
+
+  // Body parsed as JSON - never throws, returns undefined if the body isn't valid JSON
+  const details = error.getJson<{ message: string; code: string }>();
+  if (details) {
+    showToast(details.message);
+  }
+}
+```
+
+Notes on the captured body:
+
+- `error.body` contains the raw body text whenever a response was received (HTTP errors, JSON parsing errors, GraphQL errors with `throwOnError`). For errors without a response (network failures, timeouts, aborts) it's `undefined`.
+- `error.getJson()` lazily parses `error.body` as JSON and caches the result. It never throws - it returns `undefined` when there's no body or the body isn't valid JSON.
+- The body is captured from a clone of the response, so `error.response` remains fully readable for backward compatibility.
+- The captured body is also available in retry callbacks (`onRetry`, `delay`) and error interceptors.
 
 ## URL Handling
 
@@ -923,7 +950,11 @@ const request4 = create.get("https://api.example.com/data").withRetries({
     if (error.status === 429) {
       // Check Retry-After header if available
       const retryAfter = error.response?.headers.get("Retry-After");
-      return retryAfter ? parseInt(retryAfter) * 1000 : 5000;
+      if (retryAfter) return parseInt(retryAfter) * 1000;
+
+      // Or read the delay from the error response body
+      const details = error.getJson<{ retryAfterMs?: number }>();
+      return details?.retryAfterMs ?? 5000;
     }
     return 1000; // Default delay
   },

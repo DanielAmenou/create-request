@@ -123,6 +123,7 @@ export class ResponseWrapper {
     throw new RequestError(`GQL: ${errorMessage}`, this.url || "", this.method || "", {
       status: this.response.status,
       response: this.response,
+      body: this.cachedText,
     });
   }
 
@@ -187,6 +188,7 @@ export class ResponseWrapper {
       throw new RequestError(`Bad JSON: ${error instanceof Error ? error.message : String(error)}`, this.url || "", this.method || "", {
         status: this.response.status,
         response: this.response,
+        body: this.cachedText,
       });
     }
   }
@@ -360,6 +362,7 @@ export class ResponseWrapper {
         throw new RequestError(`Selector: ${error instanceof Error ? error.message : String(error)}`, this.url || "", this.method || "", {
           status: this.response.status,
           response: this.response,
+          body: this.cachedText,
         });
       }
 

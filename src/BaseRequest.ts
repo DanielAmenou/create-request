@@ -1360,6 +1360,7 @@ export abstract class BaseRequest {
             currentError = new RequestError(`ErrI${i + 1}: ${em}`, currentError.url, currentError.method, {
               status: currentError.status,
               response: currentError.response,
+              body: currentError.body,
             });
           } else {
             /* c8 ignore start */
@@ -1572,7 +1573,9 @@ export abstract class BaseRequest {
       }
 
       if (!response.ok) {
-        throw RequestError.fromResponse(response, url, method);
+        // Capture the response body so it's available on the error object
+        // (reads from a clone, so error.response remains readable)
+        throw RequestError.fromResponse(response, url, method, await RequestError.captureBody(response));
       }
 
       const graphQLOptions = this.getGraphQLOptions();
