@@ -417,12 +417,12 @@ describe("Interceptor Edge Cases", { timeout: 10000 }, () => {
       request
         .withResponseInterceptor(async (response: ResponseWrapper) => {
           const data = await response.getJson<{ value: number }>();
-          const newResponse = createMockResponse({ body: { value: data.value + 1 } });
+          const newResponse = createMockResponse({ body: { value: data!.value + 1 } });
           return new ResponseWrapper(newResponse, response.url || undefined, response.method || undefined);
         })
         .withResponseInterceptor(async (response: ResponseWrapper) => {
           const data = await response.getJson<{ value: number }>();
-          const newResponse = createMockResponse({ body: { value: data.value * 2 } });
+          const newResponse = createMockResponse({ body: { value: data!.value * 2 } });
           return new ResponseWrapper(newResponse, response.url || undefined, response.method || undefined);
         });
 

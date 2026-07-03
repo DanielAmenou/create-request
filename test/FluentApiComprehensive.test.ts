@@ -31,7 +31,7 @@ describe("Fluent API Comprehensive Tests", { timeout: 10000 }, () => {
 
     it("should support callable form with string value", async () => {
       FetchMock.mockResponseOnce();
-      const request = new GetRequest("https://api.example.com/test").withCredentials("same-origin");
+      const request = new GetRequest("https://api.example.com/test").withCredentials("same-origin" as CredentialsPolicy);
 
       await request.getResponse();
 
@@ -95,7 +95,7 @@ describe("Fluent API Comprehensive Tests", { timeout: 10000 }, () => {
 
     it("should support callable form with string value", async () => {
       FetchMock.mockResponseOnce();
-      const request = new GetRequest("https://api.example.com/test").withReferrerPolicy("strict-origin");
+      const request = new GetRequest("https://api.example.com/test").withReferrerPolicy("strict-origin" as ReferrerPolicy);
 
       await request.getResponse();
 
@@ -119,7 +119,8 @@ describe("Fluent API Comprehensive Tests", { timeout: 10000 }, () => {
         FetchMock.reset();
         FetchMock.mockResponseOnce();
 
-        const request = new GetRequest("https://api.example.com/test").withReferrerPolicy[method as keyof typeof request.withReferrerPolicy]() as any;
+        const referrerPolicyApi = new GetRequest("https://api.example.com/test").withReferrerPolicy;
+        const request = referrerPolicyApi[method as keyof typeof referrerPolicyApi]();
 
         await request.getResponse();
 
@@ -142,7 +143,7 @@ describe("Fluent API Comprehensive Tests", { timeout: 10000 }, () => {
 
     it("should support callable form with string value", async () => {
       FetchMock.mockResponseOnce();
-      const request = new GetRequest("https://api.example.com/test").withRedirect("manual");
+      const request = new GetRequest("https://api.example.com/test").withRedirect("manual" as RedirectMode);
 
       await request.getResponse();
 
@@ -194,7 +195,7 @@ describe("Fluent API Comprehensive Tests", { timeout: 10000 }, () => {
 
     it("should support callable form with string value", async () => {
       FetchMock.mockResponseOnce();
-      const request = new GetRequest("https://api.example.com/test").withMode("no-cors");
+      const request = new GetRequest("https://api.example.com/test").withMode("no-cors" as RequestMode);
 
       await request.getResponse();
 
@@ -214,7 +215,8 @@ describe("Fluent API Comprehensive Tests", { timeout: 10000 }, () => {
         FetchMock.reset();
         FetchMock.mockResponseOnce();
 
-        const request = new GetRequest("https://api.example.com/test").withMode[method as keyof typeof request.withMode]() as any;
+        const modeApi = new GetRequest("https://api.example.com/test").withMode;
+        const request = modeApi[method as keyof typeof modeApi]();
 
         await request.getResponse();
 
@@ -237,7 +239,7 @@ describe("Fluent API Comprehensive Tests", { timeout: 10000 }, () => {
 
     it("should support callable form with string value", async () => {
       FetchMock.mockResponseOnce();
-      const request = new GetRequest("https://api.example.com/test").withPriority("low");
+      const request = new GetRequest("https://api.example.com/test").withPriority("low" as RequestPriority);
 
       await request.getResponse();
 
@@ -340,7 +342,7 @@ describe("Fluent API Comprehensive Tests", { timeout: 10000 }, () => {
     it("should handle custom string values that are not in enum", async () => {
       FetchMock.mockResponseOnce();
       // Using a custom string value that's not in the enum
-      const request = new GetRequest("https://api.example.com/test").withCredentials("custom-value" as string);
+      const request = new GetRequest("https://api.example.com/test").withCredentials("custom-value" as string as CredentialsPolicy);
 
       await request.getResponse();
 

@@ -110,6 +110,7 @@ describe("Response Chaining API", { timeout: 10000 }, () => {
     const result = await request.getJson<User>();
 
     // Assert
+    assert.ok(result);
     assert.equal(result.id, 123);
     assert.equal(result.name, "John Doe");
     assert.equal(result.isActive, true);
@@ -365,7 +366,7 @@ describe("Response Chaining API", { timeout: 10000 }, () => {
       })
       .then(result => {
         data = result;
-        return result.users[0];
+        return result!.users[0];
       })
       .then(firstUser => {
         firstUserName = firstUser.name;

@@ -146,7 +146,7 @@ describe("Empty Response Handling", { timeout: 10000 }, () => {
       });
 
       // Act
-      const result = await create.get("https://api.example.com/users").getData((d: typeof data) => d.users);
+      const result = await create.get("https://api.example.com/users").getData((d: typeof data | null) => d!.users);
 
       // Assert
       assert.deepEqual(result, [{ id: 1, name: "John" }]);

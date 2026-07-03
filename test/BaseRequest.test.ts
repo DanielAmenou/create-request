@@ -605,6 +605,7 @@ describe("BaseRequest", { timeout: 10000 }, () => {
     const result = await response.getJson<{ name: string; age: number; isActive: boolean }>();
 
     // Assert
+    assert.ok(result);
     assert.equal(typeof result, "object");
     assert.equal(result.name, "John");
     assert.equal(result.age, 30);
@@ -658,6 +659,7 @@ describe("BaseRequest", { timeout: 10000 }, () => {
     const result = await response.getJson<ComplexResponse>();
 
     // Assert
+    assert.ok(result);
     assert.equal(result.user.id, 123);
     assert.equal(result.user.profile.name, "Jane Doe");
     assert.equal(result.user.profile.preferences.theme, "dark");

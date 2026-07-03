@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { Blob } from "node:buffer";
 import { describe, it, beforeEach, afterEach } from "node:test";
 import { PostRequest, PutRequest, PatchRequest } from "../src/requestMethods.js";
 import { RequestError } from "../src/RequestError.js";
+import type { Body } from "../src/types.js";
 import { FetchMock } from "./utils/fetchMock.js";
 import create from "../src/index.js";
 
@@ -107,7 +107,7 @@ describe("BodyRequest Edge Cases", { timeout: 10000 }, () => {
 
     it("should detect null body type", async () => {
       FetchMock.mockResponseOnce();
-      const request = new PostRequest("https://api.example.com/test").withBody(null);
+      const request = new PostRequest("https://api.example.com/test").withBody(null as unknown as Body);
 
       await request.getResponse();
 

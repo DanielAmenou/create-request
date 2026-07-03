@@ -162,8 +162,9 @@ describe("Integration Scenarios", { timeout: 10000 }, () => {
       const result = await new PostRequest("https://api.example.com/graphql")
         .withGraphQL("query GetUser($id: ID!) { user(id: $id) { id name } }", { id: "1" })
         .withHeader("Authorization", "Bearer token123")
-        .getJson();
+        .getJson<{ data: { user: { id: string; name: string } } }>();
 
+      assert.ok(result);
       assert.equal(result.data.user.id, "1");
       assert.equal(result.data.user.name, "John");
       const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];

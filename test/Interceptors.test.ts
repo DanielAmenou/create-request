@@ -149,6 +149,7 @@ describe("Request Interceptors", { timeout: 10000 }, () => {
     const result = await request.getJson<{ intercepted: boolean }>();
 
     // Assert
+    assert.ok(result);
     assert.equal(result.intercepted, true);
     assert.equal(FetchMock.mock.calls.length, 0, "Fetch should not be called");
   });
@@ -497,6 +498,7 @@ describe("Error Interceptors", { timeout: 10000 }, () => {
     const result = await request.getJson<{ fallback: boolean }>();
 
     // Assert
+    assert.ok(result);
     assert.equal(result.fallback, true);
   });
 
@@ -561,6 +563,7 @@ describe("Error Interceptors", { timeout: 10000 }, () => {
     const result = await request.getJson<{ recovered: boolean }>();
 
     // Assert
+    assert.ok(result);
     assert.equal(result.recovered, true);
     assert.equal(secondInterceptorCalled, false);
   });
@@ -920,6 +923,7 @@ describe("Interceptor Integration", { timeout: 10000 }, () => {
     const result = await request.getJson<{ recovered: boolean }>();
 
     // Assert
+    assert.ok(result);
     assert.equal(result.recovered, true);
     assert.deepEqual(log, ["per-request-error-1", "per-request-error-2"]);
     // Global interceptors should not run after recovery
@@ -945,6 +949,7 @@ describe("Interceptor Integration", { timeout: 10000 }, () => {
     // Assert
     assert.equal(response.status, 200);
     const data = await response.getJson<{ recovered: boolean }>();
+    assert.ok(data);
     assert.equal(data.recovered, true);
   });
 });

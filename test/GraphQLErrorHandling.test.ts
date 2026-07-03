@@ -312,6 +312,7 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query);
 
       const result = await request.getJson<{ data: unknown; errors: unknown[] }>();
+      assert.ok(result);
       assert.ok(result.errors);
       assert.equal(result.errors.length, 1);
     });
@@ -336,6 +337,7 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, { id: "999" });
 
       const result = await request.getJson<{ data: unknown; errors: { message: string; path?: string[] }[] }>();
+      assert.ok(result);
       assert.ok(result.errors);
       assert.equal(result.errors[0].message, "User not found");
     });
@@ -353,6 +355,7 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query);
 
       const result = await request.getJson<{ data: { users: unknown[] }; errors?: { message: string }[] }>();
+      assert.ok(result);
 
       // Manual error handling
       if (result.errors && result.errors.length > 0) {
@@ -374,6 +377,7 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: false });
 
       const result = await request.getJson<{ data: unknown; errors: unknown[] }>();
+      assert.ok(result);
       assert.ok(result.errors);
       assert.equal(result.errors.length, 1);
     });
@@ -406,6 +410,7 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       // Second call should return cached JSON (body caching allows multiple calls)
       // Note: GraphQL error checking only happens on first parse, not on cached access
       const cachedResult = await response.getJson<{ data: null; errors: { message: string }[] }>();
+      assert.ok(cachedResult);
       assert.ok(cachedResult.errors);
       assert.equal(cachedResult.errors.length, 1);
       assert.equal(cachedResult.errors[0].message, "GraphQL error");
@@ -425,11 +430,13 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       const response = await request.getResponse();
 
       // First call should succeed
-      const result1 = await response.getJson();
+      const result1 = await response.getJson<Record<string, unknown>>();
+      assert.ok(result1);
       assert.ok(Object.hasOwn(result1, "data"));
 
       // Second call should return cached JSON (body caching allows multiple calls)
-      const result2 = await response.getJson();
+      const result2 = await response.getJson<Record<string, unknown>>();
+      assert.ok(result2);
       assert.ok(Object.hasOwn(result2, "data"));
       assert.strictEqual(result1, result2); // Should be the same cached object
     });
@@ -448,7 +455,8 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       const query = "query { user { id } }";
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: true });
 
-      const result = await request.getJson();
+      const result = await request.getJson<Record<string, unknown>>();
+      assert.ok(result);
       assert.ok(Object.hasOwn(result, "data"));
     });
 
@@ -463,7 +471,8 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       const query = "query { user { id } }";
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: true });
 
-      const result = await request.getJson();
+      const result = await request.getJson<Record<string, unknown>>();
+      assert.ok(result);
       assert.ok(Object.hasOwn(result, "data"));
     });
 
@@ -479,7 +488,8 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
       const query = "query { user { id } }";
       const request = new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, { throwOnError: true });
 
-      const result = await request.getJson();
+      const result = await request.getJson<Record<string, unknown>>();
+      assert.ok(result);
       assert.ok(Object.hasOwn(result, "data"));
     });
 
@@ -509,7 +519,6 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
 
       assert.throws(
         () => {
-          // @ts-expect-error - Testing invalid options
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, [] as any);
         },
@@ -521,7 +530,6 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
 
       assert.throws(
         () => {
-          // @ts-expect-error - Testing invalid options
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           new PostRequest("https://api.example.com/graphql").withGraphQL(query, undefined, null as any);
         },
@@ -546,6 +554,7 @@ describe("GraphQL Error Handling", { timeout: 10000 }, () => {
 
       // Should not throw for non-GraphQL responses
       const result = await request.getJson<{ result: string; message: string }>();
+      assert.ok(result);
       assert.equal(result.result, "success");
     });
   });

@@ -248,10 +248,7 @@ describe("Error Body Capture", { timeout: 10000 }, () => {
 
       // Act & Assert
       try {
-        await create
-          .post("https://api.example.com/graphql")
-          .withGraphQL("query { user { id } }", undefined, { throwOnError: true })
-          .getJson();
+        await create.post("https://api.example.com/graphql").withGraphQL("query { user { id } }", undefined, { throwOnError: true }).getJson();
         assert.fail("Request should have failed");
       } catch (error) {
         assert(error instanceof RequestError);

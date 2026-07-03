@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { CookieUtils } from "../src/utils/CookieUtils.js";
+import type { SameSitePolicy } from "../src/enums.js";
 import type { CookiesRecord } from "../src/types.js";
 
 describe("CookieUtils", { timeout: 10000 }, () => {
@@ -77,7 +78,7 @@ describe("CookieUtils", { timeout: 10000 }, () => {
           value: "abc123",
           secure: true,
           httpOnly: true,
-          sameSite: "Lax" as const,
+          sameSite: "Lax" as SameSitePolicy,
           expires: new Date(),
           path: "/",
           domain: "example.com",

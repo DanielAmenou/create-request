@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
 import create from "../src/index.js";
 import { HttpMethod } from "../src/enums.js";
+import type { PostRequest } from "../src/requestMethods.js";
 import { FetchMock } from "./utils/fetchMock.js";
 
 describe("Request Factories", { timeout: 10000 }, () => {
@@ -169,7 +170,7 @@ describe("Request Factories", { timeout: 10000 }, () => {
         const request = factory(url).withHeaders(config.headers).withQueryParams(config.queryParams);
 
         if (method !== HttpMethod.GET && method !== HttpMethod.HEAD && method !== HttpMethod.OPTIONS && method !== HttpMethod.DELETE) {
-          request.withBody({ data: "test" });
+          (request as PostRequest).withBody({ data: "test" });
         }
 
         await request.getResponse();
@@ -254,7 +255,7 @@ describe("Request Factories", { timeout: 10000 }, () => {
         .getJson();
 
       assert.deepEqual(result, { id: 1 });
-      const [, options] = FetchMock.mock.calls[0] as [string, RequestInit];
+      const [, options] = FetchMock.mock.calls[0] as [string, RequestInit & { timeout?: number }];
       const headers = options.headers as Record<string, string>;
       assert.equal(headers["Authorization"], "Bearer token123");
       assert.equal(options.timeout, 5000);

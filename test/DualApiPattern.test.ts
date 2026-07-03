@@ -20,7 +20,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", { timeout: 10000 }, ()
   describe("withPriority", () => {
     it("should work with string parameter", async () => {
       FetchMock.mockResponseOnce();
-      const request = new GetRequest("https://api.example.com/test").withPriority("high");
+      const request = new GetRequest("https://api.example.com/test").withPriority("high" as RequestPriority);
 
       await request.getResponse();
 
@@ -52,7 +52,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", { timeout: 10000 }, ()
   describe("withMode", () => {
     it("should work with string parameter", async () => {
       FetchMock.mockResponseOnce();
-      const request = new GetRequest("https://api.example.com/test").withMode("cors");
+      const request = new GetRequest("https://api.example.com/test").withMode("cors" as RequestMode);
 
       await request.getResponse();
 
@@ -84,7 +84,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", { timeout: 10000 }, ()
   describe("withRedirect", () => {
     it("should work with string parameter", async () => {
       FetchMock.mockResponseOnce();
-      const request = new GetRequest("https://api.example.com/test").withRedirect("follow");
+      const request = new GetRequest("https://api.example.com/test").withRedirect("follow" as RedirectMode);
 
       await request.getResponse();
 
@@ -116,7 +116,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", { timeout: 10000 }, ()
   describe("withCredentials", () => {
     it("should work with string parameter", async () => {
       FetchMock.mockResponseOnce();
-      const request = new GetRequest("https://api.example.com/test").withCredentials("include");
+      const request = new GetRequest("https://api.example.com/test").withCredentials("include" as CredentialsPolicy);
 
       await request.getResponse();
 
@@ -148,7 +148,7 @@ describe("Dual API Pattern - Direct Call and Fluent API", { timeout: 10000 }, ()
   describe("withReferrerPolicy", () => {
     it("should work with string parameter", async () => {
       FetchMock.mockResponseOnce();
-      const request = new GetRequest("https://api.example.com/test").withReferrerPolicy("no-referrer");
+      const request = new GetRequest("https://api.example.com/test").withReferrerPolicy("no-referrer" as ReferrerPolicy);
 
       await request.getResponse();
 
@@ -180,7 +180,11 @@ describe("Dual API Pattern - Direct Call and Fluent API", { timeout: 10000 }, ()
   describe("Mixed usage", () => {
     it("should allow mixing direct calls and fluent API", async () => {
       FetchMock.mockResponseOnce();
-      const request = new GetRequest("https://api.example.com/test").withPriority("high").withMode.CORS().withRedirect(RedirectMode.FOLLOW).withCredentials.INCLUDE();
+      const request = new GetRequest("https://api.example.com/test")
+        .withPriority("high" as RequestPriority)
+        .withMode.CORS()
+        .withRedirect(RedirectMode.FOLLOW)
+        .withCredentials.INCLUDE();
 
       await request.getResponse();
 

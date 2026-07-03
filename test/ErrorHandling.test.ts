@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
+import type { CredentialsPolicy, ReferrerPolicy, RequestMode, RequestPriority } from "../src/enums.js";
 import create from "../src/index.js";
 import { RequestError } from "../src/RequestError.js";
 import { FetchMock } from "./utils/fetchMock.js";
@@ -1306,7 +1307,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
     it("should handle referrer policy with string parameter", async () => {
       // Arrange
       FetchMock.mockResponseOnce({ body: { success: true } });
-      const request = create.get("https://api.example.com/data").withReferrerPolicy("no-referrer");
+      const request = create.get("https://api.example.com/data").withReferrerPolicy("no-referrer" as ReferrerPolicy);
 
       // Act
       const response = await request.getResponse();
@@ -1318,7 +1319,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
     it("should handle mode with string parameter", async () => {
       // Arrange
       FetchMock.mockResponseOnce({ body: { success: true } });
-      const request = create.get("https://api.example.com/data").withMode("cors");
+      const request = create.get("https://api.example.com/data").withMode("cors" as RequestMode);
 
       // Act
       const response = await request.getResponse();
@@ -1330,7 +1331,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
     it("should handle priority with string parameter", async () => {
       // Arrange
       FetchMock.mockResponseOnce({ body: { success: true } });
-      const request = create.get("https://api.example.com/data").withPriority("high");
+      const request = create.get("https://api.example.com/data").withPriority("high" as RequestPriority);
 
       // Act
       const response = await request.getResponse();
@@ -1342,7 +1343,7 @@ describe("Error Handling Tests", { timeout: 10000 }, () => {
     it("should handle credentials with string parameter", async () => {
       // Arrange
       FetchMock.mockResponseOnce({ body: { success: true } });
-      const request = create.get("https://api.example.com/data").withCredentials("include");
+      const request = create.get("https://api.example.com/data").withCredentials("include" as CredentialsPolicy);
 
       // Act
       const response = await request.getResponse();
