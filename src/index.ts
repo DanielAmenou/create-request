@@ -11,6 +11,7 @@ export type {
   RetryConfig,
   CookiesRecord,
   CookieOptions,
+  FetchFunction,
   RequestConfig,
   GraphQLOptions,
   RequestOptions,

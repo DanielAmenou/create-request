@@ -6,6 +6,7 @@ import type {
   RetryCallback,
   CookiesRecord,
   CookieOptions,
+  FetchFunction,
   RequestOptions,
   GraphQLOptions,
   ErrorInterceptor,
@@ -29,6 +30,7 @@ export abstract class BaseRequest {
     headers: {},
   };
   protected abortController?: AbortController;
+  protected customFetch?: FetchFunction;
   protected queryParams: URLSearchParams = new URLSearchParams();
   protected autoApplyCsrfProtection: boolean = true;
 
@@ -292,6 +294,42 @@ export abstract class BaseRequest {
    */
   withAbortController(controller: AbortController): this {
     this.abortController = controller;
+    return this;
+  }
+
+  /**
+   * Sets a custom fetch implementation used to execute this request.
+   * By default, requests use the global `fetch`. Injecting a custom function unlocks
+   * testing without global mocks, custom undici dispatchers/agents in Node.js,
+   * and framework-specific fetch extensions (e.g. Next.js caching options).
+   *
+   * The provided function receives the final URL and `RequestInit` (after interceptors)
+   * and must return a `Promise<Response>`. It should honor `init.signal` so that
+   * `withTimeout` and `withAbortController` keep working.
+   *
+   * @param fetchFn - A fetch-compatible function
+   * @returns The request instance for chaining
+   * @throws {RequestError} If fetchFn is not a function
+   *
+   * @example
+   * // Testing: inject a stub instead of mocking the global fetch
+   * const stubFetch: FetchFunction = async () => new Response('{"ok":true}');
+   * const data = await create.get('/api/users').withFetch(stubFetch).getJson();
+   *
+   * @example
+   * // Node.js: route through a custom undici agent (proxy, keep-alive tuning, ...)
+   * import { fetch as undiciFetch, Agent } from 'undici';
+   * const agent = new Agent({ keepAliveTimeout: 30_000 });
+   * request.withFetch((url, init) => undiciFetch(url, { ...init, dispatcher: agent }));
+   *
+   * @example
+   * // Next.js: pass caching hints through to the framework's patched fetch
+   * request.withFetch((url, init) => fetch(url, { ...init, next: { revalidate: 60 } }));
+   */
+  withFetch(fetchFn: FetchFunction): this {
+    if (typeof fetchFn !== "function") throw new RequestError("Bad fetch", this.url, this.method);
+
+    this.customFetch = fetchFn;
     return this;
   }
 
@@ -1531,10 +1569,11 @@ export abstract class BaseRequest {
         fetchOptions.signal = abortSignal.signal;
       }
 
-      // Execute fetch
+      // Execute fetch (custom implementation if provided, global fetch otherwise)
+      const fetchFn = this.customFetch ?? globalThis.fetch;
       let response: Response;
       try {
-        response = await fetch(url, fetchOptions);
+        response = await fetchFn(url, fetchOptions);
       } catch (error) {
         const errorObj = error instanceof Error ? error : new Error(String(error));
         const errorName = errorObj.name;

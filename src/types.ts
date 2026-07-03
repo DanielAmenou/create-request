@@ -306,6 +306,22 @@ export interface GraphQLOptions {
   throwOnError?: boolean;
 }
 
+/**
+ * A fetch-compatible function used to execute the actual HTTP request.
+ * Must match the signature of the standard `fetch` API and should honor `init.signal`
+ * for timeout and abort support.
+ *
+ * @example
+ * ```typescript
+ * // A logging wrapper around the global fetch
+ * const loggingFetch: FetchFunction = (input, init) => {
+ *   console.log(`${init?.method ?? 'GET'} ${input}`);
+ *   return fetch(input, init);
+ * };
+ * ```
+ */
+export type FetchFunction = (input: string | URL | globalThis.Request, init?: RequestInit) => Promise<Response>;
+
 export interface RequestOptions extends Omit<RequestInit, "signal" | "body" | "method" | "credentials" | "mode" | "redirect" | "priority" | "cache"> {
   timeout?: number;
   retries?: number | RetryConfig;

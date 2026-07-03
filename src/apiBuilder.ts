@@ -1,6 +1,6 @@
 import { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadRequest, OptionsRequest } from "./requestMethods.js";
 import type { BaseRequest } from "./BaseRequest.js";
-import type { RetryConfig, RetryCallback, CookiesRecord, CookieOptions, RequestInterceptor, ResponseInterceptor, ErrorInterceptor } from "./types.js";
+import type { RetryConfig, RetryCallback, CookiesRecord, CookieOptions, FetchFunction, RequestInterceptor, ResponseInterceptor, ErrorInterceptor } from "./types.js";
 import type { CredentialsPolicy, RedirectMode, RequestPriority, ReferrerPolicy, RequestMode } from "./enums.js";
 
 /**
@@ -278,6 +278,26 @@ type ApiBuilder = {
    * ```
    */
   withCache(cache: RequestCache): ApiBuilder;
+
+  /**
+   * Sets a custom fetch implementation for all requests created through this API instance.
+   * Useful for injecting test stubs, undici agents/dispatchers, or framework-patched
+   * fetch functions (e.g. Next.js caching options). Individual requests can still
+   * override it with their own `withFetch` call.
+   *
+   * @param fetchFn - A fetch-compatible function
+   * @returns The API builder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * import { fetch as undiciFetch, Agent } from 'undici';
+   * const agent = new Agent({ connections: 10 });
+   * const api = createApi()
+   *   .withBaseURL('https://api.example.com')
+   *   .withFetch((url, init) => undiciFetch(url, { ...init, dispatcher: agent }));
+   * ```
+   */
+  withFetch(fetchFn: FetchFunction): ApiBuilder;
 
   /**
    * Set the request mode.

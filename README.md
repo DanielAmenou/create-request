@@ -25,6 +25,7 @@
   - [Automatic Retries with Delay](#automatic-retries-with-delay)
   - [Interceptors](#interceptors)
   - [Request Cancellation](#request-cancellation)
+  - [Custom Fetch Injection](#custom-fetch-injection)
   - [Data Selection](#data-selection)
   - [TypeScript Support](#typescript-support)
   - [CSRF Protection](#csrf-protection)
@@ -51,6 +52,7 @@
 - 🏗️ **API Builder** - Create configured API instances with reusable default settings
 - 🛑 **Request Cancellation** - Abort requests on demand with AbortController integration
 - 🔌 **Interceptors** - Global and per-request interceptors for requests, responses, and errors
+- 🧩 **Custom Fetch** - Inject any fetch-compatible function for testing, undici agents, or Next.js caching
 - 🔷 **GraphQL Support** - Built-in GraphQL query and mutation helpers
 
 ## Why create-request?
@@ -1120,6 +1122,54 @@ try {
   }
 }
 ```
+
+### Custom Fetch Injection
+
+By default, requests run through the global `fetch`. With `withFetch` you can inject any fetch-compatible function — per request or for a whole API instance. This unlocks testing without global mocks, custom undici agents/dispatchers in Node.js, and framework-patched fetch features like Next.js caching.
+
+```typescript
+import create, { createApi } from "create-request";
+import type { FetchFunction } from "create-request";
+
+// Testing: inject a stub instead of monkey-patching globalThis.fetch
+const stubFetch: FetchFunction = async () =>
+  new Response(JSON.stringify({ id: 1 }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+
+const user = await create.get("/api/users/1").withFetch(stubFetch).getJson();
+```
+
+```typescript
+// Node.js: route requests through a custom undici Agent (proxies, keep-alive tuning, mTLS, ...)
+import { fetch as undiciFetch, Agent } from "undici";
+
+const agent = new Agent({ keepAliveTimeout: 30_000, connections: 10 });
+
+const api = createApi()
+  .withBaseURL("https://api.example.com")
+  .withFetch((url, init) => undiciFetch(url, { ...init, dispatcher: agent }));
+
+const users = await api.get("/users").getJson();
+```
+
+```typescript
+// Next.js: pass caching hints through to the framework's patched fetch
+const revalidatingFetch: FetchFunction = (url, init) =>
+  fetch(url, { ...init, next: { revalidate: 60 } });
+
+const posts = await create
+  .get("https://api.example.com/posts")
+  .withFetch(revalidatingFetch)
+  .getJson();
+```
+
+Notes:
+
+- The custom function receives the final URL and `RequestInit` after query params, headers, and request interceptors have been applied, and it is called once per attempt when retries are configured.
+- It should honor `init.signal`, otherwise `withTimeout` and `withAbortController` cannot cancel the underlying work.
+- A per-request `withFetch` overrides one set on an API builder.
 
 ### Data Selection
 
