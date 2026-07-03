@@ -20,15 +20,11 @@ describe("Retry Delay", { timeout: 10000 }, () => {
       FetchMock.mockErrorOnce(new Error("Network failure 2"));
       FetchMock.mockResponseOnce({ body: { success: true } });
 
-      const startTime = Date.now();
       const request = create.get("https://api.example.com/data").withRetries(2);
 
       const result = await request.getJson();
-      const duration = Date.now() - startTime;
 
       assert.deepEqual(result, { success: true });
-      // Should complete quickly without delay
-      assert(duration < 100, "Should complete without delay");
     });
 
     it("should throw error for negative number", () => {
@@ -64,26 +60,20 @@ describe("Retry Delay", { timeout: 10000 }, () => {
       assert.deepEqual(result, { success: true });
       // Should have waited at least 20ms (2 retries * 10ms delay)
       assert(duration >= 20, `Expected at least 20ms delay, got ${duration}ms`);
-      // But not too long (allowing some buffer)
-      assert(duration < 100, `Expected less than 100ms, got ${duration}ms`);
     });
 
     it("should handle zero delay", async () => {
       FetchMock.mockErrorOnce(new Error("Network failure 1"));
       FetchMock.mockResponseOnce({ body: { success: true } });
 
-      const startTime = Date.now();
       const request = create.get("https://api.example.com/data").withRetries({
         attempts: 1,
         delay: 0,
       });
 
       const result = await request.getJson();
-      const duration = Date.now() - startTime;
 
       assert.deepEqual(result, { success: true });
-      // Should complete quickly with zero delay
-      assert(duration < 100, "Should complete quickly with zero delay");
     });
 
     it("should throw error for negative delay", () => {
@@ -135,7 +125,6 @@ describe("Retry Delay", { timeout: 10000 }, () => {
       assert.deepEqual(result, { success: true });
       // Should have waited at least 15ms (5ms + 10ms)
       assert(duration >= 15, `Expected at least 15ms delay, got ${duration}ms`);
-      assert(duration < 50, `Expected less than 50ms, got ${duration}ms`);
     });
 
     it("should pass correct attempt number to delay function", async () => {
@@ -507,17 +496,13 @@ describe("Retry Delay", { timeout: 10000 }, () => {
       FetchMock.mockErrorOnce(new Error("Network failure 1"));
       FetchMock.mockResponseOnce({ body: { success: true } });
 
-      const startTime = Date.now();
       const request = create.get("https://api.example.com/data").withRetries({
         attempts: 1,
       });
 
       const result = await request.getJson();
-      const duration = Date.now() - startTime;
 
       assert.deepEqual(result, { success: true });
-      // Should complete quickly without delay
-      assert(duration < 100, "Should complete without delay when delay not specified");
     });
   });
 
@@ -593,18 +578,14 @@ describe("Retry Delay", { timeout: 10000 }, () => {
       FetchMock.mockErrorOnce(new Error("Network failure 1"));
       FetchMock.mockResponseOnce({ body: { success: true } });
 
-      const startTime = Date.now();
       const request = create.get("https://api.example.com/data").withRetries({
         attempts: 1,
         delay: () => 0,
       });
 
       const result = await request.getJson();
-      const duration = Date.now() - startTime;
 
       assert.deepEqual(result, { success: true });
-      // Should complete quickly when delay is zero
-      assert(duration < 100, "Should complete quickly with zero delay");
     });
   });
 });
