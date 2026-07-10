@@ -1,4 +1,4 @@
-import { RequestError } from "./RequestError.js";
+import { RequestError, errorMessage } from "./RequestError.js";
 import { BaseRequest } from "./BaseRequest.js";
 import { BodyType } from "./enums.js";
 import type { Body, GraphQLOptions } from "./types.js";
@@ -8,13 +8,9 @@ import type { ResponseWrapper } from "./ResponseWrapper.js";
  * Base class for requests that can have a body (POST, PUT, PATCH)
  */
 export abstract class BodyRequest extends BaseRequest {
-  protected body?: Body;
-  private bodyType?: BodyType;
-  private graphQLOptions: GraphQLOptions | undefined = undefined;
-
-  constructor(url: string) {
-    super(url);
-  }
+  protected _body?: Body;
+  private _bodyType?: BodyType;
+  private _gqlOpts: GraphQLOptions | undefined = undefined;
 
   /**
    * Sets the request body. Automatically detects the body type and sets appropriate Content-Type header.
@@ -52,12 +48,12 @@ export abstract class BodyRequest extends BaseRequest {
    * ```
    */
   withBody(body: Body): this {
-    this.body = body;
+    this._body = body;
 
     // Set body type and validate
     if (typeof body === "string") {
-      this.bodyType = BodyType.STRING;
-      this.setContentTypeIfNeeded("text/plain");
+      this._bodyType = BodyType.STRING;
+      this._setCT("text/plain");
     } else if (
       body !== null &&
       typeof body === "object" &&
@@ -71,17 +67,17 @@ export abstract class BodyRequest extends BaseRequest {
         body instanceof ReadableStream
       )
     ) {
-      this.bodyType = BodyType.JSON;
-      this.setContentTypeIfNeeded("application/json");
+      this._bodyType = BodyType.JSON;
+      this._setCT("application/json");
 
       // Validate JSON is stringifiable early
       try {
         JSON.stringify(body);
       } catch (error) {
-        throw new RequestError(`Bad JSON: ${error instanceof Error ? error.message : String(error)}`, this.url, this.method);
+        throw new RequestError(`Bad JSON: ${errorMessage(error)}`, this._url, this._method);
       }
     } else {
-      this.bodyType = BodyType.BINARY;
+      this._bodyType = BodyType.BINARY;
     }
 
     return this;
@@ -126,7 +122,7 @@ export abstract class BodyRequest extends BaseRequest {
    */
   withGraphQL(query: string, variables?: Record<string, unknown>, options?: GraphQLOptions): this {
     if (typeof query !== "string" || query.length === 0) {
-      throw new RequestError("Bad query", this.url, this.method);
+      throw new RequestError("Bad query", this._url, this._method);
     }
 
     const graphQLBody: { query: string; variables?: Record<string, unknown> } = {
@@ -135,7 +131,7 @@ export abstract class BodyRequest extends BaseRequest {
 
     if (variables !== undefined) {
       if (typeof variables !== "object" || variables === null || Array.isArray(variables)) {
-        throw new RequestError("Bad vars", this.url, this.method);
+        throw new RequestError("Bad vars", this._url, this._method);
       }
       graphQLBody.variables = variables;
     }
@@ -143,12 +139,12 @@ export abstract class BodyRequest extends BaseRequest {
     // Store GraphQL options if provided
     if (options !== undefined) {
       if (typeof options !== "object" || options === null || Array.isArray(options)) {
-        throw new RequestError("Bad opts", this.url, this.method);
+        throw new RequestError("Bad opts", this._url, this._method);
       }
 
       // Store only the known GraphQL options properties
       const opts = options as unknown as { throwOnError?: boolean };
-      this.graphQLOptions = {
+      this._gqlOpts = {
         throwOnError: typeof opts.throwOnError === "boolean" ? opts.throwOnError : undefined,
       };
     }
@@ -157,12 +153,12 @@ export abstract class BodyRequest extends BaseRequest {
     try {
       JSON.stringify(graphQLBody);
     } catch (error) {
-      throw new RequestError(`Bad JSON: ${error instanceof Error ? error.message : String(error)}`, this.url, this.method);
+      throw new RequestError(`Bad JSON: ${errorMessage(error)}`, this._url, this._method);
     }
 
-    this.body = graphQLBody;
-    this.bodyType = BodyType.JSON;
-    this.setContentTypeIfNeeded("application/json");
+    this._body = graphQLBody;
+    this._bodyType = BodyType.JSON;
+    this._setCT("application/json");
 
     return this;
   }
@@ -170,8 +166,8 @@ export abstract class BodyRequest extends BaseRequest {
   /**
    * Check if Content-Type header is already set (case-insensitive)
    */
-  private hasContentType(): boolean {
-    const headers = this.requestOptions.headers;
+  private _hasCT(): boolean {
+    const headers = this._opts.headers;
     if (typeof headers === "object" && headers !== null) {
       const headersObj = headers as Record<string, string>;
       return Object.keys(headersObj).some(header => header.toLowerCase() === "content-type");
@@ -179,8 +175,8 @@ export abstract class BodyRequest extends BaseRequest {
     return false;
   }
 
-  private setContentTypeIfNeeded(contentType: string): void {
-    if (!this.hasContentType()) {
+  private _setCT(contentType: string): void {
+    if (!this._hasCT()) {
       this.withContentType(contentType);
     }
   }
@@ -189,8 +185,8 @@ export abstract class BodyRequest extends BaseRequest {
    * Get the GraphQL options if set
    * @returns The GraphQL options or undefined
    */
-  protected getGraphQLOptions(): GraphQLOptions | undefined {
-    return this.graphQLOptions;
+  protected _gql(): GraphQLOptions | undefined {
+    return this._gqlOpts;
   }
 
   /**
@@ -198,15 +194,15 @@ export abstract class BodyRequest extends BaseRequest {
    * Overrides the base implementation to add body handling
    */
   async getResponse(): Promise<ResponseWrapper> {
-    if (this.body !== undefined) {
+    if (this._body !== undefined) {
       // Remove previous body if it exists
-      if (this.requestOptions.body) delete this.requestOptions.body;
+      if (this._opts.body) delete this._opts.body;
 
       // Process the body based on its type
-      if (this.bodyType === BodyType.JSON) {
-        this.requestOptions.body = JSON.stringify(this.body);
+      if (this._bodyType === BodyType.JSON) {
+        this._opts.body = JSON.stringify(this._body);
       } else {
-        this.requestOptions.body = this.body;
+        this._opts.body = this._body;
       }
     }
 

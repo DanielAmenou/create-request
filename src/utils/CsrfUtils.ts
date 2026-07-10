@@ -53,20 +53,12 @@ export class CsrfUtils {
     // If token is longer than 10 chars, perform additional security checks
     if (token.length > 10) {
       // Check for valid character set (alphanumeric & common token symbols)
-      const validTokenRegex = /^[A-Za-z0-9\-_=+/.]+$/;
-      if (!validTokenRegex.test(token)) {
+      if (!/^[A-Za-z0-9\-_=+/.]+$/.test(token)) {
         return false;
       }
 
       // For longer tokens, check for sufficient entropy (at least 2 character types)
-      const hasUpperCase = /[A-Z]/.test(token);
-      const hasLowerCase = /[a-z]/.test(token);
-      const hasNumbers = /[0-9]/.test(token);
-      const hasSpecials = /[-_=+/.]/.test(token);
-
-      const characterTypesCount = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecials].filter(Boolean).length;
-
-      return characterTypesCount >= 2;
+      return [/[A-Z]/, /[a-z]/, /[0-9]/, /[-_=+/.]/].filter(re => re.test(token)).length >= 2;
     }
 
     // For shorter tokens (8-10 chars), just return true if we reached here

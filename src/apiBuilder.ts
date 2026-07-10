@@ -554,81 +554,69 @@ type ApiBuilder = {
  * Internal API builder implementation.
  */
 class ApiBuilderImpl {
-  private baseURL?: string;
-  private modifiers: Array<(request: BaseRequest) => void> = [];
-  private proxy?: ApiBuilder;
+  private _baseURL?: string;
+  private _mods: Array<(request: BaseRequest) => void> = [];
+  private _proxy?: ApiBuilder;
 
   withBaseURL(baseURL: string): ApiBuilder {
-    this.baseURL = baseURL;
-    return this.getProxy();
+    this._baseURL = baseURL;
+    return this._getProxy();
   }
 
-  private resolveURL(url?: string): string {
-    if (!url) return this.baseURL || "";
+  private _resolve(url?: string): string {
+    if (!url) return this._baseURL || "";
     if (/^https?:\/\//.test(url)) return url;
-    if (!this.baseURL) return url;
-    return this.baseURL.replace(/\/$/, "") + (url[0] === "/" ? url : "/" + url);
+    if (!this._baseURL) return url;
+    return this._baseURL.replace(/\/$/, "") + (url[0] === "/" ? url : "/" + url);
   }
 
-  private applyModifiers(request: BaseRequest): void {
-    if (this.modifiers) for (const modifier of this.modifiers) modifier(request);
+  private _new<T extends BaseRequest>(Ctor: new (url: string) => T, url?: string): T {
+    const request = new Ctor(this._resolve(url));
+    for (const modifier of this._mods) modifier(request);
+    return request;
   }
 
   get(url?: string): GetRequest {
-    const request = new GetRequest(this.resolveURL(url));
-    this.applyModifiers(request);
-    return request;
+    return this._new(GetRequest, url);
   }
 
   post(url?: string): PostRequest {
-    const request = new PostRequest(this.resolveURL(url));
-    this.applyModifiers(request);
-    return request;
+    return this._new(PostRequest, url);
   }
 
   put(url?: string): PutRequest {
-    const request = new PutRequest(this.resolveURL(url));
-    this.applyModifiers(request);
-    return request;
+    return this._new(PutRequest, url);
   }
 
   del(url?: string): DeleteRequest {
-    const request = new DeleteRequest(this.resolveURL(url));
-    this.applyModifiers(request);
-    return request;
+    return this._new(DeleteRequest, url);
   }
 
   patch(url?: string): PatchRequest {
-    const request = new PatchRequest(this.resolveURL(url));
-    this.applyModifiers(request);
-    return request;
+    return this._new(PatchRequest, url);
   }
 
   head(url?: string): HeadRequest {
-    const request = new HeadRequest(this.resolveURL(url));
-    this.applyModifiers(request);
-    return request;
+    return this._new(HeadRequest, url);
   }
 
   options(url?: string): OptionsRequest {
-    const request = new OptionsRequest(this.resolveURL(url));
-    this.applyModifiers(request);
-    return request;
+    return this._new(OptionsRequest, url);
   }
 
-  private addModifier(modifier: (request: BaseRequest) => void): ApiBuilder {
-    this.modifiers.push(modifier);
-    return this.getProxy();
+  private _add(modifier: (request: BaseRequest) => void): ApiBuilder {
+    this._mods.push(modifier);
+    return this._getProxy();
   }
 
-  private getProxy(): ApiBuilder {
-    if (!this.proxy) {
-      this.proxy = this.createProxy();
+  private _getProxy(): ApiBuilder {
+    if (!this._proxy) {
+      this._proxy = this._mkProxy();
     }
-    return this.proxy;
+    return this._proxy;
   }
 
-  private createProxy(): ApiBuilder {
+  private _mkProxy(): ApiBuilder {
     const disallowedMethods = new Set(["withBody", "withGraphQL", "withAbortController"]);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -655,7 +643,7 @@ class ApiBuilderImpl {
         // If it's a 'with...' method or other chainable method, create a modifier for it
         if (typeof prop === "string" && (prop.startsWith("with") || prop === "onRetry")) {
           return (...args: unknown[]) => {
-            return implTarget.addModifier((request: BaseRequest) => {
+            return implTarget._add((request: BaseRequest) => {
               const method = (request as unknown as Record<string, unknown>)[prop];
               if (typeof method === "function") {
                 (method as (...args: unknown[]) => unknown).apply(request, args);
@@ -672,7 +660,7 @@ class ApiBuilderImpl {
   }
 
   static create(): ApiBuilder {
-    return new ApiBuilderImpl().getProxy();
+    return new ApiBuilderImpl()._getProxy();
   }
 }
 

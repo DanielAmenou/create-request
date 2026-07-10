@@ -32,6 +32,11 @@ const esmTerserConfig = {
     drop_console: true,
     drop_debugger: true,
   },
+  mangle: {
+    properties: {
+      regex: /^_/, // Only mangle properties starting with underscore
+    },
+  },
   format: {
     comments: /^\s*(\/\*\*|\*\/|@|license|copyright)/i,
     ecma: 2018,

@@ -1,4 +1,16 @@
 /**
+ * Extract a message from an unknown thrown value
+ * @internal
+ */
+export const errorMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+
+/**
+ * Coerce an unknown thrown value to an Error
+ * @internal
+ */
+export const toError = (e: unknown): Error => (e instanceof Error ? e : new Error(String(e)));
+
+/**
  * Error class for HTTP request failures.
  * Extends the standard Error class with additional context about the failed request.
  *
@@ -39,7 +51,7 @@ export class RequestError extends Error {
   public readonly isAborted: boolean;
 
   /** Cached result of parsing `body` as JSON (lazily populated by getJson) */
-  private parsedBody?: unknown;
+  private _parsed?: unknown;
 
   /**
    * Creates a new RequestError instance.
@@ -108,14 +120,14 @@ export class RequestError extends Error {
    * ```
    */
   getJson<T = unknown>(): T | undefined {
-    if (this.parsedBody === undefined && this.body) {
+    if (this._parsed === undefined && this.body) {
       try {
-        this.parsedBody = JSON.parse(this.body);
+        this._parsed = JSON.parse(this.body);
       } catch {
         // Body is not valid JSON - leave parsedBody undefined
       }
     }
-    return this.parsedBody as T | undefined;
+    return this._parsed as T | undefined;
   }
 
   /**
@@ -214,20 +226,15 @@ export class RequestError extends Error {
 
     // Check for Node.js error codes (e.g., from undici/dns errors)
     const errorCode = (originalError as Error & { code?: string }).code;
-    const errorName = originalError.name;
     const stack = originalError.stack || "";
-    const errorMessageLower = message.toLowerCase();
 
     // Check for timeout errors (Node.js/undici TimeoutError)
     // Note: While explicit timeouts set via withTimeout() are handled in BaseRequest,
-    // this detection serves as a safety net for:
-    // 1. Timeout errors from external AbortControllers (e.g., AbortSignal.timeout())
-    // 2. Different runtime implementations that may throw timeout errors differently
-    // 3. Network-level timeouts (ETIMEDOUT)
+    // this detection serves as a safety net for timeout errors from external
+    // AbortControllers, other runtimes, and network-level timeouts (ETIMEDOUT).
     const isTimeoutError =
-      errorName === "TimeoutError" ||
-      errorMessageLower.includes("timeout") ||
-      errorMessageLower.includes("aborted due to timeout") ||
+      originalError.name === "TimeoutError" ||
+      message.toLowerCase().includes("timeout") ||
       errorCode === "ETIMEDOUT" ||
       stack.includes("TimeoutError") ||
       stack.includes("timeout");
@@ -235,40 +242,20 @@ export class RequestError extends Error {
     // If the error message is generic "fetch failed", provide more context
     if (message === "fetch failed" || message === "Failed to fetch") {
       // Check for DNS resolution errors
-      const isDnsError =
-        errorCode === "ENOTFOUND" ||
-        errorCode === "EAI_AGAIN" ||
-        errorCode === "EAI_NODATA" ||
-        stack.includes("getaddrinfo") ||
-        stack.includes("ENOTFOUND") ||
-        stack.includes("EAI_AGAIN");
+      const isDnsError = errorCode === "ENOTFOUND" || errorCode === "EAI_AGAIN" || errorCode === "EAI_NODATA" || /getaddrinfo|ENOTFOUND|EAI_AGAIN/.test(stack);
 
       // Check for connection errors (but not timeout errors)
       const isConnectionError = !isTimeoutError && (errorCode === "ECONNREFUSED" || errorCode === "ECONNRESET" || stack.includes("ECONNREFUSED") || stack.includes("connect"));
 
-      if (isTimeoutError) {
-        message = `Timeout:${url}`;
-      } else if (isDnsError) {
-        message = `DNS:${url}`;
-      } else if (isConnectionError) {
-        message = `Conn:${url}`;
-      } else {
-        message = `Net:${url}`;
-      }
+      message = (isTimeoutError ? "Timeout:" : isDnsError ? "DNS:" : isConnectionError ? "Conn:" : "Net:") + url;
     }
 
-    const error = new RequestError(message, url, method, {
-      ...(isTimeoutError ? { isTimeout: true } : {}),
-    });
+    const error = new RequestError(message, url, method, isTimeoutError ? { isTimeout: true } : {});
 
-    // Create a proper RequestError stack trace, but append the original stack for debugging
-    // This way Node.js will show "RequestError: ..." instead of "TypeError: ..."
+    // Create a proper RequestError stack trace, but append the original stack for
+    // debugging context, so Node.js shows "RequestError: ..." instead of "TypeError: ..."
     if (originalError.stack) {
-      // Get the current stack (which will start with RequestError)
-      const currentStack = error.stack || "";
-
-      // Append the original error's stack as "Caused by:" for debugging context
-      error.stack = `${currentStack}\n\nCaused by: ${originalError.stack}`;
+      error.stack = `${error.stack || ""}\n\nCaused by: ${originalError.stack}`;
     }
 
     return error;

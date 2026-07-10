@@ -12,11 +12,7 @@ import { HttpMethod } from "./enums.js";
  * const data = await request.getData();
  */
 export class GetRequest extends BaseRequest {
-  protected method: HttpMethod = HttpMethod.GET;
-
-  constructor(url: string) {
-    super(url);
-  }
+  protected _method: HttpMethod = HttpMethod.GET;
 }
 
 /**
@@ -28,11 +24,7 @@ export class GetRequest extends BaseRequest {
  * const response = await request.getResponse();
  */
 export class HeadRequest extends BaseRequest {
-  protected method: HttpMethod = HttpMethod.HEAD;
-
-  constructor(url: string) {
-    super(url);
-  }
+  protected _method: HttpMethod = HttpMethod.HEAD;
 }
 
 /**
@@ -44,11 +36,7 @@ export class HeadRequest extends BaseRequest {
  * const response = await request.getResponse();
  */
 export class OptionsRequest extends BaseRequest {
-  protected method: HttpMethod = HttpMethod.OPTIONS;
-
-  constructor(url: string) {
-    super(url);
-  }
+  protected _method: HttpMethod = HttpMethod.OPTIONS;
 }
 
 /**
@@ -60,11 +48,7 @@ export class OptionsRequest extends BaseRequest {
  * await request.getData();
  */
 export class DeleteRequest extends BaseRequest {
-  protected method: HttpMethod = HttpMethod.DELETE;
-
-  constructor(url: string) {
-    super(url);
-  }
+  protected _method: HttpMethod = HttpMethod.DELETE;
 }
 
 /**
@@ -77,11 +61,7 @@ export class DeleteRequest extends BaseRequest {
  * const data = await request.getData();
  */
 export class PostRequest extends BodyRequest {
-  protected method: HttpMethod = HttpMethod.POST;
-
-  constructor(url: string) {
-    super(url);
-  }
+  protected _method: HttpMethod = HttpMethod.POST;
 }
 
 /**
@@ -94,11 +74,7 @@ export class PostRequest extends BodyRequest {
  * const data = await request.getData();
  */
 export class PutRequest extends BodyRequest {
-  protected method: HttpMethod = HttpMethod.PUT;
-
-  constructor(url: string) {
-    super(url);
-  }
+  protected _method: HttpMethod = HttpMethod.PUT;
 }
 
 /**
@@ -111,9 +87,5 @@ export class PutRequest extends BodyRequest {
  * const data = await request.getData();
  */
 export class PatchRequest extends BodyRequest {
-  protected method: HttpMethod = HttpMethod.PATCH;
-
-  constructor(url: string) {
-    super(url);
-  }
+  protected _method: HttpMethod = HttpMethod.PATCH;
 }

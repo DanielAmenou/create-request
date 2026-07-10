@@ -1,4 +1,4 @@
-import { RequestError } from "./RequestError.js";
+import { RequestError, errorMessage, toError } from "./RequestError.js";
 import type { GraphQLOptions } from "./types.js";
 
 /**
@@ -20,21 +20,21 @@ export class ResponseWrapper {
   public readonly url?: string;
   /** The HTTP method that was used (if available) */
   public readonly method?: string;
-  private readonly response: Response;
-  private graphQLOptions?: GraphQLOptions;
+  private readonly _res: Response;
+  private _gqlOpts?: GraphQLOptions;
 
   // Cache the body as the last used method
-  private cachedBlob?: Blob;
-  private cachedText?: string;
-  private cachedJson?: unknown;
-  private cachedArrayBuffer?: ArrayBuffer;
+  private _blob?: Blob;
+  private _text?: string;
+  private _json?: unknown;
+  private _buf?: ArrayBuffer;
 
   constructor(response: Response, url?: string, method?: string, graphQLOptions?: GraphQLOptions) {
-    this.response = response;
+    this._res = response;
     this.url = url;
     this.method = method;
     if (graphQLOptions) {
-      this.graphQLOptions = {
+      this._gqlOpts = {
         throwOnError: graphQLOptions.throwOnError,
       };
     }
@@ -44,28 +44,28 @@ export class ResponseWrapper {
    * HTTP status code (e.g., 200, 404, 500)
    */
   get status(): number {
-    return this.response.status;
+    return this._res.status;
   }
 
   /**
    * HTTP status text (e.g., "OK", "Not Found", "Internal Server Error")
    */
   get statusText(): string {
-    return this.response.statusText;
+    return this._res.statusText;
   }
 
   /**
    * Response headers as a Headers object
    */
   get headers(): Headers {
-    return this.response.headers;
+    return this._res.headers;
   }
 
   /**
    * Whether the response status is in the 200-299 range (successful)
    */
   get ok(): boolean {
-    return this.response.ok;
+    return this._res.ok;
   }
 
   /**
@@ -73,19 +73,42 @@ export class ResponseWrapper {
    * Use this if you need direct access to the underlying Response.
    */
   get raw(): Response {
-    return this.response;
+    return this._res;
+  }
+
+  /**
+   * Create a RequestError carrying this response's context
+   * @param message - The error message
+   * @param withBody - Whether to attach the cached body text to the error
+   */
+  private _err(message: string, withBody?: boolean): RequestError {
+    return new RequestError(message, this.url || "", this.method || "", {
+      status: this._res.status,
+      response: this._res,
+      body: withBody ? this._text : undefined,
+    });
+  }
+
+  /**
+   * Read the response body via the given reader, wrapping failures in a RequestError
+   * @throws RequestError if the body has already been consumed or reading fails
+   */
+  private async _read<T>(reader: () => Promise<T>): Promise<T> {
+    this._checkUsed();
+    try {
+      return await reader();
+    } catch (e) {
+      throw this._err(`Read: ${errorMessage(e)}`);
+    }
   }
 
   /**
    * Check if the response body has already been consumed and throw an error if so
    * @throws RequestError if the body has already been consumed
    */
-  private checkBodyNotConsumed(): void {
-    if (this.response.bodyUsed) {
-      throw new RequestError("Body used", this.url || "", this.method || "", {
-        status: this.response.status,
-        response: this.response,
-      });
+  private _checkUsed(): void {
+    if (this._res.bodyUsed) {
+      throw this._err("Body used");
     }
   }
 
@@ -94,8 +117,8 @@ export class ResponseWrapper {
    * @param data - The parsed JSON data
    * @throws RequestError if GraphQL response contains errors and throwOnError is enabled
    */
-  private checkGraphQLErrors(data: unknown): void {
-    if (!this.graphQLOptions?.throwOnError || typeof data !== "object" || data === null) return;
+  private _checkGql(data: unknown): void {
+    if (!this._gqlOpts?.throwOnError || typeof data !== "object" || data === null) return;
     const responseData = data as { errors?: unknown };
     if (!Array.isArray(responseData.errors) || responseData.errors.length === 0) return;
     const errors = responseData.errors;
@@ -118,13 +141,7 @@ export class ResponseWrapper {
       }
       return String(x);
     });
-    const errorMessage = errorMessages.join(", ");
-
-    throw new RequestError(`GQL: ${errorMessage}`, this.url || "", this.method || "", {
-      status: this.response.status,
-      response: this.response,
-      body: this.cachedText,
-    });
+    throw this._err(`GQL: ${errorMessages.join(", ")}`, true);
   }
 
   /**
@@ -154,42 +171,38 @@ export class ResponseWrapper {
    * }
    */
   async getJson<T = unknown>(): Promise<T | null> {
-    if (this.cachedJson !== undefined) return this.cachedJson as T | null;
+    if (this._json !== undefined) return this._json as T | null;
 
     // Handle empty responses: 204 No Content or content-length: 0
-    const contentLength = this.response.headers.get("content-length");
-    if (this.response.status === 204 || contentLength === "0") {
-      this.cachedJson = null;
+    const contentLength = this._res.headers.get("content-length");
+    if (this._res.status === 204 || contentLength === "0") {
+      this._json = null;
       return null;
     }
 
-    this.checkBodyNotConsumed();
+    this._checkUsed();
 
     try {
       // Read as text first to handle empty bodies and cache for getText()
-      const text = await this.response.text();
-      this.cachedText = text;
+      const text = await this._res.text();
+      this._text = text;
 
       // Handle empty or whitespace-only responses
       if (!text || text.trim() === "") {
-        this.cachedJson = null;
+        this._json = null;
         return null;
       }
 
       // Parse the text as JSON
       const parsed = JSON.parse(text) as T;
-      this.cachedJson = parsed;
-      this.checkGraphQLErrors(parsed);
+      this._json = parsed;
+      this._checkGql(parsed);
       return parsed;
     } catch (error) {
       if (error instanceof RequestError) {
         throw error;
       }
-      throw new RequestError(`Bad JSON: ${error instanceof Error ? error.message : String(error)}`, this.url || "", this.method || "", {
-        status: this.response.status,
-        response: this.response,
-        body: this.cachedText,
-      });
+      throw this._err(`Bad JSON: ${errorMessage(error)}`, true);
     }
   }
 
@@ -207,20 +220,8 @@ export class ResponseWrapper {
    * ```
    */
   async getText(): Promise<string> {
-    if (this.cachedText !== undefined) return this.cachedText;
-
-    this.checkBodyNotConsumed();
-
-    try {
-      const text = await this.response.text();
-      this.cachedText = text;
-      return text;
-    } catch (e) {
-      throw new RequestError(`Read: ${e instanceof Error ? e.message : String(e)}`, this.url || "", this.method || "", {
-        status: this.response.status,
-        response: this.response,
-      });
-    }
+    if (this._text !== undefined) return this._text;
+    return (this._text = await this._read(() => this._res.text()));
   }
 
   /**
@@ -239,20 +240,8 @@ export class ResponseWrapper {
    * ```
    */
   async getBlob(): Promise<Blob> {
-    if (this.cachedBlob !== undefined) return this.cachedBlob;
-
-    this.checkBodyNotConsumed();
-
-    try {
-      const blob = await this.response.blob();
-      this.cachedBlob = blob;
-      return blob;
-    } catch (e) {
-      throw new RequestError(`Read: ${e instanceof Error ? e.message : String(e)}`, this.url || "", this.method || "", {
-        status: this.response.status,
-        response: this.response,
-      });
-    }
+    if (this._blob !== undefined) return this._blob;
+    return (this._blob = await this._read(() => this._res.blob()));
   }
 
   /**
@@ -271,22 +260,10 @@ export class ResponseWrapper {
    * ```
    */
   async getArrayBuffer(): Promise<ArrayBuffer> {
-    if (this.cachedArrayBuffer !== undefined) {
-      return this.cachedArrayBuffer;
+    if (this._buf !== undefined) {
+      return this._buf;
     }
-
-    this.checkBodyNotConsumed();
-
-    try {
-      const arrayBuffer = await this.response.arrayBuffer();
-      this.cachedArrayBuffer = arrayBuffer;
-      return arrayBuffer;
-    } catch (e) {
-      throw new RequestError(`Read: ${e instanceof Error ? e.message : String(e)}`, this.url || "", this.method || "", {
-        status: this.response.status,
-        response: this.response,
-      });
-    }
+    return (this._buf = await this._read(() => this._res.arrayBuffer()));
   }
 
   /**
@@ -305,9 +282,9 @@ export class ResponseWrapper {
    * }
    */
   getBody(): ReadableStream<Uint8Array> | null {
-    this.checkBodyNotConsumed();
+    this._checkUsed();
 
-    return this.response.body;
+    return this._res.body;
   }
 
   /**
@@ -359,17 +336,12 @@ export class ResponseWrapper {
 
       // Enhance selector errors with context
       if (selector) {
-        throw new RequestError(`Selector: ${error instanceof Error ? error.message : String(error)}`, this.url || "", this.method || "", {
-          status: this.response.status,
-          response: this.response,
-          body: this.cachedText,
-        });
+        throw this._err(`Selector: ${errorMessage(error)}`, true);
       }
 
       // If we get here and it's not a RequestError, wrap it
       // This should rarely happen as getJson() should throw RequestError
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      throw RequestError.networkError(this.url || "", this.method || "", errorObj);
+      throw RequestError.networkError(this.url || "", this.method || "", toError(error));
     }
   }
 }

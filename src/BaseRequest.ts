@@ -1,4 +1,4 @@
-import { type HttpMethod, RedirectMode, RequestMode, RequestPriority, ReferrerPolicy, CredentialsPolicy } from "./enums.js";
+import { type HttpMethod, RedirectMode, RequestMode, RequestPriority, ReferrerPolicy, CredentialsPolicy, CacheMode } from "./enums.js";
 import type {
   Body,
   RetryConfig,
@@ -15,7 +15,7 @@ import type {
 } from "./types.js";
 import { ResponseWrapper } from "./ResponseWrapper.js";
 import { CookieUtils } from "./utils/CookieUtils.js";
-import { RequestError } from "./RequestError.js";
+import { RequestError, errorMessage, toError } from "./RequestError.js";
 import { CsrfUtils } from "./utils/CsrfUtils.js";
 import { Config } from "./utils/Config.js";
 
@@ -24,30 +24,30 @@ import { Config } from "./utils/Config.js";
  * Provides the core request building and execution capabilities.
  */
 export abstract class BaseRequest {
-  protected abstract method: HttpMethod;
-  protected url: string;
-  protected requestOptions: RequestOptions = {
+  protected abstract _method: HttpMethod;
+  protected _url: string;
+  protected _opts: RequestOptions = {
     headers: {},
   };
-  protected abortController?: AbortController;
-  protected customFetch?: FetchFunction;
-  protected queryParams: URLSearchParams = new URLSearchParams();
-  protected autoApplyCsrfProtection: boolean = true;
+  protected _ctrl?: AbortController;
+  protected _fetch?: FetchFunction;
+  protected _query: URLSearchParams = new URLSearchParams();
+  protected _autoCsrf: boolean = true;
 
   // Per-request interceptors
-  private requestInterceptors: RequestInterceptor[] = [];
-  private responseInterceptors: ResponseInterceptor[] = [];
-  private errorInterceptors: ErrorInterceptor[] = [];
+  private _reqI: RequestInterceptor[] = [];
+  private _resI: ResponseInterceptor[] = [];
+  private _errI: ErrorInterceptor[] = [];
 
   constructor(url: string) {
-    this.url = url;
+    this._url = url;
   }
 
   /**
    * Get GraphQL options if set (only for BodyRequest subclasses)
    * @returns GraphQL options or undefined
    */
-  protected getGraphQLOptions(): GraphQLOptions | undefined {
+  protected _gql(): GraphQLOptions | undefined {
     return undefined;
   }
 
@@ -55,38 +55,38 @@ export abstract class BaseRequest {
    * Creates a fluent API for setting enum-based options
    * Combines direct setter with convenience methods
    */
-  private createFluentSetter<T extends string>(optionName: keyof RequestOptions, options: Record<string, T>): unknown {
+  private _fluent<T extends string>(optionName: keyof RequestOptions, options: Record<string, T>): unknown {
     const fluent: Record<string, () => BaseRequest> = {};
 
     // Create convenience methods for each enum value
     Object.entries(options).forEach(([key, value]) => {
       fluent[key] = (): BaseRequest => {
-        (this.requestOptions as Record<string, unknown>)[optionName] = value;
+        (this._opts as Record<string, unknown>)[optionName] = value;
         return this;
       };
     });
 
     // Create the callable setter
     const callable = (value: T): BaseRequest => {
-      (this.requestOptions as Record<string, unknown>)[optionName] = value;
+      (this._opts as Record<string, unknown>)[optionName] = value;
       return this;
     };
 
     return Object.assign(callable, fluent);
   }
 
-  private validateUrl(url: string): void {
+  private _validateUrl(url: string): void {
     const errorMessage = "Bad URL";
-    if (!url?.trim()) throw new RequestError(errorMessage, url, this.method);
+    if (!url?.trim()) throw new RequestError(errorMessage, url, this._method);
     if (url.includes("\0") || url.includes("\r") || url.includes("\n")) {
-      throw new RequestError(errorMessage, url, this.method);
+      throw new RequestError(errorMessage, url, this._method);
     }
     const trimmed = url.trim();
     if (/^https?:\/\//.test(trimmed)) {
       try {
         new URL(trimmed);
       } catch {
-        throw new RequestError(errorMessage, trimmed, this.method);
+        throw new RequestError(errorMessage, trimmed, this._method);
       }
     }
   }
@@ -105,17 +105,11 @@ export abstract class BaseRequest {
    */
   withHeaders(headers: Record<string, string>): this {
     // Filter out null and undefined values
-    const filteredHeaders: Record<string, string> = {};
-    Object.entries(headers).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        filteredHeaders[key] = value;
-      }
-    });
-
-    this.requestOptions.headers = {
-      ...this.getHeadersRecord(),
-      ...filteredHeaders,
-    };
+    const merged = { ...this._headers() };
+    for (const [key, value] of Object.entries(headers)) {
+      if (value != null) merged[key] = value;
+    }
+    this._opts.headers = merged;
     return this;
   }
 
@@ -145,9 +139,9 @@ export abstract class BaseRequest {
    * request.withTimeout(5000); // 5 seconds timeout
    */
   withTimeout(timeout: number): this {
-    if (!Number.isFinite(timeout) || timeout <= 0) throw new RequestError("Bad timeout", this.url, this.method);
+    if (!Number.isFinite(timeout) || timeout <= 0) throw new RequestError("Bad timeout", this._url, this._method);
 
-    this.requestOptions.timeout = timeout;
+    this._opts.timeout = timeout;
     return this;
   }
 
@@ -184,28 +178,20 @@ export abstract class BaseRequest {
    * });
    */
   withRetries(retries: number | RetryConfig): this {
-    if (typeof retries === "number") {
-      if (!Number.isInteger(retries) || retries < 0) {
-        throw new RequestError(`Bad retries: ${retries}`, this.url, this.method);
-      }
-      this.requestOptions.retries = retries;
-    } else {
-      // Validate RetryConfig
-      if (!Number.isInteger(retries.attempts) || retries.attempts < 0) {
-        throw new RequestError(`Bad attempts: ${retries.attempts}`, this.url, this.method);
-      }
-      // Validate delay if provided
-      if (retries.delay !== undefined) {
-        if (typeof retries.delay === "number") {
-          if (!Number.isFinite(retries.delay) || retries.delay < 0) {
-            throw new RequestError(`Bad delay: ${retries.delay}`, this.url, this.method);
-          }
-        } else if (typeof retries.delay !== "function") {
-          throw new RequestError(`Bad delay: ${typeof retries.delay}`, this.url, this.method);
-        }
-      }
-      this.requestOptions.retries = retries;
+    const isNumber = typeof retries === "number";
+    const attempts = isNumber ? retries : retries.attempts;
+    if (!Number.isInteger(attempts) || attempts < 0) {
+      throw new RequestError(`Bad ${isNumber ? "retries" : "attempts"}: ${attempts}`, this._url, this._method);
     }
+    if (!isNumber && retries.delay !== undefined) {
+      const delay = retries.delay;
+      if (typeof delay === "number") {
+        if (!Number.isFinite(delay) || delay < 0) throw new RequestError(`Bad delay: ${delay}`, this._url, this._method);
+      } else if (typeof delay !== "function") {
+        throw new RequestError(`Bad delay: ${typeof delay}`, this._url, this._method);
+      }
+    }
+    this._opts.retries = retries;
     return this;
   }
 
@@ -223,7 +209,7 @@ export abstract class BaseRequest {
    * });
    */
   onRetry(callback: RetryCallback): this {
-    this.requestOptions.onRetry = callback;
+    this._opts.onRetry = callback;
     return this;
   }
 
@@ -255,11 +241,7 @@ export abstract class BaseRequest {
     OMIT: () => BaseRequest;
     SAME_ORIGIN: () => BaseRequest;
   } {
-    return this.createFluentSetter<CredentialsPolicy>("credentials", {
-      INCLUDE: CredentialsPolicy.INCLUDE,
-      OMIT: CredentialsPolicy.OMIT,
-      SAME_ORIGIN: CredentialsPolicy.SAME_ORIGIN,
-    }) as ((credentialsPolicy: CredentialsPolicy) => BaseRequest) & {
+    return this._fluent<CredentialsPolicy>("credentials", CredentialsPolicy) as ((credentialsPolicy: CredentialsPolicy) => BaseRequest) & {
       INCLUDE: () => BaseRequest;
       OMIT: () => BaseRequest;
       SAME_ORIGIN: () => BaseRequest;
@@ -293,7 +275,7 @@ export abstract class BaseRequest {
    * controller.abort();
    */
   withAbortController(controller: AbortController): this {
-    this.abortController = controller;
+    this._ctrl = controller;
     return this;
   }
 
@@ -327,9 +309,9 @@ export abstract class BaseRequest {
    * request.withFetch((url, init) => fetch(url, { ...init, next: { revalidate: 60 } }));
    */
   withFetch(fetchFn: FetchFunction): this {
-    if (typeof fetchFn !== "function") throw new RequestError("Bad fetch", this.url, this.method);
+    if (typeof fetchFn !== "function") throw new RequestError("Bad fetch", this._url, this._method);
 
-    this.customFetch = fetchFn;
+    this._fetch = fetchFn;
     return this;
   }
 
@@ -352,7 +334,7 @@ export abstract class BaseRequest {
    * request.withReferrer("")
    */
   withReferrer(referrer: string): this {
-    this.requestOptions.referrer = referrer;
+    this._opts.referrer = referrer;
     return this;
   }
 
@@ -394,16 +376,7 @@ export abstract class BaseRequest {
     NO_REFERRER_WHEN_DOWNGRADE: () => BaseRequest;
     STRICT_ORIGIN_WHEN_CROSS_ORIGIN: () => BaseRequest;
   } {
-    return this.createFluentSetter<ReferrerPolicy>("referrerPolicy", {
-      ORIGIN: ReferrerPolicy.ORIGIN,
-      UNSAFE_URL: ReferrerPolicy.UNSAFE_URL,
-      SAME_ORIGIN: ReferrerPolicy.SAME_ORIGIN,
-      NO_REFERRER: ReferrerPolicy.NO_REFERRER,
-      STRICT_ORIGIN: ReferrerPolicy.STRICT_ORIGIN,
-      ORIGIN_WHEN_CROSS_ORIGIN: ReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN,
-      NO_REFERRER_WHEN_DOWNGRADE: ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE,
-      STRICT_ORIGIN_WHEN_CROSS_ORIGIN: ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN,
-    }) as ((policy: ReferrerPolicy) => BaseRequest) & {
+    return this._fluent<ReferrerPolicy>("referrerPolicy", ReferrerPolicy) as ((policy: ReferrerPolicy) => BaseRequest) & {
       ORIGIN: () => BaseRequest;
       UNSAFE_URL: () => BaseRequest;
       SAME_ORIGIN: () => BaseRequest;
@@ -446,11 +419,7 @@ export abstract class BaseRequest {
     ERROR: () => BaseRequest;
     MANUAL: () => BaseRequest;
   } {
-    return this.createFluentSetter<RedirectMode>("redirect", {
-      FOLLOW: RedirectMode.FOLLOW,
-      ERROR: RedirectMode.ERROR,
-      MANUAL: RedirectMode.MANUAL,
-    }) as ((redirect: RedirectMode) => BaseRequest) & {
+    return this._fluent<RedirectMode>("redirect", RedirectMode) as ((redirect: RedirectMode) => BaseRequest) & {
       FOLLOW: () => BaseRequest;
       ERROR: () => BaseRequest;
       MANUAL: () => BaseRequest;
@@ -473,7 +442,7 @@ export abstract class BaseRequest {
    * request.withKeepAlive(true)
    */
   withKeepAlive(keepalive: boolean): this {
-    this.requestOptions.keepalive = keepalive;
+    this._opts.keepalive = keepalive;
     return this;
   }
 
@@ -509,11 +478,7 @@ export abstract class BaseRequest {
     LOW: () => BaseRequest;
     AUTO: () => BaseRequest;
   } {
-    return this.createFluentSetter<RequestPriority>("priority", {
-      HIGH: RequestPriority.HIGH,
-      LOW: RequestPriority.LOW,
-      AUTO: RequestPriority.AUTO,
-    }) as ((priority: RequestPriority) => BaseRequest) & {
+    return this._fluent<RequestPriority>("priority", RequestPriority) as ((priority: RequestPriority) => BaseRequest) & {
       HIGH: () => BaseRequest;
       LOW: () => BaseRequest;
       AUTO: () => BaseRequest;
@@ -541,7 +506,7 @@ export abstract class BaseRequest {
    * request.withIntegrity("sha256-... sha384-...")
    */
   withIntegrity(integrity: string): this {
-    this.requestOptions.integrity = integrity;
+    this._opts.integrity = integrity;
     return this;
   }
 
@@ -587,15 +552,7 @@ export abstract class BaseRequest {
     FORCE_CACHE: () => BaseRequest;
     ONLY_IF_CACHED: () => BaseRequest;
   } {
-    const cacheOptions: Record<string, string> = {
-      DEFAULT: "default",
-      NO_STORE: "no-store",
-      RELOAD: "reload",
-      NO_CACHE: "no-cache",
-      FORCE_CACHE: "force-cache",
-      ONLY_IF_CACHED: "only-if-cached",
-    };
-    return this.createFluentSetter<string>("cache", cacheOptions) as ((cache: string) => BaseRequest) & {
+    return this._fluent<string>("cache", CacheMode) as ((cache: string) => BaseRequest) & {
       DEFAULT: () => BaseRequest;
       NO_STORE: () => BaseRequest;
       RELOAD: () => BaseRequest;
@@ -643,9 +600,9 @@ export abstract class BaseRequest {
 
       if (Array.isArray(value)) {
         // Handle array values - add multiple entries with the same key
-        value.forEach(v => this.queryParams.append(key, String(v)));
+        value.forEach(v => this._query.append(key, String(v)));
       } else {
-        this.queryParams.append(key, String(value));
+        this._query.append(key, String(value));
       }
     });
     return this;
@@ -710,12 +667,7 @@ export abstract class BaseRequest {
     SAME_ORIGIN: () => BaseRequest;
     NAVIGATE: () => BaseRequest;
   } {
-    return this.createFluentSetter<RequestMode>("mode", {
-      CORS: RequestMode.CORS,
-      NO_CORS: RequestMode.NO_CORS,
-      SAME_ORIGIN: RequestMode.SAME_ORIGIN,
-      NAVIGATE: RequestMode.NAVIGATE,
-    }) as ((mode: RequestMode) => BaseRequest) & {
+    return this._fluent<RequestMode>("mode", RequestMode) as ((mode: RequestMode) => BaseRequest) & {
       CORS: () => BaseRequest;
       NO_CORS: () => BaseRequest;
       SAME_ORIGIN: () => BaseRequest;
@@ -781,7 +733,7 @@ export abstract class BaseRequest {
    * ```
    */
   withBasicAuth(username: string, password: string): this {
-    const credentials = this.encodeBase64(`${username}:${password}`);
+    const credentials = this._b64(`${username}:${password}`);
     return this.withAuthorization(`Basic ${credentials}`);
   }
 
@@ -789,22 +741,19 @@ export abstract class BaseRequest {
    * Cross-environment base64 encoding
    * Works in both browser and Node.js environments
    */
-  private encodeBase64(str: string): string {
+  private _b64(str: string): string {
     // Modern approach using TextEncoder (available in both modern browsers and Node.js)
-    if (typeof TextEncoder !== "undefined" && typeof btoa === "function") {
-      const encoder = new TextEncoder();
-      const bytes = encoder.encode(str);
-      return btoa(String.fromCharCode.apply(null, [...new Uint8Array(bytes)]));
+    if (typeof btoa === "function") {
+      if (typeof TextEncoder !== "undefined") return btoa(String.fromCharCode(...new TextEncoder().encode(str)));
+      // Browser environment without TextEncoder
+      return btoa(str);
     }
-
-    // Browser environment
-    if (typeof btoa === "function") return btoa(str);
 
     // Node.js environment
     if (typeof Buffer !== "undefined") return Buffer.from(str).toString("base64");
 
     // Fallback (should never happen in modern environments)
-    throw new RequestError("No encoder", this.url, this.method);
+    throw new RequestError("No encoder", this._url, this._method);
   }
 
   /**
@@ -828,9 +777,9 @@ export abstract class BaseRequest {
    * Safely get headers as a Record<string, string>
    * @returns The headers object
    */
-  private getHeadersRecord(): Record<string, string> {
-    if (typeof this.requestOptions.headers === "object" && this.requestOptions.headers !== null) {
-      return this.requestOptions.headers as Record<string, string>;
+  private _headers(): Record<string, string> {
+    if (typeof this._opts.headers === "object" && this._opts.headers !== null) {
+      return this._opts.headers as Record<string, string>;
     }
     return {};
   }
@@ -840,8 +789,8 @@ export abstract class BaseRequest {
    * @param headerName Header name to check
    * @returns Boolean indicating if the header exists (case-insensitive)
    */
-  private hasHeader(headerName: string): boolean {
-    const headers = this.getHeadersRecord();
+  private _hasHeader(headerName: string): boolean {
+    const headers = this._headers();
     return Object.keys(headers).some(key => key.toLowerCase() === headerName.toLowerCase());
   }
 
@@ -871,45 +820,28 @@ export abstract class BaseRequest {
    * ```
    */
   withCookies(cookies: CookiesRecord): this {
-    const cookieEntries = Object.entries(cookies || {});
+    if (Object.keys(cookies || {}).length === 0) return this;
 
-    if (cookieEntries.length === 0) {
-      return this;
-    }
-
-    const currentHeaders = this.getHeadersRecord();
-
-    // Get all existing cookie headers with different cases
+    // Collect existing cookie header values (any casing), preserving the first header's case
+    const newHeaders = { ...this._headers() };
     const cookieValues: string[] = [];
-    const cookieHeaderKeys: string[] = [];
+    let headerName = "";
 
-    Object.keys(currentHeaders).forEach(key => {
+    for (const key of Object.keys(newHeaders)) {
       if (key.toLowerCase() === "cookie") {
         // Don't add empty cookie values
-        if (currentHeaders[key]) cookieValues.push(currentHeaders[key]);
-        cookieHeaderKeys.push(key);
+        if (newHeaders[key]) cookieValues.push(newHeaders[key]);
+        headerName ||= key;
+        delete newHeaders[key];
       }
-    });
+    }
 
-    // Format the new cookies
-    const cookieString = CookieUtils.formatRequestCookies(cookies);
+    // Combine all existing cookie values with the newly formatted ones
+    cookieValues.push(CookieUtils.formatRequestCookies(cookies));
 
-    // Choose which header name to use - preserve existing case if possible
-    const headerName = cookieHeaderKeys.length > 0 ? cookieHeaderKeys[0] : "Cookie";
-
-    // Combine all existing cookie values with the new ones
-    const combinedCookieValue = [...cookieValues, cookieString].filter(Boolean).join("; ");
-
-    // Create a new headers object without any cookie headers
-    const newHeaders = { ...currentHeaders };
-    cookieHeaderKeys.forEach(key => {
-      delete newHeaders[key];
-    });
-
-    // Set the new combined cookie header
-    this.requestOptions.headers = {
+    this._opts.headers = {
       ...newHeaders,
-      [headerName]: combinedCookieValue,
+      [headerName || "Cookie"]: cookieValues.filter(Boolean).join("; "),
     };
 
     return this;
@@ -967,7 +899,7 @@ export abstract class BaseRequest {
    * @returns The instance for chaining
    */
   withoutCsrfProtection(): this {
-    this.autoApplyCsrfProtection = false;
+    this._autoCsrf = false;
     return this;
   }
 
@@ -993,7 +925,7 @@ export abstract class BaseRequest {
    * });
    */
   withRequestInterceptor(interceptor: RequestInterceptor): this {
-    this.requestInterceptors.push(interceptor);
+    this._reqI.push(interceptor);
     return this;
   }
 
@@ -1011,7 +943,7 @@ export abstract class BaseRequest {
    * });
    */
   withResponseInterceptor(interceptor: ResponseInterceptor): this {
-    this.responseInterceptors.push(interceptor);
+    this._resI.push(interceptor);
     return this;
   }
 
@@ -1029,7 +961,7 @@ export abstract class BaseRequest {
    * });
    */
   withErrorInterceptor(interceptor: ErrorInterceptor): this {
-    this.errorInterceptors.push(interceptor);
+    this._errI.push(interceptor);
     return this;
   }
 
@@ -1044,15 +976,15 @@ export abstract class BaseRequest {
    * console.log(response.status);
    */
   async getResponse(): Promise<ResponseWrapper> {
-    const url = this.formatUrlWithQueryParams(this.url);
-    this.applyCsrfProtection();
+    const url = this._fullUrl(this._url);
+    this._applyCsrf();
 
     const fetchOptions: RequestInit = {
-      ...(this.requestOptions as RequestInit),
-      method: this.method,
+      ...(this._opts as RequestInit),
+      method: this._method,
     };
 
-    return !this.requestOptions.retries ? this.executeRequest(url, fetchOptions) : this.executeWithRetries(url, fetchOptions);
+    return !this._opts.retries ? this._run(url, fetchOptions) : this._retry(url, fetchOptions);
   }
 
   /**
@@ -1200,8 +1132,8 @@ export abstract class BaseRequest {
   /**
    * Apply CSRF protection headers based on configuration
    */
-  private applyCsrfProtection(): void {
-    if (!this.autoApplyCsrfProtection) return;
+  private _applyCsrf(): void {
+    if (!this._autoCsrf) return;
 
     const config = Config.getInstance();
 
@@ -1214,7 +1146,7 @@ export abstract class BaseRequest {
     const globalToken = config.getCsrfToken();
     if (globalToken) {
       const csrfHeaderName = config.getCsrfHeaderName();
-      const hasLocalToken = this.hasHeader("X-CSRF-Token") || this.hasHeader(csrfHeaderName);
+      const hasLocalToken = this._hasHeader("X-CSRF-Token") || this._hasHeader(csrfHeaderName);
 
       if (!hasLocalToken) {
         this.withHeader(csrfHeaderName, globalToken);
@@ -1226,7 +1158,7 @@ export abstract class BaseRequest {
       const xsrfToken = CsrfUtils.getTokenFromCookie(config.getXsrfCookieName());
       if (xsrfToken && CsrfUtils.isValidToken(xsrfToken)) {
         const xsrfHeaderName = config.getXsrfHeaderName();
-        const hasLocalToken = this.hasHeader("X-XSRF-TOKEN") || this.hasHeader(xsrfHeaderName);
+        const hasLocalToken = this._hasHeader("X-XSRF-TOKEN") || this._hasHeader(xsrfHeaderName);
 
         if (!hasLocalToken) {
           this.withHeader(xsrfHeaderName, xsrfToken);
@@ -1240,8 +1172,8 @@ export abstract class BaseRequest {
    * @param url The base URL
    * @returns The URL with query parameters appended
    */
-  private formatUrlWithQueryParams(url: string): string {
-    const queryString = this.queryParams.toString();
+  private _fullUrl(url: string): string {
+    const queryString = this._query.toString();
     if (!queryString) {
       return url;
     }
@@ -1251,7 +1183,7 @@ export abstract class BaseRequest {
       const urlObj = new URL(url);
 
       // Merge our query params with any that might be in the URL already
-      this.queryParams.forEach((value, key) => {
+      this._query.forEach((value, key) => {
         urlObj.searchParams.append(key, value);
       });
 
@@ -1271,22 +1203,22 @@ export abstract class BaseRequest {
    * @returns A wrapped response object
    * @throws RequestError if the request fails after all retries
    */
-  private async executeWithRetries(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
-    const retriesConfig = this.requestOptions.retries;
+  private async _retry(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
+    const retriesConfig = this._opts.retries;
     const maxRetries = typeof retriesConfig === "number" ? retriesConfig : retriesConfig?.attempts || 0;
     const method = typeof fetchOptions.method === "string" ? fetchOptions.method : "GET";
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        return await this.executeRequest(url, fetchOptions);
+        return await this._run(url, fetchOptions);
       } catch (error) {
-        const requestError = error instanceof RequestError ? error : RequestError.networkError(url, method, error instanceof Error ? error : new Error(String(error)));
+        const requestError = error instanceof RequestError ? error : RequestError.networkError(url, method, toError(error));
 
         if (attempt >= maxRetries) throw requestError;
 
         // Call onRetry callback if provided
-        if (this.requestOptions.onRetry) {
-          await this.requestOptions.onRetry({ attempt: attempt + 1, error: requestError });
+        if (this._opts.onRetry) {
+          await this._opts.onRetry({ attempt: attempt + 1, error: requestError });
         }
 
         // Apply delay if configured
@@ -1315,9 +1247,9 @@ export abstract class BaseRequest {
    * @param configParam - The request configuration
    * @returns Modified config or a Response to short-circuit
    */
-  private async runRequestInterceptors(configParam: RequestConfig): Promise<RequestConfig | Response> {
+  private async _runReqI(configParam: RequestConfig): Promise<RequestConfig | Response> {
     const globalConfig = Config.getInstance();
-    const allInterceptors = [...globalConfig.getRequestInterceptors(), ...this.requestInterceptors];
+    const allInterceptors = [...globalConfig.getRequestInterceptors(), ...this._reqI];
 
     let currentConfig = configParam;
 
@@ -1332,7 +1264,7 @@ export abstract class BaseRequest {
 
         currentConfig = result;
       } catch (error) {
-        throw new RequestError(`ReqI: ${error instanceof Error ? error.message : String(error)}`, currentConfig.url, currentConfig.method);
+        throw new RequestError(`ReqI: ${errorMessage(error)}`, currentConfig.url, currentConfig.method);
       }
     }
 
@@ -1344,12 +1276,12 @@ export abstract class BaseRequest {
    * @param response - The response wrapper
    * @returns Modified response wrapper
    */
-  private async runResponseInterceptors(response: ResponseWrapper): Promise<ResponseWrapper> {
+  private async _runResI(response: ResponseWrapper): Promise<ResponseWrapper> {
     const globalConfig = Config.getInstance();
     const globalInterceptors = globalConfig.getResponseInterceptors();
 
     // Per-request in order, then global in reverse
-    const allInterceptors = [...this.responseInterceptors, ...[...globalInterceptors].reverse()];
+    const allInterceptors = [...this._resI, ...[...globalInterceptors].reverse()];
 
     let currentResponse = response;
 
@@ -1357,7 +1289,7 @@ export abstract class BaseRequest {
       try {
         currentResponse = await allInterceptors[i](currentResponse);
       } catch (error) {
-        throw new RequestError(`ResI: ${error instanceof Error ? error.message : String(error)}`, currentResponse.url || "", currentResponse.method || "");
+        throw new RequestError(`ResI: ${errorMessage(error)}`, currentResponse.url || "", currentResponse.method || "");
       }
     }
 
@@ -1369,12 +1301,12 @@ export abstract class BaseRequest {
    * @param error - The error that occurred
    * @returns Modified error or a ResponseWrapper to recover
    */
-  private async runErrorInterceptors(error: RequestError): Promise<RequestError | ResponseWrapper> {
+  private async _runErrI(error: RequestError): Promise<RequestError | ResponseWrapper> {
     const globalConfig = Config.getInstance();
     const globalInterceptors = globalConfig.getErrorInterceptors();
 
     // Per-request in order, then global in reverse
-    const allInterceptors = [...this.errorInterceptors, ...[...globalInterceptors].reverse()];
+    const allInterceptors = [...this._errI, ...[...globalInterceptors].reverse()];
 
     let currentError: RequestError | ResponseWrapper = error;
 
@@ -1391,23 +1323,19 @@ export abstract class BaseRequest {
         // If an error interceptor throws, that becomes the new error
         if (interceptorError instanceof RequestError) {
           currentError = interceptorError;
-        } else {
-          const em = interceptorError instanceof Error ? interceptorError.message : String(interceptorError);
+        } else if (currentError instanceof RequestError) {
           // Always wrap in RequestError when we have context
-          if (currentError instanceof RequestError) {
-            currentError = new RequestError(`ErrI${i + 1}: ${em}`, currentError.url, currentError.method, {
-              status: currentError.status,
-              response: currentError.response,
-              body: currentError.body,
-            });
-          } else {
-            /* c8 ignore start */
-            // Last resort: if we have no context at all, use the original error's context
-            // This shouldn't happen in practice, but handle it gracefully
-            const errorObj = interceptorError instanceof Error ? interceptorError : new Error(String(interceptorError));
-            currentError = RequestError.networkError(error.url, error.method, errorObj);
-            /* c8 ignore end */
-          }
+          currentError = new RequestError(`ErrI${i + 1}: ${errorMessage(interceptorError)}`, currentError.url, currentError.method, {
+            status: currentError.status,
+            response: currentError.response,
+            body: currentError.body,
+          });
+        } else {
+          /* c8 ignore start */
+          // Last resort: if we have no context at all, use the original error's context
+          // This shouldn't happen in practice, but handle it gracefully
+          currentError = RequestError.networkError(error.url, error.method, toError(interceptorError));
+          /* c8 ignore end */
         }
       }
     }
@@ -1419,7 +1347,7 @@ export abstract class BaseRequest {
    * Helper to create an abort signal with timeout support
    * Handles various AbortSignal API levels gracefully
    */
-  private createAbortSignal(
+  private _signal(
     timeoutMs: number | undefined,
     externalController: AbortController | undefined
   ): {
@@ -1467,7 +1395,7 @@ export abstract class BaseRequest {
       externalController && hasAbortSignalAny
         ? (AbortSignal as unknown as { any: (signals: AbortSignal[]) => AbortSignal }).any([externalController.signal, timeoutSignal])
         : externalController
-          ? this.combineSignalsManually(externalController.signal, timeoutSignal)
+          ? this._combine(externalController.signal, timeoutSignal)
           : timeoutSignal;
 
     return {
@@ -1483,7 +1411,7 @@ export abstract class BaseRequest {
    * Manually combine two abort signals for older environments
    * Returns the first signal and listens to the second
    */
-  private combineSignalsManually(signal1: AbortSignal, signal2: AbortSignal): AbortSignal {
+  private _combine(signal1: AbortSignal, signal2: AbortSignal): AbortSignal {
     // If either is already aborted, use that one
     if (signal1.aborted) return signal1;
     if (signal2.aborted) return signal2;
@@ -1501,9 +1429,9 @@ export abstract class BaseRequest {
   /**
    * Convert fetchOptions to RequestConfig with proper typing
    */
-  private createRequestConfig(url: string, fetchOptions: RequestInit): RequestConfig {
+  private _config(url: string, fetchOptions: RequestInit): RequestConfig {
     const method = typeof fetchOptions.method === "string" ? fetchOptions.method : "GET";
-    const headers = this.getHeadersRecord();
+    const headers = this._headers();
     const extendedOptions = fetchOptions as RequestInit & { priority?: RequestPriority };
 
     return {
@@ -1527,7 +1455,7 @@ export abstract class BaseRequest {
   /**
    * Apply interceptor results back to fetchOptions
    */
-  private applyRequestConfig(config: RequestConfig, fetchOptions: RequestInit): void {
+  private _applyConfig(config: RequestConfig, fetchOptions: RequestInit): void {
     fetchOptions.headers = config.headers;
     if (config.body !== undefined) {
       fetchOptions.body = config.body as BodyInit | null;
@@ -1540,29 +1468,29 @@ export abstract class BaseRequest {
     }
   }
 
-  private async executeRequest(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
+  private async _run(url: string, fetchOptions: RequestInit): Promise<ResponseWrapper> {
     const method = typeof fetchOptions.method === "string" ? fetchOptions.method : "GET";
 
     // Setup abort signal with timeout
-    const abortSignal = this.createAbortSignal(this.requestOptions.timeout, this.abortController);
+    const abortSignal = this._signal(this._opts.timeout, this._ctrl);
 
     try {
       // Run request interceptors before making the request
-      const requestConfig = this.createRequestConfig(url, fetchOptions);
-      const interceptorResult = await this.runRequestInterceptors(requestConfig);
+      const requestConfig = this._config(url, fetchOptions);
+      const interceptorResult = await this._runReqI(requestConfig);
 
       // If interceptor returned a Response, short-circuit and wrap it
       if (interceptorResult instanceof Response) {
-        const graphQLOptions = this.getGraphQLOptions();
-        const wrappedResponse = new ResponseWrapper(interceptorResult, this.url, this.method, graphQLOptions);
-        return await this.runResponseInterceptors(wrappedResponse);
+        const graphQLOptions = this._gql();
+        const wrappedResponse = new ResponseWrapper(interceptorResult, this._url, this._method, graphQLOptions);
+        return await this._runResI(wrappedResponse);
       }
 
       // Update fetchOptions with interceptor modifications
       url = interceptorResult.url;
-      this.validateUrl(url);
+      this._validateUrl(url);
 
-      this.applyRequestConfig(interceptorResult, fetchOptions);
+      this._applyConfig(interceptorResult, fetchOptions);
 
       // Set the combined abort signal
       if (abortSignal.signal) {
@@ -1570,14 +1498,14 @@ export abstract class BaseRequest {
       }
 
       // Execute fetch (custom implementation if provided, global fetch otherwise)
-      const fetchFn = this.customFetch ?? globalThis.fetch;
+      const fetchFn = this._fetch ?? globalThis.fetch;
       let response: Response;
       try {
         response = await fetchFn(url, fetchOptions);
       } catch (error) {
-        const errorObj = error instanceof Error ? error : new Error(String(error));
+        const errorObj = toError(error);
         const errorName = errorObj.name;
-        const errorMessage = errorObj.message.toLowerCase();
+        const lowerMessage = errorObj.message.toLowerCase();
 
         // Check if this is a timeout error from our internal timeout
         const isOurTimeout = abortSignal.wasTimeout();
@@ -1585,8 +1513,8 @@ export abstract class BaseRequest {
         // Check if it's an abort error (DOMException in browsers, or AbortSignal abort)
         if (error instanceof DOMException && error.name === "AbortError") {
           // If it was our timeout that caused the abort, throw timeout error
-          if (isOurTimeout && this.requestOptions.timeout) {
-            throw RequestError.timeout(url, method, this.requestOptions.timeout);
+          if (isOurTimeout && this._opts.timeout) {
+            throw RequestError.timeout(url, method, this._opts.timeout);
           }
           // Otherwise it's a manual abort
           throw RequestError.abortError(url, method);
@@ -1594,10 +1522,10 @@ export abstract class BaseRequest {
 
         // Check for Node.js/undici TimeoutError or other timeout indicators
         // This catches timeout errors that aren't thrown as AbortError
-        const isTimeoutError = isOurTimeout || errorName === "TimeoutError" || errorMessage.includes("timeout") || errorMessage.includes("aborted due to timeout");
+        const isTimeoutError = isOurTimeout || errorName === "TimeoutError" || lowerMessage.includes("timeout");
 
-        if (isTimeoutError && this.requestOptions.timeout) {
-          throw RequestError.timeout(url, method, this.requestOptions.timeout);
+        if (isTimeoutError && this._opts.timeout) {
+          throw RequestError.timeout(url, method, this._opts.timeout);
         }
 
         // For other network errors, let RequestError.networkError handle them
@@ -1617,21 +1545,15 @@ export abstract class BaseRequest {
         throw RequestError.fromResponse(response, url, method, await RequestError.captureBody(response));
       }
 
-      const graphQLOptions = this.getGraphQLOptions();
+      const graphQLOptions = this._gql();
       const wrappedResponse = new ResponseWrapper(response, url, method, graphQLOptions);
-      return await this.runResponseInterceptors(wrappedResponse);
+      return await this._runResI(wrappedResponse);
     } catch (error) {
       // Convert to RequestError if needed
-      let requestError: RequestError;
-      if (error instanceof RequestError) {
-        requestError = error;
-      } else {
-        const errorObj = error instanceof Error ? error : new Error(String(error));
-        requestError = RequestError.networkError(url, method, errorObj);
-      }
+      const requestError = error instanceof RequestError ? error : RequestError.networkError(url, method, toError(error));
 
       // Run error interceptors
-      const interceptorResult = await this.runErrorInterceptors(requestError);
+      const interceptorResult = await this._runErrI(requestError);
 
       // If error interceptor returned a ResponseWrapper, recover from error
       if (interceptorResult instanceof ResponseWrapper) {

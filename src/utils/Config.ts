@@ -1,32 +1,29 @@
 import type { RequestInterceptor, ResponseInterceptor, ErrorInterceptor } from "../types.js";
 
 /**
- * Internal storage for interceptors with IDs
+ * Internal storage for interceptors as [id, interceptor] tuples
  */
-interface InterceptorWithId<T> {
-  id: number;
-  interceptor: T;
-}
+type InterceptorWithId<T> = [number, T];
 
 /**
  * Global configuration for create-request
  */
 export class Config {
-  private static instance: Config;
+  private static _instance: Config;
 
   // CSRF configuration
-  private csrfHeaderName: string = "X-CSRF-Token";
-  private xsrfCookieName: string = "XSRF-TOKEN";
-  private xsrfHeaderName: string = "X-XSRF-TOKEN";
-  private csrfToken: string | null = null;
-  private enableAutoXsrf: boolean = true;
-  private enableAntiCsrf: boolean = true; // X-Requested-With header
+  private _csrfHeader: string = "X-CSRF-Token";
+  private _xsrfCookie: string = "XSRF-TOKEN";
+  private _xsrfHeader: string = "X-XSRF-TOKEN";
+  private _csrfToken: string | null = null;
+  private _autoXsrf: boolean = true;
+  private _antiCsrf: boolean = true; // X-Requested-With header
 
   // Interceptor configuration
-  private requestInterceptors: InterceptorWithId<RequestInterceptor>[] = [];
-  private responseInterceptors: InterceptorWithId<ResponseInterceptor>[] = [];
-  private errorInterceptors: InterceptorWithId<ErrorInterceptor>[] = [];
-  private nextInterceptorId: number = 1;
+  private _reqI: InterceptorWithId<RequestInterceptor>[] = [];
+  private _resI: InterceptorWithId<ResponseInterceptor>[] = [];
+  private _errI: InterceptorWithId<ErrorInterceptor>[] = [];
+  private _nextId: number = 1;
 
   private constructor() {}
 
@@ -40,10 +37,10 @@ export class Config {
    * config.setCsrfToken('token123');
    */
   public static getInstance(): Config {
-    if (!Config.instance) {
-      Config.instance = new Config();
+    if (!Config._instance) {
+      Config._instance = new Config();
     }
-    return Config.instance;
+    return Config._instance;
   }
 
   /**
@@ -56,7 +53,7 @@ export class Config {
    * Config.getInstance().setCsrfToken('myToken123');
    */
   public setCsrfToken(token: string): Config {
-    this.csrfToken = token;
+    this._csrfToken = token;
     return this;
   }
 
@@ -66,7 +63,7 @@ export class Config {
    * @returns The current CSRF token or null if not set
    */
   public getCsrfToken(): string | null {
-    return this.csrfToken;
+    return this._csrfToken;
   }
 
   /**
@@ -79,7 +76,7 @@ export class Config {
    * Config.getInstance().setCsrfHeaderName('X-My-CSRF-Token');
    */
   public setCsrfHeaderName(name: string): Config {
-    this.csrfHeaderName = name;
+    this._csrfHeader = name;
     return this;
   }
 
@@ -89,7 +86,7 @@ export class Config {
    * @returns The current CSRF header name
    */
   public getCsrfHeaderName(): string {
-    return this.csrfHeaderName;
+    return this._csrfHeader;
   }
 
   /**
@@ -102,7 +99,7 @@ export class Config {
    * Config.getInstance().setXsrfCookieName('MY-XSRF-COOKIE');
    */
   public setXsrfCookieName(name: string): Config {
-    this.xsrfCookieName = name;
+    this._xsrfCookie = name;
     return this;
   }
 
@@ -112,7 +109,7 @@ export class Config {
    * @returns The current XSRF cookie name
    */
   public getXsrfCookieName(): string {
-    return this.xsrfCookieName;
+    return this._xsrfCookie;
   }
 
   /**
@@ -122,7 +119,7 @@ export class Config {
    * @returns The config instance for chaining
    */
   public setXsrfHeaderName(name: string): Config {
-    this.xsrfHeaderName = name;
+    this._xsrfHeader = name;
     return this;
   }
 
@@ -132,7 +129,7 @@ export class Config {
    * @returns The current XSRF header name
    */
   public getXsrfHeaderName(): string {
-    return this.xsrfHeaderName;
+    return this._xsrfHeader;
   }
 
   /**
@@ -147,7 +144,7 @@ export class Config {
    * Config.getInstance().setEnableAutoXsrf(false); // Disable XSRF extraction
    */
   public setEnableAutoXsrf(enable: boolean): Config {
-    this.enableAutoXsrf = enable;
+    this._autoXsrf = enable;
     return this;
   }
 
@@ -157,7 +154,7 @@ export class Config {
    * @returns True if automatic XSRF is enabled
    */
   public isAutoXsrfEnabled(): boolean {
-    return this.enableAutoXsrf;
+    return this._autoXsrf;
   }
 
   /**
@@ -168,7 +165,7 @@ export class Config {
    * @returns The config instance for chaining
    */
   public setEnableAntiCsrf(enable: boolean): Config {
-    this.enableAntiCsrf = enable;
+    this._antiCsrf = enable;
     return this;
   }
 
@@ -178,7 +175,7 @@ export class Config {
    * @returns True if anti-CSRF protection is enabled
    */
   public isAntiCsrfEnabled(): boolean {
-    return this.enableAntiCsrf;
+    return this._antiCsrf;
   }
 
   /**
@@ -195,8 +192,8 @@ export class Config {
    * });
    */
   public addRequestInterceptor(interceptor: RequestInterceptor): number {
-    const id = this.nextInterceptorId++;
-    this.requestInterceptors.push({ id, interceptor });
+    const id = this._nextId++;
+    this._reqI.push([id, interceptor]);
     return id;
   }
 
@@ -214,8 +211,8 @@ export class Config {
    * });
    */
   public addResponseInterceptor(interceptor: ResponseInterceptor): number {
-    const id = this.nextInterceptorId++;
-    this.responseInterceptors.push({ id, interceptor });
+    const id = this._nextId++;
+    this._resI.push([id, interceptor]);
     return id;
   }
 
@@ -233,8 +230,8 @@ export class Config {
    * });
    */
   public addErrorInterceptor(interceptor: ErrorInterceptor): number {
-    const id = this.nextInterceptorId++;
-    this.errorInterceptors.push({ id, interceptor });
+    const id = this._nextId++;
+    this._errI.push([id, interceptor]);
     return id;
   }
 
@@ -247,7 +244,7 @@ export class Config {
    * Config.getInstance().removeRequestInterceptor(id);
    */
   public removeRequestInterceptor(id: number): void {
-    this.requestInterceptors = this.requestInterceptors.filter(item => item.id !== id);
+    this._reqI = this._reqI.filter(item => item[0] !== id);
   }
 
   /**
@@ -259,7 +256,7 @@ export class Config {
    * Config.getInstance().removeResponseInterceptor(id);
    */
   public removeResponseInterceptor(id: number): void {
-    this.responseInterceptors = this.responseInterceptors.filter(item => item.id !== id);
+    this._resI = this._resI.filter(item => item[0] !== id);
   }
 
   /**
@@ -271,7 +268,7 @@ export class Config {
    * Config.getInstance().removeErrorInterceptor(id);
    */
   public removeErrorInterceptor(id: number): void {
-    this.errorInterceptors = this.errorInterceptors.filter(item => item.id !== id);
+    this._errI = this._errI.filter(item => item[0] !== id);
   }
 
   /**
@@ -281,9 +278,9 @@ export class Config {
    * Config.getInstance().clearInterceptors();
    */
   public clearInterceptors(): void {
-    this.requestInterceptors = [];
-    this.responseInterceptors = [];
-    this.errorInterceptors = [];
+    this._reqI = [];
+    this._resI = [];
+    this._errI = [];
   }
 
   /**
@@ -291,7 +288,7 @@ export class Config {
    * @internal
    */
   public getRequestInterceptors(): RequestInterceptor[] {
-    return this.requestInterceptors.map(item => item.interceptor);
+    return this._reqI.map(item => item[1]);
   }
 
   /**
@@ -299,7 +296,7 @@ export class Config {
    * @internal
    */
   public getResponseInterceptors(): ResponseInterceptor[] {
-    return this.responseInterceptors.map(item => item.interceptor);
+    return this._resI.map(item => item[1]);
   }
 
   /**
@@ -307,7 +304,7 @@ export class Config {
    * @internal
    */
   public getErrorInterceptors(): ErrorInterceptor[] {
-    return this.errorInterceptors.map(item => item.interceptor);
+    return this._errI.map(item => item[1]);
   }
 
   /**
@@ -319,12 +316,12 @@ export class Config {
    * Config.getInstance().reset();
    */
   public reset(): Config {
-    this.csrfToken = null;
-    this.csrfHeaderName = "X-CSRF-Token";
-    this.enableAntiCsrf = true;
-    this.xsrfCookieName = "XSRF-TOKEN";
-    this.xsrfHeaderName = "X-XSRF-TOKEN";
-    this.enableAutoXsrf = true;
+    this._csrfToken = null;
+    this._csrfHeader = "X-CSRF-Token";
+    this._antiCsrf = true;
+    this._xsrfCookie = "XSRF-TOKEN";
+    this._xsrfHeader = "X-XSRF-TOKEN";
+    this._autoXsrf = true;
     this.clearInterceptors();
     return this;
   }
