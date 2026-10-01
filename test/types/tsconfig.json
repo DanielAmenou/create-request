@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false
+  },
+  "include": ["."],
+  "exclude": ["node-only"]
+}
