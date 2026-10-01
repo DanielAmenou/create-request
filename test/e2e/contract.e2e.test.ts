@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { after, before, beforeEach, describe, it } from "node:test";
-import { FormData as UndiciFormData } from "undici";
+import { FormData as UndiciFormData, fetch as undiciFetch } from "undici";
 import * as v from "valibot";
 import { z } from "zod";
 import create, { type FetchFunction, type HttpRequest, RequestError, ResponseWrapper, createApi, isRequestError } from "../../src/index.js";
@@ -780,8 +780,11 @@ describe("e2e: the public contract over real HTTP", { timeout: 30_000 }, () => {
     it("R3 — a FormData from undici's own copy (a different realm) is sent as multipart, not as JSON", async () => {
       const form = new UndiciFormData();
       form.append("field", "from-undici");
+      // Sent with the same undici copy's fetch: since Node 24, the global fetch only encodes its own FormData
+      // and sends any other one as the text "[object FormData]".
       await create
         .post(server.url("/echo"))
+        .withFetch(undiciFetch as unknown as FetchFunction)
         .withBody(form as unknown as FormData)
         .getJson();
       assert.ok(String(server.lastRequest.headers["content-type"]).startsWith("multipart/form-data; boundary="));
