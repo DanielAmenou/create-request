@@ -1,46 +1,47 @@
 name: Release
 
+# Pushing a tag `vX.Y.Z` publishes that version to npm and creates the GitHub release.
+# A tag with a prerelease suffix (`v2.0.0-next.0`) goes to the `next` dist-tag, anything else to `latest`.
+#
+# Authentication is npm "trusted publishing" (OIDC): no npm token is stored in the repository.
+# One-time setup on npmjs.com → package "create-request" → Settings → Trusted publisher → GitHub Actions:
+#   organization/user: DanielAmenou · repository: create-request · workflow filename: release.yml · environment: (empty)
+#   and tick "Allow npm publish" (setups created after 3 Sep 2026 allow only `npm stage publish` by default).
+# Trusted publishing needs npm ≥ 11.5.1. Current Node 24 releases bundle a new enough npm, but the
+# `npm install -g npm@latest` step keeps the job independent of the exact 24.x the runner provides.
+# Provenance attestations are generated automatically for a public repository.
+
 on:
   push:
-    tags:
-      - "v*"
+    tags: ["v*"]
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
-  release:
+  publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Generate release notes and create release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - name: The tag must match package.json (the dist-tag is derived from the tag, the version from package.json)
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - run: npm run typecheck && npm run test:types && npm test && npm run build && npm run test:types:node
+      - name: Publish to npm (trusted publishing, with provenance)
+        run: npm publish --provenance --access public ${{ contains(github.ref_name, '-') && '--tag next' || '' }}
+      - name: Create the GitHub release
         uses: actions/github-script@v7
         with:
           script: |
-            const tagName = context.ref.replace('refs/tags/', '');
-            
-            // Generate release notes using GitHub's API
-            const { data: releaseNotes } = await github.rest.repos.generateReleaseNotes({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: tagName,
-              target_commitish: context.sha,
-            });
-            
-            // Create the release with auto-generated notes
-            const { data: release } = await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: tagName,
-              name: tagName,
-              body: releaseNotes.body,
-              draft: false,
-              prerelease: tagName.includes('beta') || tagName.includes('alpha') || tagName.includes('rc'),
-            });
-            
-            console.log(`Release created: ${release.html_url}`);
-
+            const tag = context.ref.replace("refs/tags/", "");
+            const { data: notes } = await github.rest.repos.generateReleaseNotes({ owner: context.repo.owner, repo: context.repo.repo, tag_name: tag, target_commitish: context.sha });
+            await github.rest.repos.createRelease({ owner: context.repo.owner, repo: context.repo.repo, tag_name: tag, name: tag, body: notes.body, prerelease: tag.includes("-") });
