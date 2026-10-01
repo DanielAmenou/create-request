@@ -128,14 +128,25 @@ docs(api): update method documentation
 
 ## Releasing (maintainers)
 
-Releases are made by pushing a tag; nothing is published from a laptop.
+Never tag or publish by hand. A release script bumps the version, commits, tags and pushes; the
+`Release` workflow then publishes the tag to npm (trusted publishing, with provenance) and creates
+the GitHub release.
 
-1. Make sure `main` is green and `CHANGELOG.md` has the entry for the version.
-2. `npm version <version> -m "chore(release): %s"` — for example `npm version 2.0.0` or
-   `npm version 2.0.0-next.1` — updates `package.json`, commits and creates the `v<version>` tag.
-3. `git push --follow-tags`. The `Release` workflow checks that the tag matches `package.json`, runs
-   the tests, publishes to npm through trusted publishing (a prerelease suffix such as `-next.1`
-   goes to the `next` dist-tag, anything else to `latest`) with provenance, and creates the GitHub
-   release with generated notes.
+| Command                         | Run it on              | Example                     | npm dist-tag |
+| ------------------------------- | ---------------------- | --------------------------- | ------------ |
+| `npm run release:patch`         | `main`                 | 2.0.0 → 2.0.1               | `latest`     |
+| `npm run release:minor`         | `main`                 | 2.0.1 → 2.1.0               | `latest`     |
+| `npm run release:major`         | `main`                 | 2.1.0 → 3.0.0               | `latest`     |
+| `npm run release:next`          | any branch except main | 3.0.0-next.0 → 3.0.0-next.1 | `next`       |
+| `npm run release:next -- major` | any branch except main | 2.1.0 → 3.0.0-next.0        | `next`       |
+
+`release:next -- minor` and `release:next -- patch` start a minor or patch prerelease the same way.
+When the branch's version is a prerelease that was never released (for example `2.0.0-next.0`),
+`release:next` releases it as it is.
+
+Each script refuses to run on the wrong branch, with uncommitted changes, or when the branch differs
+from `origin`. It shows the version and asks for confirmation, then runs `npm run check` before it
+commits, tags and pushes. The workflow also refuses a stable tag that is not on `main` and a
+prerelease tag that is. Before a stable release, add the version's entry to `CHANGELOG.md`.
 
 Thank you for your contributions!

@@ -1,7 +1,9 @@
 name: Release
 
-# Pushing a tag `vX.Y.Z` publishes that version to npm and creates the GitHub release.
-# A tag with a prerelease suffix (`v2.0.0-next.0`) goes to the `next` dist-tag, anything else to `latest`.
+# Pushing a tag `vX.Y.Z` publishes that version to npm and creates the GitHub release. Create tags with the
+# release scripts (`npm run release:patch | release:minor | release:major | release:next`), not by hand.
+# Stable versions must be tagged on `main` and go to the `latest` dist-tag; prereleases (`v2.0.0-next.0`) must be
+# tagged on another branch and go to the `next` dist-tag. The job refuses a tag on the wrong branch.
 #
 # Authentication is npm "trusted publishing" (OIDC): no npm token is stored in the repository.
 # One-time setup on npmjs.com → package "create-request" → Settings → Trusted publisher → GitHub Actions:
@@ -35,6 +37,14 @@ jobs:
       - run: npm ci
       - name: The tag must match package.json (the dist-tag is derived from the tag, the version from package.json)
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - name: Stable versions are released from main, prereleases from any other branch
+        run: |
+          on_main=no
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main && on_main=yes
+          case "$GITHUB_REF_NAME" in
+            *-*) [ "$on_main" = no ] || { echo "::error::$GITHUB_REF_NAME is a prerelease: release it from a branch other than main"; exit 1; } ;;
+            *) [ "$on_main" = yes ] || { echo "::error::$GITHUB_REF_NAME is a stable version: release it from main"; exit 1; } ;;
+          esac
       - run: npm run typecheck && npm run test:types && npm test && npm run build && npm run test:types:node
       - name: Publish to npm (trusted publishing, with provenance)
         run: npm publish --provenance --access public ${{ contains(github.ref_name, '-') && '--tag next' || '' }}

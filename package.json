@@ -43,6 +43,10 @@
     "size": "size-limit",
     "pack:check": "attw --pack . --profile node16 && publint",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm run test:types && npm run test:coverage && npm run build && npm run test:types:node && npm run pack:check && npm run size",
+    "release:patch": "node scripts/release.mjs patch",
+    "release:minor": "node scripts/release.mjs minor",
+    "release:major": "node scripts/release.mjs major",
+    "release:next": "node scripts/release.mjs next",
     "prepack": "npm run build",
     "prepare": "node .husky/install.mjs",
     "test:types:node": "tsc -p test/types/node-only/tsconfig.json"
