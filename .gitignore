@@ -37,10 +37,12 @@ Thumbs.db  # Windows
 
 # Local files
 TODO.local.md
-.claude-transfer/
 
 # Playground
 playground/
+
+# Plans
+plans/
 
 # Optional npm cache
 .npm
