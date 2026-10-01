@@ -1,337 +1,227 @@
-import { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, SameSitePolicy, CacheMode, type ReferrerPolicy } from "./enums";
-import type { RequestError } from "./RequestError.js";
-import type { ResponseWrapper } from "./ResponseWrapper.js";
+import type { RequestError } from "./error.js";
+import type { HttpRequest } from "./request.js";
+import type { ResponseWrapper } from "./response.js";
+
+/** The HTTP methods a request can be created with. */
+export type Method = "GET" | "HEAD" | "OPTIONS" | "DELETE" | "POST" | "PUT" | "PATCH";
+
+/** The HTTP methods that may carry a request body (`withBody` / `withGraphQL` are only available on these). */
+export type BodyMethod = "POST" | "PUT" | "PATCH" | "DELETE";
+
+/*
+ * The fetch option types below are spelled through `RequestInit` (present in both lib.dom and
+ * `@types/node`) or as literal unions, so the declarations work in Node-only projects that do not
+ * load the DOM lib. They are not exported: the public names are the DOM ones.
+ */
+
+/** What `fetch` accepts as a body. */
+export type FetchBody = NonNullable<RequestInit["body"]>;
+/** `"include"`, `"omit"` or `"same-origin"`. */
+export type CredentialsMode = NonNullable<RequestInit["credentials"]>;
+/** `"cors"`, `"no-cors"`, `"same-origin"` or `"navigate"`. */
+export type CorsMode = NonNullable<RequestInit["mode"]>;
+/** `"follow"`, `"error"` or `"manual"`. */
+export type RedirectMode = NonNullable<RequestInit["redirect"]>;
+/** A referrer policy name (`"no-referrer"`, `"strict-origin-when-cross-origin"`, …). */
+export type ReferrerPolicyName = NonNullable<RequestInit["referrerPolicy"]>;
+/** How the HTTP cache is used. */
+export type CacheMode = "default" | "force-cache" | "no-cache" | "no-store" | "only-if-cached" | "reload";
+/** A fetch priority hint. */
+export type PriorityHint = "auto" | "high" | "low";
 
 /**
- * Request body type that extends the standard BodyInit with support for JSON-serializable values.
- * This allows you to pass plain objects and arrays directly, which will be automatically stringified.
+ * Anything `withBody()` accepts.
+ *
+ * - `string` → sent as-is (`Content-Type: text/plain` unless you set one)
+ * - `Blob` / `File`, `FormData`, `URLSearchParams` → sent as-is, `fetch` sets the matching `Content-Type`
+ * - `ArrayBuffer`, typed arrays, `ReadableStream` → sent as-is, no `Content-Type` unless you set one
+ * - any other JSON-serialisable object or array → `JSON.stringify`-ed (`Content-Type: application/json` unless you set one)
  *
  * @example
  * ```typescript
- * // All of these are valid Body types:
- * const body1: Body = { name: 'John', age: 30 }; // Object (auto-stringified)
- * const body2: Body = [1, 2, 3]; // Array (auto-stringified)
- * const body3: Body = 'plain text'; // String
- * const body4: Body = new FormData(); // FormData
- * const body5: Body = new Blob(['content']); // Blob
+ * request.withBody({ name: "Ada" });          // JSON
+ * request.withBody(new FormData(form));       // multipart
+ * request.withBody("id=1&name=Ada");          // text/plain — set withContentType() for form-urlencoded
  * ```
  */
-export type Body = BodyInit | Record<string, unknown> | unknown[];
+export type Body = FetchBody | object;
+
+/** A single query-string value. Arrays produce repeated keys (`?tag=a&tag=b`); `null`/`undefined` remove the key. */
+export type QueryValue = string | number | boolean | Date | null | undefined | readonly (string | number | boolean | Date)[];
+
+/** Query parameters as a plain object (`{ page: 1, tags: ["a", "b"] }`) or as `URLSearchParams`. */
+export type QueryParams = Record<string, QueryValue> | URLSearchParams;
+
+/** Headers as a plain object. `null`/`undefined` unsets the header (useful to drop an api-level default). */
+export type HeadersRecord = Record<string, string | number | null | undefined>;
+
+/** Cookies as a plain object of `name → value`. Values are sent verbatim (no encoding). */
+export type CookiesRecord = Record<string, string>;
+
+/** A fetch-compatible function: receives the final URL and `RequestInit` and returns a `Response`. */
+export type FetchFunction = (url: string, init: RequestInit) => Promise<Response>;
 
 /**
- * Callback function invoked before each retry attempt.
- * Can be used for logging, implementing custom backoff strategies, or other side effects.
+ * Discriminates the kind of failure a {@link RequestError} represents.
  *
- * @param options - Retry callback options
- * @param options.attempt - The current retry attempt number (1-based, so first retry is 1)
- * @param options.error - The RequestError that triggered this retry
- * @returns `void` or a `Promise<void>` if the callback is async
- *
- * @example
- * ```typescript
- * const onRetry: RetryCallback = ({ attempt, error }) => {
- *   console.log(`Retry attempt ${attempt} after error: ${error.message}`);
- * };
- * ```
+ * - `"HTTP"` — the server answered with a non-2xx status (`status`, `response`, `body`, `data` are set)
+ * - `"NETWORK"` — `fetch` itself rejected: DNS, connection refused, CORS, offline, a relative URL in Node.js
+ *   (`cause` is the original error)
+ * - `"TIMEOUT"` — the `withTimeout()` deadline passed, or a signal aborted with a `TimeoutError` (`AbortSignal.timeout()`)
+ * - `"ABORTED"` — a signal passed with `withSignal()` / `withAbortController()` was aborted
+ * - `"PARSE"` — the body could not be read or parsed (invalid JSON, body already consumed, selector threw)
+ * - `"VALIDATION"` — the response did not match the schema passed to `getJson(schema)` (`issues` is set),
+ *   or the request could not be built: an empty or unparsable absolute URL, an invalid header, timeout,
+ *   retries or body (those last three are thrown synchronously by the `with*` method)
+ * - `"INTERCEPTOR"` — an interceptor or callback (retry, CSRF token) threw (`cause` is what it threw)
+ * - `"GRAPHQL"` — the GraphQL response contained `errors` and `throwOnError` was enabled
  */
-export type RetryCallback = (options: { attempt: number; error: RequestError }) => void | Promise<void>;
+export type RequestErrorCode = "HTTP" | "NETWORK" | "TIMEOUT" | "ABORTED" | "PARSE" | "VALIDATION" | "INTERCEPTOR" | "GRAPHQL";
+
+/** What a retry decision or delay function receives. */
+export interface RetryContext {
+  /** The retry about to happen, starting at 1 (so `attempt === 1` follows the first failure). */
+  attempt: number;
+  /** The error that triggered this retry. */
+  error: RequestError;
+}
 
 /**
- * Function that calculates the delay (in milliseconds) before the next retry attempt.
- * Allows for dynamic delay strategies like exponential backoff or error-based delays.
+ * Configuration for automatic retries — see `withRetries()`.
  *
- * @param options - Delay calculation options
- * @param options.attempt - The current retry attempt number (1-based, so first retry is 1)
- * @param options.error - The RequestError that triggered this retry
- * @returns The delay in milliseconds (must be non-negative)
- *
- * @example
- * ```typescript
- * // Exponential backoff
- * const delayFn: RetryDelayFunction = ({ attempt }) => {
- *   return Math.min(1000 * Math.pow(2, attempt - 1), 10000);
- * };
- * ```
+ * By default a request is retried after a network error, a timeout, or a response with status
+ * 408, 425, 429, 500, 502, 503 or 504, with exponential backoff (300 ms, 600 ms, 1.2 s, … plus
+ * up to 100 ms of jitter, capped at `maxDelay`). A `Retry-After` header is honoured when present.
+ * Aborted requests and requests with a `ReadableStream` body are never retried, whatever the policy.
  *
  * @example
  * ```typescript
- * // Error-based delay (longer delay for rate limits)
- * const delayFn: RetryDelayFunction = ({ attempt, error }) => {
- *   if (error.status === 429) return 5000; // Rate limited, wait 5 seconds
- *   return attempt * 1000; // Otherwise, linear backoff
- * };
- * ```
- */
-export type RetryDelayFunction = (options: { attempt: number; error: RequestError }) => number;
-
-/**
- * Configuration object for retry behavior.
- * Provides fine-grained control over how failed requests are retried.
- *
- * @example
- * ```typescript
- * // Fixed delay
- * const config: RetryConfig = {
+ * request.withRetries(3);                                        // 3 retries, default policy
+ * request.withRetries({ attempts: 3, delay: 1000 });             // fixed 1 s delay
+ * request.withRetries({ attempts: 5, methods: ["GET", "HEAD"] });  // idempotent methods only
+ * request.withRetries({
  *   attempts: 3,
- *   delay: 1000 // Wait 1 second between retries
- * };
- * ```
- *
- * @example
- * ```typescript
- * // Exponential backoff
- * const config: RetryConfig = {
- *   attempts: 3,
- *   delay: ({ attempt }) => Math.min(1000 * Math.pow(2, attempt - 1), 10000)
- * };
+ *   delay: ({ attempt }) => attempt * 500,
+ *   shouldRetry: ({ error }) => error.code === "HTTP" && error.status === 503,
+ *   onRetry: ({ attempt, delay }) => console.log(`retry #${attempt} in ${delay}ms`),
+ * });
  * ```
  */
 export interface RetryConfig {
-  /**
-   * Number of retry attempts before giving up.
-   * For example, `attempts: 3` means the request will be tried up to 4 times total (1 initial + 3 retries).
-   */
+  /** Number of retries after the first attempt (`3` means up to 4 requests in total). */
   attempts: number;
   /**
-   * Delay between retries in milliseconds, or a function that calculates the delay.
-   * - If a number: fixed delay in milliseconds (must be non-negative)
-   * - If a function: calculates delay synchronously based on attempt number and error
-   * - If not provided: no delay between retries (immediate retry)
+   * Delay before each retry, in milliseconds, or a function computing it.
+   * When set, it takes precedence over a `Retry-After` header. Default: exponential backoff.
    */
-  delay?: number | RetryDelayFunction;
-}
-
-/**
- * Configuration object passed to request interceptors.
- * Contains all the information needed to make the request and can be modified by interceptors.
- *
- * @example
- * ```typescript
- * const interceptor: RequestInterceptor = (config) => {
- *   // Modify headers
- *   config.headers['X-Custom'] = 'value';
- *   // Change URL
- *   config.url = 'https://other-api.com' + config.url;
- *   return config;
- * };
- * ```
- */
-export interface RequestConfig {
-  url: string;
-  method: string;
-  headers: Record<string, string>;
-  body?: Body;
-  signal?: AbortSignal;
-  credentials?: RequestCredentials;
-  mode?: RequestMode;
-  redirect?: RedirectMode;
-  referrer?: string;
-  referrerPolicy?: ReferrerPolicy;
-  keepalive?: boolean;
-  priority?: RequestPriority;
-  integrity?: string;
-  cache?: RequestCache;
-}
-
-/**
- * Request interceptor function that can modify the request configuration or return an early response.
- * Interceptors run before the request is sent. If an interceptor returns a Response object,
- * the request is short-circuited and that response is used instead of making the actual request.
- *
- * @param config - The request configuration that can be modified
- * @returns Either:
- *   - A modified `RequestConfig` object (request proceeds with modifications)
- *   - A `Response` object (request is short-circuited, this response is used)
- *   - A Promise resolving to either of the above
- *
- * @example
- * ```typescript
- * const interceptor: RequestInterceptor = (config) => {
- *   // Add custom header
- *   config.headers['X-Request-ID'] = generateId();
- *   return config;
- * };
- * ```
- *
- * @example
- * ```typescript
- * // Short-circuit request (e.g., for caching)
- * const cacheInterceptor: RequestInterceptor = (config) => {
- *   const cached = getFromCache(config.url);
- *   if (cached) {
- *     return new Response(JSON.stringify(cached));
- *   }
- *   return config;
- * };
- * ```
- */
-export type RequestInterceptor = (config: RequestConfig) => RequestConfig | Response | Promise<RequestConfig | Response>;
-
-/**
- * Response interceptor function that can transform the response.
- * Interceptors run after a successful request, allowing you to modify or log responses.
- *
- * @param response - The ResponseWrapper that can be modified or replaced
- * @returns Either:
- *   - A modified `ResponseWrapper` object
- *   - A Promise resolving to a `ResponseWrapper`
- *
- * @example
- * ```typescript
- * const interceptor: ResponseInterceptor = (response) => {
- *   console.log(`Response status: ${response.status}`);
- *   return response;
- * };
- * ```
- *
- * @example
- * ```typescript
- * // Transform response data
- * const interceptor: ResponseInterceptor = async (response) => {
- *   const data = await response.getJson();
- *   // Modify data...
- *   // Note: You'd need to create a new ResponseWrapper with modified data
- *   return response;
- * };
- * ```
- */
-export type ResponseInterceptor = (response: ResponseWrapper) => ResponseWrapper | Promise<ResponseWrapper>;
-
-/**
- * Error interceptor function that can handle or transform errors.
- * Interceptors run when a request fails, allowing you to handle errors, transform them,
- * or recover by returning a ResponseWrapper.
- *
- * @param error - The RequestError that occurred
- * @returns Either:
- *   - A modified `RequestError` (error is re-thrown with modifications)
- *   - A `ResponseWrapper` (error is recovered, request succeeds with this response)
- *   - A Promise resolving to either of the above
- *
- * @example
- * ```typescript
- * // Log errors
- * const interceptor: ErrorInterceptor = (error) => {
- *   console.error('Request failed:', error);
- *   return error; // Re-throw the error
- * };
- * ```
- *
- * @example
- * ```typescript
- * // Recover from specific errors
- * const interceptor: ErrorInterceptor = (error) => {
- *   if (error.status === 404) {
- *     // Return a default response instead of throwing
- *     return new ResponseWrapper(
- *       new Response(JSON.stringify({ data: [] }), { status: 200 })
- *     );
- *   }
- *   return error; // Re-throw other errors
- * };
- * ```
- */
-export type ErrorInterceptor = (error: RequestError) => RequestError | ResponseWrapper | Promise<RequestError | ResponseWrapper>;
-
-/**
- * Options for setting cookie properties.
- * Note: When used in request cookies (via `withCookies()`), these options are primarily
- * for documentation purposes, as the Cookie header only sends name-value pairs.
- * These options are more relevant when parsing Set-Cookie headers from responses.
- *
- * @example
- * ```typescript
- * const cookieOptions: CookieOptions = {
- *   value: 'abc123',
- *   secure: true,
- *   httpOnly: true,
- *   sameSite: SameSitePolicy.STRICT,
- *   expires: new Date('2024-12-31'),
- *   path: '/',
- *   domain: '.example.com',
- *   maxAge: 3600 // 1 hour in seconds
- * };
- * ```
- */
-export interface CookieOptions {
-  /** The cookie value */
-  value: string;
-  /** Whether the cookie should only be sent over HTTPS */
-  secure?: boolean;
-  /** Whether the cookie should not be accessible via JavaScript (HttpOnly flag) */
-  httpOnly?: boolean;
-  /** SameSite policy for the cookie */
-  sameSite?: SameSitePolicy;
-  /** Expiration date for the cookie */
-  expires?: Date;
-  /** Path where the cookie is valid */
-  path?: string;
-  /** Domain where the cookie is valid */
-  domain?: string;
-  /** Maximum age of the cookie in seconds */
-  maxAge?: number;
-}
-
-/**
- * Record type for cookies.
- * Keys are cookie names, values are either simple strings or CookieOptions objects.
- *
- * @example
- * ```typescript
- * const cookies: CookiesRecord = {
- *   sessionId: 'abc123',
- *   token: { value: 'xyz789', secure: true }
- * };
- * ```
- */
-export type CookiesRecord = Record<string, string | CookieOptions>;
-
-export { HttpMethod, RequestMode, RedirectMode, SameSitePolicy, RequestPriority, CredentialsPolicy, CacheMode };
-
-/**
- * Options for GraphQL requests.
- *
- * @example
- * ```typescript
- * const options: GraphQLOptions = {
- *   throwOnError: true // Throw RequestError if GraphQL response contains errors
- * };
- * ```
- */
-export interface GraphQLOptions {
+  delay?: number | ((context: RetryContext) => number) | undefined;
+  /** Statuses that are retried. Default: `[408, 425, 429, 500, 502, 503, 504]`. Network errors and timeouts are retried by default. */
+  statuses?: readonly number[] | undefined;
+  /** Methods that are retried. Default: all. Use `["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]` to retry idempotent requests only. */
+  methods?: readonly Method[] | undefined;
   /**
-   * If `true`, throws a RequestError when the GraphQL response contains errors.
-   * If `false` or undefined, errors are returned in the response data and must be checked manually.
+   * Upper bound, in milliseconds, for the default backoff. A `Retry-After` header longer than this
+   * cancels the retry so you can react to it yourself. Default: `30000`.
    */
-  throwOnError?: boolean;
+  maxDelay?: number | undefined;
+  /** Full override of the retry decision (`statuses` and `methods` are ignored). Aborts and stream bodies still never retry. */
+  shouldRetry?: ((context: RetryContext) => boolean | Promise<boolean>) | undefined;
+  /** Called before every retry, after the delay has been computed. Awaited if it returns a promise. */
+  onRetry?: ((context: RetryContext & { delay: number }) => void | Promise<void>) | undefined;
 }
 
 /**
- * A fetch-compatible function used to execute the actual HTTP request.
- * Must match the signature of the standard `fetch` API and should honor `init.signal`
- * for timeout and abort support.
+ * The request as it is about to be sent, handed to request interceptors.
+ *
+ * `headers` keys are lower-case; `body` is already serialised (JSON bodies are strings);
+ * `signal` combines the signals passed with `withSignal()` (the timeout is added after interceptors ran).
+ * Mutate it in place or return a new object; return a `Response` to skip the network entirely.
+ */
+export interface RequestConfig extends Omit<RequestInit, "headers" | "body" | "method" | "signal" | "window"> {
+  /** The final URL, with the query string and, for api requests, the base URL applied. */
+  url: string;
+  /** The HTTP method. */
+  method: Method;
+  /** The headers to send, with lower-case names. The CSRF header (`withCsrf()`) is added after interceptors ran. */
+  headers: Record<string, string>;
+  /** The serialised body: JSON bodies are already strings. */
+  body?: FetchBody | null | undefined;
+  /** The signals passed with `withSignal()` / `withAbortController()`, combined. The timeout is added after interceptors ran. */
+  signal?: AbortSignal | undefined;
+  /** Required by browsers and Node for `ReadableStream` bodies; set automatically. */
+  duplex?: "half";
+}
+
+/**
+ * Runs before the request is sent. Return nothing to keep your in-place changes, a new
+ * {@link RequestConfig} to replace it, or a `Response` to short-circuit the request
+ * (it is then treated like a fetched response: status is checked, response interceptors run —
+ * but `withTimeout()` does not apply to it, since nothing was fetched).
  *
  * @example
  * ```typescript
- * // A logging wrapper around the global fetch
- * const loggingFetch: FetchFunction = (input, init) => {
- *   console.log(`${init?.method ?? 'GET'} ${input}`);
- *   return fetch(input, init);
+ * const withTraceId: RequestInterceptor = config => {
+ *   config.headers["x-trace-id"] = crypto.randomUUID();
  * };
  * ```
  */
-export type FetchFunction = (input: string | URL | globalThis.Request, init?: RequestInit) => Promise<Response>;
+export type RequestInterceptor = (config: RequestConfig) => RequestConfig | Response | void | Promise<RequestConfig | Response | void>;
 
-export interface RequestOptions extends Omit<RequestInit, "signal" | "body" | "method" | "credentials" | "mode" | "redirect" | "priority" | "cache"> {
-  timeout?: number;
-  retries?: number | RetryConfig;
-  onRetry?: RetryCallback;
-  body?: Body;
-  credentials?: RequestCredentials;
-  mode?: RequestMode;
-  redirect?: RequestRedirect;
-  priority?: RequestPriority;
-  keepalive?: boolean;
-  integrity?: string;
-  cache?: RequestCache;
+/**
+ * Runs after a successful response (before the body is read), with the request that produced it.
+ * Return nothing to keep the response or another {@link ResponseWrapper} to replace it.
+ *
+ * @example
+ * ```typescript
+ * const logStatus: ResponseInterceptor = (response, request) => {
+ *   console.log(request.method, response.url, response.status);
+ * };
+ * ```
+ */
+export type ResponseInterceptor = (response: ResponseWrapper, request: HttpRequest) => ResponseWrapper | void | Promise<ResponseWrapper | void>;
+
+/**
+ * Runs once when the request has failed for good (after all retries), with the request that failed.
+ * Return nothing to keep the error, another {@link RequestError} to replace it, or a
+ * {@link ResponseWrapper} to recover — typically by replaying `request.clone()`. Throwing replaces the error as well.
+ *
+ * @example
+ * ```typescript
+ * const replayed = new WeakSet<HttpRequest>();
+ * const refreshOn401: ErrorInterceptor = async (error, request) => {
+ *   if (error.status !== 401 || replayed.has(request)) return;
+ *   token = await refreshToken();          // the request interceptor that adds the token reads it
+ *   const retry = request.clone();
+ *   replayed.add(retry);                   // never loop on a persistent 401
+ *   return retry.getResponse();
+ * };
+ * ```
+ */
+export type ErrorInterceptor = (error: RequestError, request: HttpRequest) => RequestError | ResponseWrapper | void | Promise<RequestError | ResponseWrapper | void>;
+
+/** Options for `withGraphQL()`. */
+export interface GraphQLOptions {
+  /** Throw a `RequestError` with code `"GRAPHQL"` when the response contains a non-empty `errors` array. Default: `false`. */
+  throwOnError?: boolean | undefined;
 }
+
+/**
+ * Options for `withCsrf()`.
+ *
+ * The token is attached only to same-origin requests (evaluated against the final URL, after
+ * interceptors, before any redirect) unless `crossOrigin` is set. Outside a browser there is no
+ * page origin and every request counts as same-origin.
+ */
+export interface CsrfOptions {
+  /** Cookie to read the token from (browser only). Default: `"XSRF-TOKEN"`. Ignored when `token` is set. */
+  cookie?: string | undefined;
+  /** Header the token is sent in. Default: `"X-XSRF-TOKEN"` when read from a cookie, `"X-CSRF-Token"` when `token` is set. */
+  header?: string | undefined;
+  /** A token, or a function returning one per request (return `null`/`undefined` to send nothing). */
+  token?: string | (() => string | null | undefined) | undefined;
+  /** Also attach the token to cross-origin URLs. Default: `false`. */
+  crossOrigin?: boolean | undefined;
+}
+
+/** What `getResult()` resolves to: `error` is `null` on success and the {@link RequestError} otherwise (then `data` is `null`). */
+export type RequestResult<T> = { data: T; error: null } | { data: null; error: RequestError };

@@ -1,83 +1,98 @@
-import { get, put, head, post, patch, del, options } from "./requestFactories.js";
-import { Config } from "./utils/Config.js";
-import { api } from "./apiBuilder.js";
+import { createApi } from "./api.js";
+import { HttpRequest } from "./request.js";
+import type { BodyMethod, Method } from "./types.js";
 
-// Export enums
-export { HttpMethod, RequestPriority, CredentialsPolicy, RequestMode, RedirectMode, SameSitePolicy, ReferrerPolicy, CacheMode } from "./enums.js";
-
-// Export types
+export { HttpRequest } from "./request.js";
+export { ResponseWrapper } from "./response.js";
+export { RequestError, isRequestError, type RequestErrorOptions } from "./error.js";
+export { createApi, type ApiBuilder } from "./api.js";
+export type { StandardSchemaV1 } from "./schema.js";
 export type {
-  RetryCallback,
-  RetryConfig,
+  Body,
+  BodyMethod,
   CookiesRecord,
-  CookieOptions,
-  FetchFunction,
-  RequestConfig,
-  GraphQLOptions,
-  RequestOptions,
+  CsrfOptions,
   ErrorInterceptor,
+  FetchFunction,
+  GraphQLOptions,
+  HeadersRecord,
+  Method,
+  QueryParams,
+  QueryValue,
+  RequestConfig,
+  RequestErrorCode,
   RequestInterceptor,
-  RetryDelayFunction,
+  RequestResult,
   ResponseInterceptor,
+  RetryConfig,
+  RetryContext,
 } from "./types.js";
 
-// Export core classes
-export { ResponseWrapper } from "./ResponseWrapper.js";
-export { CookieUtils } from "./utils/CookieUtils.js";
-export { RequestError } from "./RequestError.js";
+/** A GET request. */
+export type GetRequest<T = unknown> = HttpRequest<"GET", T>;
+/** A HEAD request. */
+export type HeadRequest<T = unknown> = HttpRequest<"HEAD", T>;
+/** An OPTIONS request. */
+export type OptionsRequest<T = unknown> = HttpRequest<"OPTIONS", T>;
+/** A POST request. */
+export type PostRequest<T = unknown> = HttpRequest<"POST", T>;
+/** A PUT request. */
+export type PutRequest<T = unknown> = HttpRequest<"PUT", T>;
+/** A PATCH request. */
+export type PatchRequest<T = unknown> = HttpRequest<"PATCH", T>;
+/** A DELETE request. */
+export type DeleteRequest<T = unknown> = HttpRequest<"DELETE", T>;
+/** Any request — the v1 name for {@link HttpRequest}. */
+export type BaseRequest<T = unknown> = HttpRequest<Method, T>;
+/** Any request that may carry a body — the v1 name for `HttpRequest<"POST" | "PUT" | "PATCH" | "DELETE">`. */
+export type BodyRequest<T = unknown> = HttpRequest<BodyMethod, T>;
 
-// Export request classes
-export { GetRequest, PostRequest, PutRequest, DeleteRequest, PatchRequest, HeadRequest, OptionsRequest } from "./requestMethods.js";
-
-// Export request factory functions individually
-export {
-  get as createGet,
-  post as createPost,
-  put as createPut,
-  del as createDelete,
-  patch as createPatch,
-  head as createHead,
-  options as createOptions,
-} from "./requestFactories.js";
-
-// Export api function
-export { api as createApi } from "./apiBuilder.js";
+/** Creates a GET request. `T` declares the JSON type the response is expected to have. */
+export const createGet = <T = unknown>(url: string): GetRequest<T> => new HttpRequest("GET", url);
+/** Creates a HEAD request. */
+export const createHead = <T = unknown>(url: string): HeadRequest<T> => new HttpRequest("HEAD", url);
+/** Creates an OPTIONS request. */
+export const createOptions = <T = unknown>(url: string): OptionsRequest<T> => new HttpRequest("OPTIONS", url);
+/** Creates a POST request. */
+export const createPost = <T = unknown>(url: string): PostRequest<T> => new HttpRequest("POST", url);
+/** Creates a PUT request. */
+export const createPut = <T = unknown>(url: string): PutRequest<T> => new HttpRequest("PUT", url);
+/** Creates a PATCH request. */
+export const createPatch = <T = unknown>(url: string): PatchRequest<T> => new HttpRequest("PATCH", url);
+/** Creates a DELETE request. */
+export const createDelete = <T = unknown>(url: string): DeleteRequest<T> => new HttpRequest("DELETE", url);
 
 /**
- * Main API object for creating HTTP requests.
- * Provides factory methods for all HTTP methods and access to global configuration.
+ * The entry point: one factory per HTTP method plus `api()` for configured instances.
  *
  * @example
  * ```typescript
- * import create from 'create-request';
+ * import create from "create-request";
  *
- * // Simple GET request
- * const users = await create.get('/api/users').getJson();
- *
- * // POST request with body
- * const newUser = await create.post('/api/users')
- *   .withBody({ name: 'John', email: 'john@example.com' })
- *   .getJson();
- *
- * // Configure API instance with defaults
- * const api = create.api()
- *   .withBaseURL('https://api.example.com')
- *   .withBearerToken('token123');
- *
- * const data = await api.get('/users').getJson();
+ * const users = await create.get("https://api.example.com/users").getJson<User[]>();
+ * const api = create.api().withBaseURL("https://api.example.com").withBearerToken(token);
+ * const me = await api.get("/me").getJson<User>();
  * ```
  */
 const create = {
-  api,
-  get,
-  put,
-  del,
-  post,
-  patch,
-  head,
-  options,
-  config: Config.getInstance(),
+  /** Creates a GET request. `T` declares the JSON type the response is expected to have. */
+  get: createGet,
+  /** Creates a HEAD request. */
+  head: createHead,
+  /** Creates an OPTIONS request. */
+  options: createOptions,
+  /** Creates a POST request. */
+  post: createPost,
+  /** Creates a PUT request. */
+  put: createPut,
+  /** Creates a PATCH request. */
+  patch: createPatch,
+  /** Creates a DELETE request. */
+  delete: createDelete,
+  /** Alias of `delete`. */
+  del: createDelete,
+  /** Creates an api instance — see {@link createApi}. */
+  api: createApi,
 } as const;
 
-// Default export
 export default create;
