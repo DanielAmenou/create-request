@@ -1,5 +1,11 @@
 {
-  "exclude": ["test/**", "**/*.test.ts", "**/*.test.js", "node_modules/**", "dist/**", "coverage/**"],
-  "include": ["src/**"],
-  "reporter": ["text", "html", "lcov"]
+  "all": true,
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/types.ts"],
+  "reporter": ["text", "lcov"],
+  "check-coverage": true,
+  "lines": 100,
+  "functions": 100,
+  "branches": 100,
+  "statements": 100
 }
