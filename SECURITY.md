@@ -4,10 +4,10 @@
 
 We actively support and provide security updates for the following versions:
 
-| Version | Supported                                                              |
-| ------- | ---------------------------------------------------------------------- |
-| 2.x     | :white_check_mark:                                                     |
-| 1.x     | :x: (once 2.0.0 is released; until then 1.6.1 is the `latest` release) |
+| Version | Supported          |
+| ------- | ------------------ |
+| 2.x     | :white_check_mark: |
+| 1.x     | :x:                |
 
 ## Security Advisories
 
