@@ -4,8 +4,9 @@ node_modules/
 # Build output
 dist/
 
-# Test coverage
+# Test coverage and generated test inputs
 coverage/
+test/types/readme.generated.ts
 .nyc_output/  # Used by c8 (coverage tool)
 
 # Logs
@@ -36,6 +37,7 @@ Thumbs.db  # Windows
 
 # Local files
 TODO.local.md
+.claude-transfer/
 
 # Playground
 playground/
