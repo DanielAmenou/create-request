@@ -1,1409 +1,539 @@
 # create-request
 
-[![License](https://img.shields.io/npm/l/create-request.svg)](https://github.com/DanielAmenou/create-request/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/create-request.svg)](https://www.npmjs.com/package/create-request)
+[![Bundle size](https://img.shields.io/bundlephobia/minzip/create-request)](https://bundlephobia.com/package/create-request)
 [![codecov](https://codecov.io/github/danielamenou/create-request/graph/badge.svg?token=OUBR6RNXZO)](https://codecov.io/github/danielamenou/create-request)
 [![npm downloads](https://img.shields.io/npm/dt/create-request.svg)](https://www.npmjs.com/package/create-request)
-[![npm version](https://img.shields.io/npm/v/create-request.svg)](https://www.npmjs.com/package/create-request)
-[![Bundle Size](https://img.shields.io/bundlephobia/minzip/create-request)](https://bundlephobia.com/package/create-request)
-[![TypeScript](https://img.shields.io/badge/TypeScript-4.7%2B-blue)](https://www.typescriptlang.org/)
-[![Snyk security report](https://img.shields.io/badge/Snyk-security%20report-4C1A51?logo=snyk)](https://security.snyk.io/package/npm/create-request)
+[![License](https://img.shields.io/npm/l/create-request.svg)](https://github.com/DanielAmenou/create-request/blob/main/LICENSE)
 
-`create-request` is a modern TypeScript library that transforms how you make API calls. Built as an elegant wrapper around the native Fetch API, it provides a chainable, fluent interface that dramatically reduces boilerplate while adding powerful features like automatic retries, timeout handling, and comprehensive error management.
-
-## Table of Contents
-
-- [Core Features](#core-features)
-- [Why create-request](#why-create-request)
-- [Mental Model](#mental-model)
-- [Installation](#installation)
-- [Named Exports](#named-exports)
-- [Tree-Shaking Guide](#tree-shaking-guide)
-- [Basic Usage](#basic-usage)
-- [URL Handling](#url-handling)
-- [Advanced Usage](#advanced-usage)
-  - [API Builder](#api-builder)
-  - [Automatic Retries with Delay](#automatic-retries-with-delay)
-  - [Interceptors](#interceptors)
-  - [Request Cancellation](#request-cancellation)
-  - [Custom Fetch Injection](#custom-fetch-injection)
-  - [Data Selection](#data-selection)
-  - [TypeScript Support](#typescript-support)
-  - [CSRF Protection](#csrf-protection)
-  - [Subresource Integrity and Cache Control](#subresource-integrity-and-cache-control)
-- [Performance Considerations](#performance-considerations)
-- [Browser & Node.js Support](#browser--nodejs-support)
-- [Comparison of JavaScript HTTP Client Libraries](#comparison-of-javascript-http-client-libraries)
-- [License](#license)
-- [Website](#website)
-- [Sponsor](#sponsor)
-
-## Core Features
-
-- 🚀 **Performance** - Tiny bundle size with zero dependencies
-- 🚧 **Error Handling** - Detailed error info with custom error class
-- ⛓️ **Chainable API** - Build and execute requests with a fluent interface
-- ⏱️ **Timeout Support** - Set timeouts for requests with automatic aborts
-- 🛡️ **Type Safety** - Full TypeScript support with intelligent type inference
-- 🔐 **Auth Helpers** - Simple methods for common authentication patterns
-- 🔍 **Data Selection** - Extract and transform specific data from responses
-- 🔁 **Automatic Retries** - Retry failed requests with customizable settings
-- 📉 **Reduced Boilerplate** - Write 60% less code for common API operations
-- 🔒 **CSRF Protection** - Built-in safeguards against cross-site request forgery
-- 🏗️ **API Builder** - Create configured API instances with reusable default settings
-- 🛑 **Request Cancellation** - Abort requests on demand with AbortController integration
-- 🔌 **Interceptors** - Global and per-request interceptors for requests, responses, and errors
-- 🧩 **Custom Fetch** - Inject any fetch-compatible function for testing, undici agents, or Next.js caching
-- 🔷 **GraphQL Support** - Built-in GraphQL query and mutation helpers
-
-## Why create-request?
-
-**API interactions often require repetitive code patterns** - handling HTTP status checks, parsing responses, managing errors, and dealing with TypeScript types. `create-request` provides a clean, efficient solution with an elegant API that separates request building from execution:
-
-### With Regular Fetch
-
-```typescript
-async function createUser(userData) {
-  try {
-    const response = await fetch("https://api.example.com/users", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Basic " + btoa("username:password"),
-      },
-      body: JSON.stringify(userData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Fetch error:", error);
-    throw error;
-  }
-}
-```
-
-### With create-request
+A small, fully typed wrapper around `fetch`. Configure a request with `with*()` methods, then
+send it and read the response with a `get*()` method.
 
 ```typescript
 import create from "create-request";
 
-function createUser(userData) {
-  return create
-    .post("https://api.example.com/users")
-    .withBasicAuth("username", "password")
-    .withBody(userData) // Content-Type automatically set to application/json
-    .getData<User>() // Type-safe response handling
-    .catch(error => {
-      console.error("Fetch error:", error);
-      throw error;
-    });
-}
-```
-
-### Why Not Object-Based Configuration?
-
-Many HTTP client libraries (like Axios, Got, and even the native Fetch API) use object-based configuration where all options are passed in a single configuration object. While this approach works, it creates a poor developer experience:
-
-**The Developer Experience Problem:**
-
-With object-based configuration, you're constantly context-switching between your code and documentation. You need to:
-
-- Remember exact option names and their structure
-- Look up documentation to discover available options
-- Guess at nested object structures
-- Hope your IDE autocomplete works with complex nested types
-
-```typescript
-// Object-based: What options are available? What's the structure? Need to check docs
-axios.post("https://api.example.com/users", userData, {
-  headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-  timeout: 5000,
-  params: { validate: true },
-  withCredentials: true,
-});
-```
-
-**Superior Developer Experience with Fluent API:**
-
-`create-request`'s fluent API is designed for an exceptional developer experience. Every method is discoverable, self-documenting, and provides rich IDE support:
-
-#### 1. Intelligent Autocomplete & IntelliSense
-
-As you type, your IDE suggests the exact methods you need. No guessing, no documentation lookup:
-
-```typescript
-// Start typing and see all available methods
-create
-  .post(url)
-  .withBearerToken() // ← IDE suggests: withBearerToken(token: string)
-  .withTimeout() // ← IDE suggests: withTimeout(ms: number)
-  .withRetries(); // ← IDE suggests: withRetries(count: number | RetryConfig)
-```
-
-#### 2. Rich JSDoc Documentation in Your IDE
-
-Hover over any method to see comprehensive documentation, examples, and parameter details - all without leaving your editor:
-
-```typescript
-// Hover over withRetries to see:
-// "Configures automatic retry behavior for failed requests.
-//  @param retries - Number of retry attempts or retry configuration object
-//  @example
-//    .withRetries(3)
-//    .withRetries({ attempts: 3, delay: 1000 })"
-create.get(url).withRetries(3);
-```
-
-#### 3. Discoverability Through Method Chaining
-
-Each method reveals what's available next. Explore the API naturally through autocomplete:
-
-```typescript
-// Discover available options as you chain
-create
-  .post(url)
-  .withHeaders() // ← See all header methods
-  .withBearerToken() // ← See all auth methods
-  .withTimeout() // ← See all timeout/retry methods
-  .withQueryParams(); // ← See all query param methods
-```
-
-#### 4. No Context Switching
-
-Stay in your flow. Everything you need is in your IDE - documentation, types, examples, and autocomplete. No alt-tabbing to documentation websites.
-
-This developer-first approach means you spend less time looking things up and more time writing code that works.
-
-## Mental Model
-
-### 1. **Separation of Building and Execution**
-
-Requests are built first, then executed. This separation allows you to:
-
-- Configure requests incrementally
-- Reuse request configurations
-- Pass requests around before executing them
-- Chain configuration methods fluently
-
-```typescript
-// Building phase: configure the request
-const request = create
+const users = await create
   .get("https://api.example.com/users")
-  .withBearerToken(token)
-  .withTimeout(5000);
-
-// Execution phase: actually make the HTTP call
-const data = await request.getJson();
-```
-
-### 2. **Fluent Chainable Interface**
-
-Every configuration method returns the request instance, enabling method chaining. This creates a readable, declarative API that reads like a sentence:
-
-```typescript
-// Reads like: "Create a POST request to users endpoint, with auth, body, and timeout, then get JSON"
-const user = await create
-  .post("https://api.example.com/users")
-  .withBearerToken(token)
-  .withBody(userData)
-  .withTimeout(3000)
-  .getJson();
-```
-
-### 3. **Configuration Layers**
-
-Configuration follows a layered approach, with more specific settings overriding general ones:
-
-1. **Global Configuration** (via `create.config`) - Applies to all requests
-2. **API Builder Defaults** (via `create.api()`) - Applies to requests from that API instance
-3. **Per-Request Configuration** - Specific to individual requests
-
-```typescript
-// Global: all requests get this
-create.config.setCsrfToken("global-token");
-
-// API instance: requests from this API get these defaults
-const api = create
-  .api()
-  .withBaseURL("https://api.example.com")
-  .withBearerToken("default-token");
-
-// Per-request: this specific request overrides the default token
-const user = await api
-  .get("/users")
-  .withBearerToken("specific-token") // Overrides default-token
-  .getJson();
-```
-
-### 4. **Request Definition with `with...` Functions**
-
-All request configuration is done through methods that start with `with...`. This consistent naming convention makes it immediately clear which methods are used for configuration:
-
-```typescript
-// All configuration uses 'with...' prefix
-const request = create
-  .get("https://api.example.com/users")
-  .withHeaders({ "X-API-Key": "abc123" })
-  .withBearerToken("token")
   .withTimeout(5000)
-  .withRetries(3)
-  .withQueryParams({ page: 1 })
-  .withCookie("session", "abc123");
+  .getJson<User[]>();
 ```
 
-This pattern makes the API self-documenting - any method starting with `with...` is a configuration method that returns the request instance for chaining.
+Retries, timeouts, interceptors and schema validation are built in. It has no dependencies, is
+under 5 KB min+gzip, and runs in browsers and Node.js 20.3+.
 
-### 5. **Request Lifecycle**
+## Table of contents
 
-The typical request lifecycle follows this pattern:
-
-```text
-Build → Configure → Execute → Transform → Handle
-```
-
-1. **Build**: Create a request with a method and URL (`create.get(url)`)
-2. **Configure**: Chain configuration methods using `with...` functions (`.withHeaders()`, `.withTimeout()`, etc.)
-3. **Execute**: Call an execution method (`.getJson()`, `.getData()`, etc.)
-4. **Transform**: Optionally transform the response (via `.getData()` selector or interceptors)
-5. **Handle**: Process the result or catch errors
-
-### 6. **Promise-Based Execution**
-
-All execution methods return Promises, making the library compatible with:
-
-- `async/await` syntax (recommended)
-- `.then()/.catch()` chains
-- Promise utilities like `Promise.all()`, `Promise.race()`, etc.
-
-```typescript
-// All of these work:
-const data1 = await request.getJson();
-
-request.getJson().then(data => console.log(data));
-
-const results = await Promise.all([
-  create.get("/users").getJson(),
-  create.get("/posts").getJson(),
-]);
-```
-
-### 7. **Comprehensive JSDoc Documentation**
-
-The library includes extensive JSDoc documentation throughout the codebase. This documentation is valuable for developers of all levels:
-
-- **For Junior Developers**: JSDoc provides clear explanations of what each method does, parameter types, return values, and usage examples directly in your IDE. This helps with learning and understanding the API without constantly referring to external documentation.
-
-- **For Senior Developers**: JSDoc offers detailed type information, edge cases, and implementation details that enable deeper understanding and more advanced usage patterns. The type definitions help with TypeScript inference and ensure type safety.
+- [Installation](#installation)
+- [60-second start](#60-second-start)
+- [The mental model](#the-mental-model)
+- [Requests](#requests) — [creating](#creating), [configuring](#configuring),
+  [executing](#executing), [reusing](#reusing)
+- [Errors](#errors)
+- [Api instances](#api-instances)
+- [Retries](#retries)
+- [Timeouts and cancellation](#timeouts-and-cancellation)
+- [Interceptors](#interceptors)
+- [Schema validation](#schema-validation)
+- [GraphQL](#graphql)
+- [Streaming and downloads](#streaming-and-downloads)
+- [Testing and custom fetch](#testing-and-custom-fetch)
+- [Cookies and CSRF](#cookies-and-csrf)
+- [TypeScript](#typescript)
+- [Design principles](#design-principles)
+- [Size](#size)
+- [Migrating from v1](#migrating-from-v1)
 
 ## Installation
 
-```bash
-# npm
+```sh
 npm install create-request
-
-# yarn
-yarn add create-request
-
-# pnpm
-pnpm add create-request
 ```
 
-## Named Exports
+| Runtime                  | Support                                                                                                                                                                          |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Node.js                  | 20.3 or newer                                                                                                                                                                    |
+| Browsers                 | Anything with `fetch`, `AbortSignal` and ES2022 — Chrome/Edge 93+, Firefox 91+, Safari 15+ (2021 and later)                                                                      |
+| Bun, Deno, edge runtimes | Only standard `fetch` / `AbortSignal` / `URL` APIs are used, so they are expected to work                                                                                        |
+| Module formats           | ESM (`dist/index.js`) and CommonJS (`dist/index.cjs`). From CommonJS the entry point is the `default` export: `const { default: create, createApi } = require("create-request")` |
+| TypeScript               | 5.0 or newer; the declarations resolve with the DOM lib **or** with `@types/node` alone                                                                                          |
 
-The library provides both default and named exports:
-
-**Default Export:**
-
-- `create` - Main API object with factory methods (`get`, `post`, `put`, `del`, `patch`, `head`, `options`, `api`) and global `config`
-
-**Named Exports:**
-
-**Enums:**
-
-- `HttpMethod`, `RequestPriority`, `CredentialsPolicy`, `RequestMode`, `RedirectMode`, `SameSitePolicy`, `ReferrerPolicy`, `CacheMode`
-
-**Types:**
-
-- `RetryCallback`, `RetryConfig`, `CookiesRecord`, `CookieOptions`, `RequestConfig`, `GraphQLOptions`, `RequestOptions`, `ErrorInterceptor`, `RequestInterceptor`, `RetryDelayFunction`, `ResponseInterceptor`
-
-**Classes:**
-
-- `ResponseWrapper`, `CookieUtils`, `RequestError`
-
-**Request Classes:**
-
-- `GetRequest`, `PostRequest`, `PutRequest`, `DeleteRequest`, `PatchRequest`, `HeadRequest`, `OptionsRequest`
-
-**Factory Functions:**
-
-- `createGet`, `createPost`, `createPut`, `createDelete`, `createPatch`, `createHead`, `createOptions`, `createApi`
+## 60-second start
 
 ```typescript
-// Default export
-import create from "create-request";
+import create, { createApi, isRequestError } from "create-request";
 
-// Named exports
-import { RequestError, CacheMode, createGet } from "create-request";
-```
+// 1. A request is built with with*() and executed with get*()
+const users = await create.get("https://api.example.com/users").getJson<User[]>();
 
-## Tree-Shaking Guide
-
-All named exports are tree-shakeable. The library is marked with `"sideEffects": false`, enabling bundlers to eliminate unused code.
-
-**Tree-shakeable:**
-
-- ✅ All named exports (enums, types, classes, factory functions)
-- ✅ Individual factory functions (`createGet`, `createPost`, etc.)
-- ✅ Individual request classes (`GetRequest`, `PostRequest`, etc.)
-
-**Not tree-shakeable:**
-
-- Default export (`create`) - imports the entire API object (library is small, so this is usually fine)
-
-**Tip:** For maximum tree-shaking, you can use named exports when you only need specific functionality:
-
-```typescript
-// Tree-shakeable - only imports what you use
-import { createGet } from "create-request";
-
-// Imports entire library (recommended for most use cases)
-import create from "create-request";
-```
-
-## Basic Usage
-
-### Creating Requests
-
-```typescript
-import create from "create-request";
-
-// Create different request types with URL
-const getRequest = create.get("https://api.example.com/users"); // GET
-const putRequest = create.put("https://api.example.com/users/1"); // PUT
-const postRequest = create.post("https://api.example.com/users"); // POST
-const headRequest = create.head("https://api.example.com/users/1"); // HEAD
-const patchRequest = create.patch("https://api.example.com/users/1"); // PATCH
-const deleteRequest = create.del("https://api.example.com/users/1"); // DELETE
-const optionsRequest = create.options("https://api.example.com/users"); // OPTIONS
-```
-
-### Request Configuration
-
-The library provides a comprehensive set of configuration methods that can be chained together to customize your requests:
-
-```typescript
-import create, {
-  RequestPriority,
-  CredentialsPolicy,
-  RedirectMode,
-  ReferrerPolicy,
-  SameSitePolicy,
-  CacheMode,
-} from "create-request";
-
-// Configure request options
-const request = create
-  .get("https://api.example.com/users")
-  // Basic headers
-  .withHeaders({ "X-API-Key": "abc123", "Accept-Language": "en-US" })
-  .withHeader("Custom-Header", "value") // Add a single header
-
-  // Timeout settings
-  .withTimeout(5000) // Request will abort after 5 seconds
-
-  // Automatic retry configuration
-  .withRetries(3) // Retry up to 3 times on failure
-  // Or use a config object with delay support:
-  .withRetries({ attempts: 3, delay: 1000 }) // Retry 3 times with 1 second delay between attempts
-  .onRetry(({ attempt, error }) => {
-    console.log(`Attempt ${attempt} failed: ${error.message}. Retrying...`);
-  })
-
-  // Authentication methods
-  .withBearerToken("your-token") // Adds Authorization: Bearer your-token
-  .withBasicAuth("username", "password") // HTTP Basic Authentication
-  .withAuthorization("auth-scheme value") // Custom authorization header
-
-  // Add a single cookie
-  .withCookie("language", "en-US")
-
-  // Add multiple cookies
-  .withCookies({
-    sessionId: "abc123",
-    preferences: { value: "dark-mode", secure: true },
-    tracking: { value: "enabled", sameSite: SameSitePolicy.STRICT },
-  })
-
-  // URL parameters (supports arrays, null/undefined filtering, and all types)
-  .withQueryParams({ search: "term", page: 1, limit: 20, tags: ["js", "ts"] })
-  .withQueryParam("filter", "active") // Add a single query parameter
-  .withQueryParam("ids", [1, 2, 3]) // Array values create multiple query params
-
-  // Request body configuration (for POST/PUT/PATCH)
-  .withContentType("application/json") // Set specific content type
-
-  // Fetch API options
-  // Note: These methods support three styles - Fluent API (shown below), Enum-based (e.g., .withMode(RequestMode.CORS)), or String-based (e.g., .withMode("cors"))
-  .withCredentials.INCLUDE() // Includes cookies with cross-origin requests (Fluent API)
-  .withMode.CORS() // Controls CORS behavior
-  .withRedirect.FOLLOW() // Controls redirect behavior
-  .withReferrer("https://example.com") // Sets request referrer
-  .withReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE() // Controls referrer policy
-  .withPriority.HIGH() // Sets request priority
-  .withKeepAlive(true) // Keeps connection alive after the page is unloaded
-  .withIntegrity("sha256-abcdef1234567890...") // Sets subresource integrity hash
-  .withCache("no-cache"); // Direct string value (or use .withCache.NO_CACHE() for Fluent API)
-```
-
-Each configuration method returns the request object, allowing for a fluent interface where methods can be chained together. You can configure only what you need for a specific request:
-
-```typescript
-// Simple example with just what's needed
-const users = await create
-  .get("https://api.example.com/users")
-  .withBearerToken(userToken)
-  .withQueryParams({ q: searchTerm, limit: 20 })
-  .withTimeout(3000)
-  .getData();
-```
-
-### Request Bodies (POST/PUT/PATCH)
-
-```typescript
-// JSON body (Content-Type automatically set to application/json)
-const jsonRequest = create
+// 2. Everything you would configure lives on the chain
+const created = await create
   .post("https://api.example.com/users")
-  .withBody({ name: "John", age: 30 });
-
-// String body (Content-Type automatically set to text/plain)
-const textRequest = create
-  .post("https://api.example.com/users")
-  .withBody("Plain text content");
-
-// Form data
-const formData = new FormData();
-formData.append("name", "John");
-formData.append("file", fileBlob);
-
-const formRequest = create.post("https://api.example.com/users").withBody(formData);
-
-// URLSearchParams (typically used for application/x-www-form-urlencoded)
-const params = new URLSearchParams();
-params.append("username", "john");
-params.append("password", "secret");
-
-const formUrlEncodedRequest = create.post("https://api.example.com/login").withBody(params);
-```
-
-### GraphQL Requests
-
-The library provides built-in support for GraphQL queries and mutations:
-
-```typescript
-// GraphQL query without variables
-const userQuery = "query { users { id name email } }";
-const users = await create
-  .post("https://api.example.com/graphql")
-  .withGraphQL(userQuery)
-  .getJson();
-
-// GraphQL query with variables
-const userQuery = "query GetUser($id: ID!) { user(id: $id) { name email } }";
-const user = await create
-  .post("https://api.example.com/graphql")
-  .withGraphQL(userQuery, { id: "123" })
-  .getJson();
-```
-
-#### GraphQL Error Handling
-
-GraphQL errors do not cause exceptions by default. Use the `throwOnError` option to make them throw exceptions:
-
-```typescript
-// Throw an error if the GraphQL response contains errors
-const userQuery = "query GetUser($id: ID!) { user(id: $id) { name email } }";
-try {
-  const user = await create
-    .post("https://api.example.com/graphql")
-    .withGraphQL(userQuery, { id: "123" }, { throwOnError: true })
-    .getJson();
-} catch (error) {
-  console.error(error.message);
-}
-```
-
-The `withGraphQL` method automatically:
-
-- Formats the body as JSON with `query` and optional `variables` properties
-- Sets `Content-Type` to `application/json`
-- Validates the query is non-empty
-- Validates variables are a plain object (not arrays or null)
-- Optionally throws errors when GraphQL response contains errors (with `throwOnError: true`)
-
-### Query Parameters Advanced Features
-
-The library supports advanced query parameter handling:
-
-```typescript
-// Array values create multiple query params with the same key
-const request = create.get("https://api.example.com/search").withQueryParams({
-  tags: ["javascript", "typescript", "node"], // ?tags=javascript&tags=typescript&tags=node
-  page: 1,
-  active: true,
-});
-
-// Null and undefined values are automatically filtered out
-const filtered = create.get("https://api.example.com/users").withQueryParams({
-  name: "John",
-  age: null, // Ignored
-  email: undefined, // Ignored
-});
-
-// Supports all JavaScript types (strings, numbers, booleans, arrays)
-const typed = create.get("https://api.example.com/data").withQueryParams({
-  page: 1, // Number
-  active: true, // Boolean
-  tags: ["js", "ts"], // Array
-  name: "John", // String
-});
-
-// Merge with existing query params in URL
-const merged = create
-  .get("https://api.example.com/users?existing=value")
-  .withQueryParams({ new: "param" }); // Both existing and new params included
-```
-
-### Executing Requests
-
-```typescript
-// Get the full response
-const response = await create.get("https://api.example.com/endpoint").getResponse();
-
-// With direct data extraction
-const jsonData = await create.get("https://api.example.com/endpoint").getJson();
-const textData = await create.get("https://api.example.com/endpoint").getText();
-const blobData = await create.get("https://api.example.com/endpoint").getBlob();
-const bodyStream = await create.get("https://api.example.com/endpoint").getBody();
-const arrayBuffer = await create.get("https://api.example.com/endpoint").getArrayBuffer();
-
-// Using the data selector API to extract specific data
-const userData = await create
-  .get("https://api.example.com/users")
-  .getData(data => data.results.users);
-
-// Using the data selector without a selector function just returns the full JSON response
-const fullData = await create.get("https://api.example.com/data").getData();
-```
-
-### ResponseWrapper Properties
-
-When you use `getResponse()`, you get a `ResponseWrapper` object that provides convenient access to response properties and methods:
-
-```typescript
-const response = await create.get("https://api.example.com/users").getResponse();
-
-// Access response properties directly
-console.log(response.status); // HTTP status code (e.g., 200)
-console.log(response.statusText); // Status text (e.g., "OK")
-console.log(response.ok); // Boolean: true if status is 200-299
-console.log(response.headers); // Headers object
-console.log(response.url); // Request URL
-console.log(response.method); // HTTP method
-console.log(response.raw); // Raw Response object from fetch
-
-// Use wrapper methods for body parsing
-const stream = response.getBody(); // ReadableStream or null
-const json = await response.getJson();
-const text = await response.getText();
-const blob = await response.getBlob();
-const arrayBuffer = await response.getArrayBuffer();
-```
-
-### Error Handling
-
-All errors from requests are instances of `RequestError` with detailed information:
-
-```typescript
-try {
-  const data = await create.get("https://api.example.com/data").getJson();
-} catch (error) {
-  // error will always be a RequestError
-  console.log(error.message); // Error message
-  console.log(error.status); // HTTP status code (if available)
-  console.log(error.url); // Request URL
-  console.log(error.method); // HTTP method
-  console.log(error.isTimeout); // Whether it was a timeout
-  console.log(error.isAborted); // Whether it was aborted/cancelled
-  console.log(error.body); // Raw response body as text (if available)
-
-  // Access the original response if available
-  if (error.response) {
-    // Raw Response object is available
-    console.log(error.response.status);
-  }
-}
-```
-
-#### Error Response Body
-
-When a request fails with an HTTP error (e.g., 400, 404, 500), the response body is automatically captured and available directly on the error - no need to read it from `error.response` manually:
-
-```typescript
-try {
-  await create.post("https://api.example.com/users").withBody(newUser).getJson();
-} catch (error) {
-  // Raw body as text (undefined for network errors, timeouts, and aborts)
-  console.log(error.body); // '{"message":"Email already taken","code":"DUPLICATE_EMAIL"}'
-
-  // Body parsed as JSON - never throws, returns undefined if the body isn't valid JSON
-  const details = error.getJson<{ message: string; code: string }>();
-  if (details) {
-    showToast(details.message);
-  }
-}
-```
-
-Notes on the captured body:
-
-- `error.body` contains the raw body text whenever a response was received (HTTP errors, JSON parsing errors, GraphQL errors with `throwOnError`). For errors without a response (network failures, timeouts, aborts) it's `undefined`.
-- `error.getJson()` lazily parses `error.body` as JSON and caches the result. It never throws - it returns `undefined` when there's no body or the body isn't valid JSON.
-- The body is captured from a clone of the response, so `error.response` remains fully readable for backward compatibility.
-- The captured body is also available in retry callbacks (`onRetry`, `delay`) and error interceptors.
-
-## URL Handling
-
-The library handles both absolute and relative URLs, and automatically merges query parameters:
-
-```typescript
-// Relative URLs (preserved as-is)
-const relative = await create.get("/api/users").getJson();
-
-// Absolute URLs
-const absolute = await create.get("https://api.example.com/users").getJson();
-
-// Merging query params with existing URL params
-const merged = await create
-  .get("https://api.example.com/users?page=1")
-  .withQueryParams({ limit: 20, sort: "name" })
-  .getJson();
-// Result: https://api.example.com/users?page=1&limit=20&sort=name
-
-// Special characters and unicode are properly encoded
-const encoded = await create
-  .get("https://api.example.com/search")
-  .withQueryParams({ name: "用户名", filter: "status:active" })
-  .getJson();
-```
-
-## Advanced Usage
-
-### API Builder
-
-The API builder allows you to create configured API instances with default settings that can be reused across your application. This is perfect for setting up a base URL, default headers, timeout values, and other request configurations once and using them for all requests.
-
-#### Creating an API Instance
-
-```typescript
-import create from "create-request";
-
-// Create a configured API instance
-const api = create.api().withBaseURL("https://api.example.com").withTimeout(20000);
-
-// Use it with relative URLs
-const users = await api.get("/users").getJson();
-
-// Or without URL (uses baseURL)
-const users = await api.get().getJson();
-const newUser = await api.post().withBody({ name: "John" }).getJson();
-```
-
-#### Core API Builder Method
-
-- **`.withBaseURL(baseURL: string)`** - Set the base URL for all requests. Relative URLs will be resolved against this base URL.
-
-#### Available Request Methods
-
-The API builder provides access to most request configuration methods from `BaseRequest` that can be used as defaults. These methods will apply to all requests made through the API instance.
-
-**Important limitations:**
-
-- Methods that are request-specific (like `withBody`, `withGraphQL`, `withAbortController`) are not available in ApiBuilder
-- The Fluent API (e.g., `.withCache.NO_STORE()`) is not supported - use direct calls with string or enum values instead
-
-Available methods:
-
-**Authentication & Headers:**
-
-- `withHeaders(headers)` - Set default headers for all requests
-- `withHeader(key, value)` - Add a single default header
-- `withAuthorization(authValue)` - Set Authorization header
-- `withBasicAuth(username, password)` - Add Basic Authentication
-- `withBearerToken(token)` - Add Bearer token authentication
-- `withContentType(contentType)` - Set default Content-Type header
-
-**Cookies:**
-
-- `withCookies(cookies)` - Add cookies to all requests
-- `withCookie(name, value)` - Add a single cookie
-
-**Query Parameters:**
-
-- `withQueryParams(params)` - Add default query parameters to all requests
-- `withQueryParam(key, value)` - Add a single default query parameter
-
-**Request Configuration:**
-
-- `withTimeout(timeout)` - Set default timeout for all requests
-- `withRetries(retries)` - Configure default retry behavior
-- `withReferrer(referrer)` - Set default referrer
-- `withReferrerPolicy(policy)` - Set default referrer policy (use string or enum)
-- `withKeepAlive(keepalive)` - Configure keep-alive
-- `withIntegrity(integrity)` - Set integrity check
-- `withMode(mode)` - Set request mode (use string or enum)
-- `withCredentials(credentials)` - Set credentials policy (use string or enum)
-- `withRedirect(redirect)` - Set redirect behavior (use string or enum)
-- `withPriority(priority)` - Set request priority (use string or enum)
-- `withCache(cache)` - Set cache mode (use string or enum)
-
-**CSRF Protection:**
-
-- `withCsrfToken(token, headerName?)` - Set CSRF token
-- `withoutCsrfProtection()` - Disable CSRF protection
-- `withAntiCsrfHeaders()` - Enable anti-CSRF headers
-
-**Interceptors:**
-
-- `withRequestInterceptor(interceptor)` - Add default request interceptor
-- `withResponseInterceptor(interceptor)` - Add default response interceptor
-- `withErrorInterceptor(interceptor)` - Add default error interceptor
-
-These methods can be chained together and will apply to all requests made through the API instance:
-
-```typescript
-import { CacheMode, CredentialsPolicy, RequestMode } from "create-request";
-
-const api = create
-  .api()
-  .withBaseURL("https://api.example.com")
-  .withBearerToken("token123")
-  .withCookies({ session: "abc123" })
+  .withBearerToken(token)
+  .withBody({ name: "Ada" }) // JSON-encoded, Content-Type set for you
   .withTimeout(5000)
-  .withHeaders({ "X-Custom": "value" })
-  .withQueryParams({ apiVersion: "v2" }) // Default query params
-  .withCache("no-store") // Direct string value
-  // Or use enum: .withCache(CacheMode.NO_STORE)
-  .withCredentials("include"); // Direct string value
-// Or use enum: .withCredentials(CredentialsPolicy.INCLUDE)
-// Note: Fluent API like .withCache.NO_STORE() is NOT supported in ApiBuilder
+  .withRetries(2)
+  .getJson<User>();
 
-// All requests will include the Bearer token, cookies, timeout, headers, query params, and cache settings
-await api.get("/users").getJson();
-await api.post("/posts").withBody({ title: "Hello" }).getJson();
-```
+// 3. Shared defaults live on an api instance — create one, export it, use it everywhere
+const api = createApi().withBaseURL("https://api.example.com").withBearerToken(token);
 
-#### URL Resolution
-
-The API builder intelligently resolves URLs:
-
-```typescript
-const api = create.api().withBaseURL("https://api.example.com");
-
-// Relative URLs are resolved against baseURL
-await api.get("users").getJson(); // → https://api.example.com/users
-await api.get("/users").getJson(); // → https://api.example.com/users
-await api.get("./users").getJson(); // → https://api.example.com/users
-
-// Absolute URLs are used as-is
-await api.get("https://other-api.com/data").getJson(); // → https://other-api.com/data
-
-// No URL uses baseURL directly
-await api.get().getJson(); // → https://api.example.com
-```
-
-#### Overriding Defaults
-
-You can override default settings on individual requests:
-
-```typescript
-const api = create
-  .api()
-  .withBaseURL("https://api.example.com")
-  .withTimeout(5000)
-  .withBearerToken("token123");
-
-// Override timeout for this specific request
-await api.get("/slow-endpoint").withTimeout(30000).getJson();
-
-// Override headers (merges with defaults)
-await api
-  .get("/users")
-  .withBearerToken("newtoken")
-  .withHeaders({ "X-Custom": "value" })
-  .getJson();
-// Result: Authorization: "Bearer newtoken", X-Custom: "value"
-```
-
-#### All HTTP Methods Supported
-
-The API instance supports all HTTP methods:
-
-```typescript
-const api = create.api().withBaseURL("https://api.example.com");
-
-await api.get("/users").getJson();
-await api.post("/users").withBody({ name: "John" }).getJson();
-await api.put("/users/1").withBody({ name: "Jane" }).getJson();
-await api.patch("/users/1").withBody({ status: "active" }).getJson();
-await api.del("/users/1").getJson();
-await api.head("/users").getResponse();
-await api.options("/users").getResponse();
-```
-
-#### Merging Default Headers
-
-Multiple calls to `withHeaders` will merge headers, with later calls taking precedence:
-
-```typescript
-const api = create
-  .api()
-  .withBaseURL("https://api.example.com")
-  .withBearerToken("token123")
-  .withHeaders({ "X-Custom": "value1" })
-  .withHeaders({ "X-Other": "value2" })
-  .withBearerToken("newtoken");
-
-// Result: Authorization: "Bearer newtoken", X-Custom: "value1", X-Other: "value2"
-```
-
-#### Complete Example
-
-```typescript
-// Set up your API once
-import { CacheMode } from "create-request";
-
-const api = create
-  .api()
-  .withBaseURL("https://api.example.com/v1")
-  .withHeaders({ "Content-Type": "application/json" })
-  .withCookies({ session: "abc123" })
-  .withBearerToken("token123")
-  .withTimeout(20000)
-  .withQueryParams({ format: "json" })
-  .withCache(CacheMode.NO_CACHE);
-
-// Use throughout your application
-async function getUsers() {
-  return api.get("/users").getJson();
-}
-
-async function createUser(userData: User) {
-  return api.post("/users").withBody(userData).getJson();
-}
-
-async function updateUser(id: string, userData: Partial<User>) {
-  return api.put(`/users/${id}`).withBody(userData).getJson();
-}
-
-async function deleteUser(id: string) {
-  return api.del(`/users/${id}`).getJson();
-}
-```
-
-### Automatic Retries with Delay
-
-The `withRetries()` method supports both simple number-based retries and object-based configuration with customizable delays:
-
-```typescript
-// Simple number
-const request1 = create.get("https://api.example.com/data").withRetries(3);
-
-// With fixed delay between retries
-const request2 = create
-  .get("https://api.example.com/data")
-  .withRetries({ attempts: 3, delay: 1000 }); // Wait 1 second between retries
-
-// With exponential backoff function
-const request3 = create.get("https://api.example.com/data").withRetries({
-  attempts: 5,
-  delay: ({ attempt }) => Math.min(1000 * Math.pow(2, attempt - 1), 10000), // Exponential backoff capped at 10s
-});
-
-// With error-aware delay (e.g., longer delay for rate limits)
-const request4 = create.get("https://api.example.com/data").withRetries({
-  attempts: 3,
-  delay: ({ attempt, error }) => {
-    if (error.status === 429) {
-      return 5000; // Wait 5 seconds for rate limit errors
-    }
-    return attempt * 1000; // Linear backoff for other errors
-  },
-});
-```
-
-**Rate Limit Aware:**
-
-```typescript
-.withRetries({
-  attempts: 3,
-  delay: ({ error }) => {
-    if (error.status === 429) {
-      // Check Retry-After header if available
-      const retryAfter = error.response?.headers.get("Retry-After");
-      if (retryAfter) return parseInt(retryAfter) * 1000;
-
-      // Or read the delay from the error response body
-      const details = error.getJson<{ retryAfterMs?: number }>();
-      return details?.retryAfterMs ?? 5000;
-    }
-    return 1000; // Default delay
-  },
-})
-```
-
-### Interceptors
-
-Interceptors allow you to modify requests, transform responses, or handle errors globally or per-request. This is perfect for adding authentication tokens, logging, error recovery, and more.
-
-#### Global Interceptors
-
-Global interceptors apply to all requests:
-
-```typescript
-// Add a global request interceptor (modify all requests)
-const requestInterceptorId = create.config.addRequestInterceptor(config => {
-  // Add auth token to all requests
-  config.headers["Authorization"] = `Bearer ${getToken()}`;
-  // Modify URL, headers, body, etc.
-  return config;
-});
-
-// Add a global response interceptor (transform all responses)
-const responseInterceptorId = create.config.addResponseInterceptor(response => {
-  console.log(`Response received: ${response.status}`);
-  // Transform or modify the response
-  return response;
-});
-
-// Add a global error interceptor (handle all errors)
-const errorInterceptorId = create.config.addErrorInterceptor(error => {
-  console.error("Request failed:", error.message);
-  // Can throw to propagate error, or return ResponseWrapper to recover
+try {
+  await api.delete(`/users/${id}`).getResponse();
+} catch (error) {
+  if (isRequestError(error) && error.status === 404) return; // one error type, with a code and status
   throw error;
-});
-
-// Remove interceptors when no longer needed
-create.config.removeRequestInterceptor(requestInterceptorId);
-create.config.removeResponseInterceptor(responseInterceptorId);
-create.config.removeErrorInterceptor(errorInterceptorId);
-
-// Clear all interceptors at once
-create.config.clearInterceptors();
+}
 ```
 
-#### Per-Request Interceptors
+## The mental model
 
-Per-request interceptors apply only to a specific request:
+1. `create.get(url)` / `create.post(url)` / … (or `api.get(path)`) return a **request**.
+2. `with*()` methods configure it and return the same request, so calls chain. Nothing is sent
+   yet.
+3. A `get*()` method sends it and gives you the body in the format you ask for — or the
+   `ResponseWrapper` with `getResponse()`, or `{ data, error }` with `getResult()`.
+4. Every failure — HTTP status, network, timeout, abort, parsing, validation, interceptor —
+   rejects with a **`RequestError`** whose `code` says which.
+5. An **api instance** holds defaults (base URL, auth, timeout, retries, interceptors, …) for the
+   requests it creates. It is immutable: `api.withHeader(…)` returns a new instance.
+
+## Requests
+
+### Creating
 
 ```typescript
-// Request interceptor - modify request configuration
-const data = await create
-  .get("https://api.example.com/users")
-  .withRequestInterceptor(config => {
-    config.headers["X-Custom-Header"] = "value";
-    config.url = "https://api.example.com/modified-url"; // Can modify URL
-    return config;
-  })
-  .getJson();
-
-// Response interceptor - transform response
-const transformed = await create
-  .get("https://api.example.com/users")
-  .withResponseInterceptor(response => {
-    console.log(`Got response with status ${response.status}`);
-    return response;
-  })
-  .getJson();
-
-// Error interceptor - handle or recover from errors
-const recovered = await create
-  .get("https://api.example.com/users")
-  .withErrorInterceptor(error => {
-    // Option 1: Throw to propagate error
-    throw error;
-
-    // Option 2: Return a ResponseWrapper to recover from error
-    // return new ResponseWrapper(fallbackResponse, error.url, error.method);
-  })
-  .getJson();
+create.get(url); // also head, options, post, put, patch, delete (alias: del)
+api.get("/users"); // joined to the api's base URL
+api.get(); // no path → the base URL itself
+api.get<User>("/me"); // declare the JSON type once; getJson() / getData() / getResult() use it
 ```
 
-#### Interceptor Execution Order
+Named factories exist as well: `createGet`, `createPost`, `createPut`, `createPatch`,
+`createDelete`, `createHead`, `createOptions` — the same functions as `create.get`, … — and
+`createApi()` is also available as `create.api()`.
 
-Interceptors execute in a specific order:
-
-1. **Request interceptors**: Global interceptors run first (in registration order), then per-request interceptors (in registration order)
-2. **Response interceptors**: Per-request interceptors run first (in registration order), then global interceptors (in reverse registration order)
-3. **Error interceptors**: Per-request interceptors run first (in registration order), then global interceptors (in reverse registration order)
+### Configuring
 
 ```typescript
-// Request: Global 1 → Global 2 → Per-request 1 → Per-request 2
-// Response: Per-request 1 → Per-request 2 → Global 2 → Global 1
-const data = await create
-  .get("https://api.example.com/users")
-  .withRequestInterceptor(() => console.log("Per-request 1"))
-  .withRequestInterceptor(() => console.log("Per-request 2"))
-  .getJson();
+create
+  .post("https://api.example.com/items")
+  // headers & auth — names are case-insensitive, null removes a header
+  .withHeaders({ Accept: "application/json", "X-Trace": id })
+  .withHeader("X-Feature", "beta")
+  .withContentType("application/json") // rarely needed: JSON and text bodies set it themselves
+  .withBearerToken(token) // or withBasicAuth(user, pass) / withAuthorization("Custom …")
+  // query string — arrays repeat the key, Dates become ISO strings, null removes the key,
+  // and a key set twice keeps the last value (a request can override an api default)
+  .withQueryParams({ page: 2, tags: ["a", "b"], since: new Date() })
+  .withQueryParam("q", "search term")
+  // body (POST, PUT, PATCH, DELETE only): objects → JSON, strings → text/plain,
+  // FormData / Blob / URLSearchParams / ArrayBuffer / typed arrays / ReadableStream → sent as-is
+  .withBody({ name: "Ada" })
+  // resilience
+  .withTimeout(5000) // per attempt; covers the response and the body read
+  .withRetries(3) // see "Retries" below
+  .withSignal(signal) // an AbortSignal from anywhere; call it again to combine signals
+  // fetch options, typed with the DOM unions
+  .withCredentials("include")
+  .withMode("cors")
+  .withCache("no-store")
+  .withRedirect("follow")
+  .withReferrer("https://app.example.com/")
+  .withReferrerPolicy("no-referrer")
+  .withPriority("high")
+  .withKeepAlive()
+  .withIntegrity("sha256-…");
 ```
 
-#### Advanced Interceptor Patterns
+Sending a `FormData`? Do not set a `Content-Type` — `fetch` adds the multipart boundary itself
+(the library removes one if an api default put it there). The remaining methods have sections of
+their own: `withCookie(s)` and `withCsrf` ([Cookies and CSRF](#cookies-and-csrf)),
+`withRequestInterceptor` / `withResponseInterceptor` / `withErrorInterceptor`
+([Interceptors](#interceptors)), `withGraphQL` ([GraphQL](#graphql)), `withFetch`
+([Testing and custom fetch](#testing-and-custom-fetch)).
+
+### Executing
+
+| Method              | Resolves with                                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getJson<T>()`      | The body parsed as JSON (`null` for an empty body such as a `204`); `getJson(schema)` validates it first                                                            |
+| `getText()`         | The body as text                                                                                                                                                    |
+| `getBlob()`         | The body as a `Blob` typed with the response `Content-Type`                                                                                                         |
+| `getArrayBuffer()`  | The body as an `ArrayBuffer`                                                                                                                                        |
+| `getFormData()`     | The body parsed as `multipart/form-data` or `application/x-www-form-urlencoded`                                                                                     |
+| `getBody()`         | The raw `ReadableStream` (not buffered — for streaming), or `null` when there is no body (`HEAD`, `204`)                                                            |
+| `getData(selector)` | `getJson()` followed by a selector, e.g. `getData(page => page.items)`                                                                                              |
+| `getResult<T>()`    | `{ data, error }` instead of throwing                                                                                                                               |
+| `getResponse()`     | A `ResponseWrapper`: `status`, `statusText`, `ok`, `headers`, `url`, `method`, the underlying `raw` `Response`, and every body reader above (`getJson` … `getData`) |
+
+The body is buffered once, so on a `ResponseWrapper` you can call several readers, in any order,
+even concurrently. `getBody()` is the exception: it hands you the live stream, so nothing else
+can read the body afterwards.
 
 ```typescript
-// Short-circuit request with early response
-const cached = await create
-  .get("https://api.example.com/users")
-  .withRequestInterceptor(() => {
-    // Return early response from cache
-    return new Response(JSON.stringify(cachedData), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  })
-  .getJson();
-
-// Recover from error with fallback
-const fallback = await create
-  .get("https://api.example.com/users")
-  .withErrorInterceptor(error => {
-    // Return fallback response instead of throwing
-    const fallbackResponse = new Response(JSON.stringify({ users: [] }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-    return new ResponseWrapper(fallbackResponse, error.url, error.method);
-  })
-  .getJson();
-
-// Async interceptors
-const asyncData = await create
-  .get("https://api.example.com/users")
-  .withRequestInterceptor(async config => {
-    const token = await getTokenAsync();
-    config.headers["Authorization"] = `Bearer ${token}`;
-    return config;
-  })
-  .getJson();
+const response = await api.get<User>("/me").getResponse();
+console.log(response.status, response.headers.get("etag"));
+const user = await response.getJson(); // User
+const raw = await response.getText(); // still works — same buffer
 ```
 
-### Request Cancellation
+### Reusing
+
+A request is a template until you execute it. `clone()` copies its configuration so one request
+can serve many calls; interceptors, signals and body objects are shared by reference.
 
 ```typescript
-const controller = new AbortController();
+const search = api.get<Page<Post>>("/search").withTimeout(2000);
+const [page1, page2] = await Promise.all([
+  search.clone().withQueryParam("page", 1).getJson(),
+  search.clone().withQueryParam("page", 2).getJson(),
+]);
+```
 
-const request = create
-  .get("https://api.example.com/slow-endpoint")
-  .withTimeout(10000)
-  .withAbortController(controller);
+## Errors
 
-// Later, cancel the request if needed
-setTimeout(() => controller.abort(), 2000);
+Every rejection is a `RequestError`. Check it with `isRequestError(error)` (or `instanceof`) and
+switch on `code`:
 
+| `code`          | When                                                                                                                                                | Also set                                                                                          |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `"HTTP"`        | The server answered with a non-2xx status (a 3xx under `withRedirect("manual")` and an opaque response under `withMode("no-cors")` resolve instead) | `status`, `response`, `body`, `data`                                                              |
+| `"NETWORK"`     | `fetch` itself failed: DNS, connection refused, CORS, offline                                                                                       | `cause` (the error `fetch` threw)                                                                 |
+| `"TIMEOUT"`     | `withTimeout()` fired, or a signal from `AbortSignal.timeout()` aborted                                                                             | `cause`; plus `status`, `response` when it fired while the body was being read                    |
+| `"ABORTED"`     | A signal passed with `withSignal()` / `withAbortController()` aborted                                                                               | `cause` (the abort reason); plus `status`, `response` when it fired while the body was being read |
+| `"PARSE"`       | The body could not be read or parsed, or a `getData` selector threw                                                                                 | `status`, `response`, `cause`, `body` (for invalid JSON)                                          |
+| `"VALIDATION"`  | The response failed the schema, or the request could not be built (empty or unparsable absolute URL, invalid header value, non-serialisable body)   | `issues` and `body` for schema failures; `cause` otherwise                                        |
+| `"INTERCEPTOR"` | A request/response interceptor or a callback (retry, CSRF token) threw                                                                              | `cause`; plus `status`, `response` (and `body`) when a response existed                           |
+| `"GRAPHQL"`     | The GraphQL response had `errors` and `throwOnError` was on                                                                                         | `status`, `response`, `body`, `data`                                                              |
+
+`url` and `method` are always set. `data` is `body` parsed as JSON — the shape most APIs use for
+error details — and never throws. `body` holds at most 1 MB: a response that announces more is
+left unread on `error.response`; a longer chunked or compressed one is cut off and `body` is
+`undefined`. `isTimeout` / `isAborted` are shorthands for the two codes. In Node.js a relative
+URL is a `"NETWORK"` failure, because `fetch` there has no page to resolve it against.
+
+Three mistakes are reported earlier, synchronously, by the `with*` call itself rather than by the
+execution: an invalid timeout (`withTimeout(-1)`), an invalid retry count (`withRetries(-1)`) and
+a body that cannot be JSON-serialised. They are `RequestError`s with code `"VALIDATION"` too.
+
+```typescript
 try {
-  const data = await request.getJson();
+  await api.get<User>("/users/42").getJson();
 } catch (error) {
-  if (error.name === "AbortError") {
-    console.log("Request was cancelled by user");
-  } else if (error.isTimeout) {
-    console.log("Request timed out");
-  } else {
-    console.log("Other error:", error.message);
+  if (!isRequestError(error)) throw error;
+  switch (error.code) {
+    case "HTTP":
+      console.log(error.status, error.data); // e.g. 404, { message: "No such user" }
+      break;
+    case "TIMEOUT":
+    case "NETWORK":
+      showError("Please try again");
+      break;
+    case "ABORTED":
+      break; // the user navigated away
+    default:
+      console.error(error.message, error.cause);
   }
 }
 ```
 
-### Custom Fetch Injection
-
-By default, requests run through the global `fetch`. With `withFetch` you can inject any fetch-compatible function — per request or for a whole API instance. This unlocks testing without global mocks, custom undici agents/dispatchers in Node.js, and framework-patched fetch features like Next.js caching.
+Prefer errors as values? `getResult()` resolves with the error instead of rejecting:
 
 ```typescript
-import create, { createApi } from "create-request";
-import type { FetchFunction } from "create-request";
+const { data, error } = await api.get<User>("/me").getResult();
+if (error) showError(error.message);
+else render(data);
+```
 
-// Testing: inject a stub instead of monkey-patching globalThis.fetch
-const stubFetch: FetchFunction = async () =>
-  new Response(JSON.stringify({ id: 1 }), {
-    status: 200,
-    headers: { "content-type": "application/json" },
+## Api instances
+
+An api instance is a bundle of defaults for the requests it creates. It has every `with*` method
+a request has, except the body and signal ones (those belong to a single request), plus
+`withBaseURL()`. A timeout or retry count is validated when you set it on the api; URLs and
+header values are checked when a request runs.
+
+```typescript
+// src/lib/api.ts
+export const api = createApi()
+  .withBaseURL("https://api.example.com")
+  .withBearerToken(token)
+  .withTimeout(5000)
+  .withRetries(2)
+  .withRequestInterceptor(config => {
+    config.headers["x-trace-id"] = crypto.randomUUID();
   });
 
-const user = await create.get("/api/users/1").withFetch(stubFetch).getJson();
+// anywhere
+const posts = await api.get<Post[]>("/posts").getJson();
+const post = await api.post<Post>("/posts").withBody({ title: "Hello" }).getJson();
+const admin = api.withHeader("X-Role", "admin"); // a NEW instance; `api` is unchanged
 ```
 
-```typescript
-// Node.js: route requests through a custom undici Agent (proxies, keep-alive tuning, mTLS, ...)
-import { fetch as undiciFetch, Agent } from "undici";
+Requests inherit the defaults and can override any of them: `api.get("/slow").withTimeout(30_000)`,
+`api.get("/public").withHeaders({ Authorization: null })`, `api.get("/live").withTimeout(0)` (no
+timeout at all).
 
-const agent = new Agent({ keepAliveTimeout: 30_000, connections: 10 });
+Paths are **joined** to the base URL, not resolved: `/v1` + `/users` → `/v1/users`; `users` and
+`./users` work the same; `api.get()` without a path requests the base URL; absolute URLs
+(`https://…`, `//…`) are used as-is — and carry the api's headers with them, so never build a
+path from untrusted input.
 
-const api = createApi()
-  .withBaseURL("https://api.example.com")
-  .withFetch((url, init) => undiciFetch(url, { ...init, dispatcher: agent }));
-
-const users = await api.get("/users").getJson();
-```
+## Retries
 
 ```typescript
-// Next.js: pass caching hints through to the framework's patched fetch
-const revalidatingFetch: FetchFunction = (url, init) =>
-  fetch(url, { ...init, next: { revalidate: 60 } });
-
-const posts = await create
-  .get("https://api.example.com/posts")
-  .withFetch(revalidatingFetch)
-  .getJson();
-```
-
-Notes:
-
-- The custom function receives the final URL and `RequestInit` after query params, headers, and request interceptors have been applied, and it is called once per attempt when retries are configured.
-- It should honor `init.signal`, otherwise `withTimeout` and `withAbortController` cannot cancel the underlying work.
-- A per-request `withFetch` overrides one set on an API builder.
-
-### Data Selection
-
-The `getData` method provides a powerful way to extract and transform specific data from API responses:
-
-```typescript
-// Extract specific properties from nested structures
-const posts = await create
-  .get("https://api.example.com/feed")
-  .getData(data => data.feed.posts);
-
-// Transform data in the selector function
-const usernames = await create
-  .get("https://api.example.com/users")
-  .getData(data => data.users.map(user => user.username));
-
-// Apply filtering in the selector
-const activeUsers = await create
-  .get("https://api.example.com/users")
-  .getData(data => data.users.filter(user => user.isActive));
-
-// Combine data from complex nested structures
-const combinedData = await create.get("https://api.example.com/dashboard").getData(data => ({
-  userCount: data.stats.users.total,
-  recentPosts: data.content.recent.slice(0, 5),
-  notifications: data.user.notifications.unread,
-}));
-```
-
-When a selector fails, the error message will contain helpful context to diagnose the issue:
-
-```typescript
-try {
-  // This will fail if the response structure doesn't match expectations
-  const result = await create
-    .get("https://api.example.com/data")
-    .getData(data => data.results.items);
-} catch (error) {
-  console.error(error);
-  // Error message includes context for debugging
-}
-```
-
-### TypeScript Support
-
-```typescript
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  isActive: boolean;
-}
-
-interface ApiResponse<T> {
-  data: T;
-  meta: {
-    total: number;
-    page: number;
-  };
-}
-
-// Type the full response
-const response = await create
-  .get("https://api.example.com/users")
-  .getJson<ApiResponse<User[]>>();
-
-// Or use getData with type parameters
-const users = await create
-  .get("https://api.example.com/users")
-  .getData<ApiResponse<User[]>, User[]>(data => data.data);
-
-// TypeScript knows the types
-users.forEach(user => {
-  console.log(`${user.name} (${user.email}): ${user.isActive ? "Active" : "Inactive"}`);
+api.get("/status").withRetries(3); // default policy
+api.get("/status").withRetries({
+  attempts: 3,
+  delay: ({ attempt }) => attempt * 500, // ms, or a number; default: exponential backoff
+  statuses: [503], // default: 408, 425, 429, 500, 502, 503, 504
+  methods: ["GET", "HEAD", "PUT", "DELETE"], // default: every method — including POST and PATCH
+  maxDelay: 10_000, // caps the backoff (default 30 s); a longer Retry-After gives up instead
+  shouldRetry: ({ error }) => error.code === "NETWORK", // full override of the decision
+  onRetry: ({ attempt, error, delay }) =>
+    console.warn(`retry ${attempt} in ${delay}ms: ${error.message}`),
 });
+```
 
-// Function with proper types
-async function getUserById(id: number): Promise<User> {
-  return create
-    .get("https://api.example.com/users")
-    .withQueryParam("id", id)
-    .getData<ApiResponse<User[]>, User>(data => {
-      const user = data.data[0];
-      if (!user) throw new Error(`User with ID ${id} not found`);
-      return user;
-    });
+Defaults that keep you out of trouble: network errors, timeouts and the statuses above are retried
+with exponential backoff (300 ms, 600 ms, 1.2 s, … plus up to 100 ms of jitter, capped at
+`maxDelay`); a `Retry-After` header is honoured unless you set `delay`, and one longer than
+`maxDelay` cancels the retry so you can react yourself; validation errors are not retried by the
+default policy; aborted requests and requests with a stream body are never retried, whatever the
+policy — that includes a timeout coming from your own `AbortSignal.timeout()` signal, which stays
+aborted (only `withTimeout()` timeouts are retried); the timeout applies to each attempt; error
+interceptors run once, after the last attempt.
+Every method is retried by default — pass `methods: ["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]`
+if a repeated `POST` could duplicate work. `onRetry(callback)` also exists as a method; it does
+not enable retries by itself.
+
+## Timeouts and cancellation
+
+```typescript
+api.get("/slow").withTimeout(2000); // rejects with code "TIMEOUT"
+api.get("/stream").withTimeout(0); // removes a timeout inherited from the api
+
+const controller = new AbortController();
+const download = api.get("/big").withAbortController(controller).getBlob();
+controller.abort(); // `download` rejects with code "ABORTED"
+
+// Data-fetching libraries hand you a signal — pass it straight through
+useQuery({
+  queryKey: ["user", id],
+  queryFn: ({ signal }) => api.get<User>(`/users/${id}`).withSignal(signal).getJson(),
+});
+```
+
+The timeout covers the whole exchange — waiting for the response _and_ reading its body — and
+starts after request interceptors ran. Taking the stream with `getBody()` ends it. A signal
+created with `AbortSignal.timeout()` is reported as `"TIMEOUT"` too (but, unlike `withTimeout()`,
+is not retried — the signal stays aborted); any other abort is `"ABORTED"`. A request whose
+signal is already aborted fails before anything is sent.
+
+## Interceptors
+
+Interceptors run in registration order — api-level ones first, then request-level ones.
+Returning nothing keeps your in-place changes.
+
+```typescript
+let accessToken = token;
+const replayed = new WeakSet<HttpRequest>(); // requests already replayed after a 401
+const authed = api
+  // before the request: mutate the config, return a new one, or return a Response to skip the network
+  .withRequestInterceptor(config => {
+    config.headers["authorization"] = `Bearer ${accessToken}`;
+  })
+  // after a successful response, with the request that produced it
+  .withResponseInterceptor((response, request) => {
+    console.debug(request.method, response.url, response.status);
+  })
+  // once the request failed for good: replace the error, or recover by returning a ResponseWrapper
+  .withErrorInterceptor(async (error, request) => {
+    if (error.status !== 401 || replayed.has(request)) return;
+    accessToken = await refreshToken(); // the request interceptor above picks it up
+    const retry = request.clone(); // same method, body, headers and query
+    replayed.add(retry); // the clone runs this interceptor too — never loop on a persistent 401
+    return retry.getResponse();
+  });
+```
+
+The `config` a request interceptor receives is the `RequestInit`-shaped object about to be sent:
+`url`, `method`, lower-case `headers`, the serialised `body` (JSON bodies are already strings) and
+the combined `signal` — before the CSRF header (`withCsrf()`) and the timeout are added. A
+`Response` returned by a request interceptor skips the network — and the remaining request
+interceptors, URL/header validation and the CSRF header — but its status is checked and response
+interceptors run like for a fetched one; `withTimeout()` does not apply to it. A request or
+response interceptor that throws fails the request with code `"INTERCEPTOR"`; an error
+interceptor that throws replaces the error (a thrown `RequestError` is kept as-is).
+
+## Schema validation
+
+Pass any [Standard Schema](https://standardschema.dev) — zod 3.24+, valibot 1+, arktype 2+,
+effect (via `Schema.standardSchemaV1`) and more — to `getJson`, `getData` or `getResult`. The
+body is validated at runtime and the result is typed from the schema; this library adds no
+dependency for it.
+
+```typescript
+import { z } from "zod";
+
+const User = z.object({ id: z.number(), name: z.string() });
+
+const user = await api.get("/me").getJson(User); // { id: number; name: string }
+const names = await api.get("/users").getData(z.array(User), users => users.map(u => u.name));
+const { data, error } = await api.get("/me").getResult(User);
+```
+
+A mismatch rejects with `code: "VALIDATION"`; `error.issues` lists every problem and
+`error.message` names the first one (e.g. `Response validation failed: Invalid input: expected
+number, received string at id`).
+
+## GraphQL
+
+```typescript
+const result = await api
+  .post("/graphql")
+  .withGraphQL("query ($id: ID!) { user(id: $id) { name } }", { id }, { throwOnError: true })
+  .getJson<{ data: { user: User } }>();
+```
+
+`withGraphQL` sends `{ query, variables }` as JSON. With `throwOnError`, a response whose `errors`
+array is non-empty rejects with `code: "GRAPHQL"` (GraphQL servers answer `200` for those).
+
+## Streaming and downloads
+
+`getBody()` returns the raw stream; everything else is available on the wrapper.
+
+```typescript
+const response = await api.get("/export.csv").getResponse();
+const total = Number(response.headers.get("content-length")) || undefined;
+const decoder = new TextDecoder();
+let loaded = 0;
+const reader = response.getBody()!.getReader(); // ends the withTimeout() deadline: the stream is yours
+for (;;) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  loaded += value.length;
+  if (total) onProgress(loaded / total);
+  process(decoder.decode(value, { stream: true }));
 }
 ```
 
-### CSRF Protection
+Request bodies can be streams too (`withBody(readableStream)`), sent with `duplex: "half"` —
+Node.js and Chromium support that, Firefox and Safari do not. Stream bodies are never retried.
+Upload _progress_ is not something `fetch` exposes in browsers, so there is no API for it.
 
-Cross-Site Request Forgery (CSRF) is a type of security vulnerability where unauthorized commands are executed on behalf of an authenticated user. `create-request` provides built-in protection mechanisms to help prevent CSRF attacks.
+## Testing and custom fetch
 
-### How CSRF Protection Works
-
-The library employs multiple strategies to protect against CSRF attacks:
-
-1. **Automatic X-Requested-With Header**: By default, all requests include the `X-Requested-With: XMLHttpRequest` header, which helps servers identify legitimate AJAX requests.
-
-2. **CSRF Token Support**: The library can automatically include CSRF tokens in request headers, which servers can validate to ensure the request came from your application.
-
-3. **XSRF Cookie Reading**: For frameworks that use the double-submit cookie pattern (like Laravel, Rails, or Django), the library can automatically read XSRF tokens from cookies and include them in request headers.
-
-### Global CSRF Configuration
-
-You can configure CSRF settings globally for all requests:
+`withFetch()` replaces the global `fetch` for a request or an api: inject a stub in tests, an
+undici `Agent` for proxies and keep-alive tuning in Node.js, or a framework's patched fetch. The
+function receives the final URL and `RequestInit`; it must honour `init.signal` for timeouts and
+cancellation to keep working.
 
 ```typescript
-// Configure CSRF settings for all requests
-create.config.setCsrfToken("your-csrf-token");
-create.config.setCsrfHeaderName("X-CSRF-Token"); // Default header name for CSRF token
-create.config.setXsrfCookieName("XSRF-TOKEN"); // Default cookie name to read from
-create.config.setXsrfHeaderName("X-XSRF-TOKEN"); // Default header name for XSRF token from cookie
-create.config.setEnableAntiCsrf(true); // Enable/disable X-Requested-With header
-create.config.setEnableAutoXsrf(true); // Enable/disable automatic cookie-to-header token
+// Tests: no global mocks
+const stubbed = api.withFetch(
+  async () => new Response('{"id":1}', { headers: { "content-type": "application/json" } })
+);
 
-// Reset all configuration to defaults
-create.config.reset();
+// Node.js: an undici Agent (proxy, mTLS, keep-alive)
+const viaAgent = api.withFetch(
+  (url, init) =>
+    undiciFetch(url, {
+      ...(init as object),
+      dispatcher: agent,
+    }) as unknown as Promise<Response>
+);
+
+// Next.js: pass caching hints to the framework's fetch
+const cached = api.withFetch((url, init) =>
+  fetch(url, { ...init, next: { revalidate: 60 } } as RequestInit)
+);
 ```
 
-### Per-Request CSRF Settings
+## Cookies and CSRF
 
-You can also configure CSRF protection on individual requests:
+- `withCookie(name, value)` / `withCookies({ … })` add a `Cookie` header — **server-side only**.
+  Browsers ignore a `Cookie` header on `fetch` and send their own cookies; use
+  `withCredentials("include")` there. Names and values are sent verbatim, so never pass untrusted
+  input (a `;` in a value would smuggle in another cookie).
+- `withCsrf()` copies the `XSRF-TOKEN` cookie (URL-decoded) into an `X-XSRF-TOKEN` header unless
+  the request already has one (the Angular, Laravel and Spring convention), **only for
+  same-origin URLs** — judged on the final request URL, after
+  interceptors and before any redirect (`fetch` forwards custom headers across redirects, so use
+  `withRedirect("error")` for endpoints that may redirect elsewhere). Outside a browser there is
+  no page origin and every URL counts as same-origin. Configure other setups with
+  `withCsrf({ cookie: "csrftoken", header: "X-CSRFToken" })` (Django),
+  `withCsrf({ token: () => readMetaTag() })` (Rails; the token is then sent as `X-CSRF-Token`) or
+  `withCsrf({ crossOrigin: true })`.
+- `withCsrfToken(token)` sends a token you already hold, wherever you send the request — it is a
+  plain header; prefer `withCsrf({ token })` to keep the same-origin check.
+- Nothing is sent unless you ask for it: there is no automatic `X-Requested-With` header. Add
+  `withHeader("X-Requested-With", "XMLHttpRequest")` if a framework still checks it.
 
-```typescript
-// Configure CSRF for a specific request
-const request = create
-  .post("https://api.example.com/users")
-  .withCsrfToken("request-specific-token") // Set a specific token
-  .withAntiCsrfHeaders() // Explicitly add X-Requested-With header
-  .withoutCsrfProtection(); // Or disable all automatic CSRF protection
-```
+Custom headers (including these) make cross-origin requests CORS-preflighted; that is standard
+browser behaviour, not something the library adds on its own.
 
-### Subresource Integrity and Cache Control
+## TypeScript
 
-The library supports subresource integrity verification and cache control options:
+- `api.get<User>("/me")` (or `create.get<User>(url)`) declares the response type once; every
+  reader uses it: `getJson()`, `getData(user => user.name)`, `getResult()`, `getResponse()`.
+- Per-call overrides still work: `getJson<Other>()`. An endpoint that can answer `204` is typed as
+  `getJson<User | null>()` — an empty body yields `null` at runtime.
+- `withBody` / `withGraphQL` are a compile error on `GET`, `HEAD` and `OPTIONS` requests (and on
+  a `BaseRequest`, whose method is unknown — narrow it with `as BodyRequest`).
+- Method-typed aliases are exported for annotations: `GetRequest<T>`, `PostRequest<T>`, …,
+  `BaseRequest<T>` (any method), `BodyRequest<T>`; the class itself is `HttpRequest<Method, T>`.
+- `ApiBuilder` (the api instance type) is derived from `HttpRequest`, so the two can never drift,
+  and hovering an api method shows the request method's documentation.
+- `RequestError<TData>` types `error.data`; `error.code` is the `RequestErrorCode` union.
+- Exported types: `Method`, `BodyMethod`, `Body`, `QueryValue`, `QueryParams`, `HeadersRecord`,
+  `CookiesRecord`, `RetryConfig`, `RetryContext`, `RequestConfig`, `RequestInterceptor`,
+  `ResponseInterceptor`, `ErrorInterceptor`, `FetchFunction`, `CsrfOptions`, `GraphQLOptions`,
+  `RequestResult`, `RequestErrorCode`, `RequestErrorOptions`, `ApiBuilder`, `StandardSchemaV1`.
+- The fetch options (`withCache`, `withCredentials`, `withMode`, `withRedirect`, `withPriority`,
+  `withReferrerPolicy`) are typed with the DOM unions, spelled so that they also resolve in a
+  Node-only project (`@types/node`, no `dom` lib).
+- `withQueryParams`, `withHeaders`, `withCookies` and `withGraphQL` variables accept
+  interface-typed objects (no index signature needed).
 
-```typescript
-// Subresource Integrity - ensures the fetched resource hasn't been tampered with
-const secureRequest = create
-  .get("https://cdn.example.com/script.js")
-  .withIntegrity("sha256-abcdef1234567890..."); // Browser will verify the hash
+## Design principles
 
-// Cache Control - supports all cache modes via fluent API or string values
-const cachedRequest = create.get("https://api.example.com/data").withCache("no-cache"); // Direct string value
+- **One thing at a time.** Every option is a method your editor autocompletes, so the whole API
+  is discoverable from the chain.
+- **Correct by default.** Only retriable failures are retried (with backoff and `Retry-After`),
+  aborted requests are never retried, CSRF tokens only go to same-origin URLs, and a body can be
+  read in any format, in any order.
+- **Types you can trust.** `getJson<User>()` is a `Promise<User>`, `withBody` does not exist on
+  a `GET`, api instances share the request's configuration methods (derived, not copied), and
+  `error.code` narrows.
+- **Nothing global.** Defaults live on immutable api instances that you create and export
+  yourself.
 
-// Using fluent API for cache modes
-const fluentCache = create.get("https://api.example.com/data").withCache.NO_CACHE(); // Fluent API method
+## Size
 
-// All available cache modes:
-create
-  .get("https://api.example.com/data")
-  .withCache.DEFAULT() // Default cache behavior
-  .withCache.NO_STORE() // Don't store in cache
-  .withCache.RELOAD() // Reload from server
-  .withCache.NO_CACHE() // Validate with server before using cache
-  .withCache.FORCE_CACHE() // Use cache even if stale
-  .withCache.ONLY_IF_CACHED(); // Only use cache, don't fetch from server
+Measured with `size-limit` on the published build of this version (`npm run size`):
 
-// Using enum values (import from create-request)
-import { CacheMode } from "create-request";
+| Import                              | min + gzip | min + brotli |
+| ----------------------------------- | ---------: | -----------: |
+| everything (`import create from …`) |    4.86 KB |      4.40 KB |
+| `import { createGet }` only         |    4.25 KB |              |
+| `import { RequestError }` only      |    0.18 KB |              |
 
-const enumCache = create.get("https://api.example.com/data").withCache(CacheMode.NO_CACHE);
+The package is one module with no side effects, so bundlers drop whatever you do not import. The
+JavaScript ships without JSDoc comments; the documentation lives in the declaration files, where
+your editor reads it.
 
-// Combining integrity and cache
-const secureCached = create
-  .get("https://cdn.example.com/resource.js")
-  .withIntegrity("sha256-abcdef1234567890...")
-  .withCache("no-store"); // Ensure no caching for sensitive resources
-```
+## Migrating from v1
 
-## Performance Considerations
+v2 keeps the fluent API and most method names, and removes the global `create.config`, the
+`.withCache.NO_CACHE()`-style enum getters and the runtime enums. See [MIGRATION.md](MIGRATION.md)
+for the complete v1 → v2 map and the list of behaviour changes.
 
-create-request is designed to be lightweight and efficient:
+## Contributing
 
-- **Zero Dependencies**: No extra libraries to load
-- **Tree-Shakable**: Only import what you need
-- **Minimal Overhead**: Thin wrapper around the native Fetch API
-- **Memory Efficient**: Doesn't create unnecessary objects
-- **Clean API**: Simple and intuitive interface
-
-## Browser & Node.js Support
-
-This library works with all browsers that support the Fetch API:
-
-- Chrome 42+
-- Firefox 39+
-- Safari 10.1+
-- Edge 14+
-- Opera 29+
-
-For Node.js:
-
-- Node.js 18.3.0+ (native fetch support required)
-
-## Comparison of JavaScript HTTP Client Libraries
-
-| Feature               | create-request | Fetch  | Axios   | SuperAgent | Got     | Ky     | node-fetch | Redaxios |
-| --------------------- | -------------- | ------ | ------- | ---------- | ------- | ------ | ---------- | -------- |
-| **Size (min+gzip)**   | ~6.4KB         | Native | ~13.6KB | ~17.8KB    | ~17.8KB | ~3.4KB | ~7.7KB     | ~1KB     |
-| **Browser**           | Modern         | Modern | IE11+   | IE9+       | ❌ No   | Modern | ❌ No      | Modern   |
-| **Node.js**           | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
-| **HTTP/2**            | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
-| **Auto Retries**      | ✅             | ❌     | 🛠️      | ✅         | ✅      | ✅     | ❌         | ❌       |
-| **Cancellation**      | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
-| **Auto JSON**         | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ✅       |
-| **Timeout**           | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
-| **TypeScript**        | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ✅       |
-| **Streaming**         | ✅             | ✅     | ✅      | ✅         | ✅      | ✅     | ✅         | ❌       |
-| **Progress**          | ❌             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
-| **Cookies**           | ✅             | ✅     | 🛠️      | ✅         | ✅      | ❌     | ❌         | ❌       |
-| **Pagination API**    | ❌             | ❌     | ❌      | ❌         | ✅      | ❌     | ❌         | ❌       |
-| **Zero Deps**         | ✅             | ✅     | ❌      | ❌         | ❌      | ✅     | ✅         | ✅       |
-| **Chainable API**     | ✅             | ❌     | ❌      | ✅         | ✅      | ✅     | ❌         | ❌       |
-| **CSRF Protection**   | ✅             | ❌     | ✅      | ❌         | ❌      | ❌     | ❌         | ❌       |
-| **GraphQL Support**   | ✅             | ❌     | ❌      | ❌         | ❌      | ❌     | ❌         | ❌       |
-| **Interceptors**      | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
-| **Instance Creation** | ✅             | ❌     | ✅      | ✅         | ✅      | ✅     | ❌         | ❌       |
-
-**Notes:**
-
-- "Modern" browser support: Chrome 42+, Firefox 39+, Safari 10.1+, Edge 14+, Opera 29+
-- 🛠️ Feature requires additional plugins or adapters (not available out-of-the-box)
+`npm run check` runs lint, format, type-check, the type tests (including every code block of
+this README), the test suite at 100% coverage, the build, package linting and the size gate.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT
-
----
-
-## Website
-
-Visit [create-request.com](https://create-request.com) for documentation, examples, and more resources.
-
-## Sponsor
-
-If `create-request` helps your work, you can support ongoing development through [GitHub Sponsors](https://github.com/sponsors/DanielAmenou).
+[MIT](LICENSE) · [Website](https://create-request.com) · [Sponsor](https://github.com/sponsors/DanielAmenou)
