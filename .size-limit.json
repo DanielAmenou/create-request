@@ -1,26 +1,6 @@
 [
-  {
-    "path": "dist/library/index.esm.js",
-    "limit": "6.2 KB",
-    "gzip": true,
-    "name": "ESM Standard"
-  },
-  {
-    "path": "dist/library/index.cjs",
-    "limit": "6.45 KB",
-    "gzip": true,
-    "name": "CJS Standard"
-  },
-  {
-    "path": "dist/library/index.esm.min.js",
-    "limit": "5.9 KB",
-    "gzip": true,
-    "name": "ESM Minified"
-  },
-  {
-    "path": "dist/library/index.min.cjs",
-    "limit": "6.15 KB",
-    "gzip": true,
-    "name": "CJS Minified"
-  }
+  { "name": "full import", "path": "dist/index.js", "import": "*", "limit": "4.9 KB", "gzip": true },
+  { "name": "full import (brotli)", "path": "dist/index.js", "import": "*", "limit": "4.45 KB", "brotli": true },
+  { "name": "createGet only", "path": "dist/index.js", "import": "{ createGet }", "limit": "4.3 KB", "gzip": true },
+  { "name": "RequestError only", "path": "dist/index.js", "import": "{ RequestError }", "limit": "0.3 KB", "gzip": true }
 ]

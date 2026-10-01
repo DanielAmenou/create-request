@@ -1,74 +1,72 @@
 {
   "name": "create-request",
-  "version": "1.6.1",
-  "description": "A modern, chainable wrapper for fetch with automatic retries, timeouts, comprehensive error handling, and first-class TypeScript support",
-  "main": "dist/library/index.cjs",
-  "module": "dist/library/index.esm.js",
-  "types": "dist/library/index.d.ts",
-  "sideEffects": false,
+  "version": "2.0.0-next.0",
+  "description": "A tiny, chainable, fully typed wrapper around fetch: retries, timeouts, cancellation, interceptors, api instances, schema validation and one error type",
   "type": "module",
-  "files": [
-    "dist/library",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/library/index.d.ts",
       "import": {
-        "production": "./dist/library/index.esm.min.js",
-        "default": "./dist/library/index.esm.js"
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
       },
       "require": {
-        "production": "./dist/library/index.min.cjs",
-        "default": "./dist/library/index.cjs"
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
       }
-    }
+    },
+    "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "MIGRATION.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "dev": "cross-env BUILD_ENV=development rollup -c rollup.config.js -w",
-    "build": "cross-env BUILD_ENV=production rollup -c rollup.config.js",
-    "analyze": "cross-env ANALYZE=true BUILD_ENV=production rollup -c rollup.config.js",
-    "lint": "eslint 'src/**/*.{js,ts,json}' 'test/**/*.{js,ts,json}'",
-    "lint:quiet": "eslint 'src/**/*.{js,ts,json}' 'test/**/*.{js,ts,json}' --quiet",
-    "lint:fix": "eslint \"**/*.ts\" --ignore-path .eslintignore --fix",
-    "format": "prettier --write \"**/*.{ts,js,json}\"",
-    "check": "concurrently \"npm run lint\" \"npm run test\" \"npm run check:size\"",
-    "check:size": "npm run build && npx size-limit",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "node --import tsx --test \"test/**/*.test.ts\"",
-    "test:quiet": "node --import tsx --test \"test/**/*.test.ts\" > /dev/null",
+    "test:unit": "node --import tsx --test \"test/unit/**/*.test.ts\"",
     "test:e2e": "node --import tsx --test \"test/e2e/**/*.test.ts\"",
-    "test:coverage": "c8 --reporter=text --reporter=html --reporter=lcov npm test",
-    "prepare": "husky",
+    "test:types": "node scripts/extract-readme-snippets.mjs && tsc -p test/types/tsconfig.json",
+    "test:coverage": "c8 npm test",
+    "size": "size-limit",
+    "pack:check": "attw --pack . --profile node16 && publint",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test:types && npm run test:coverage && npm run build && npm run test:types:node && npm run pack:check && npm run size",
     "prepack": "npm run build",
-    "preversion": "npm run check",
-    "prepublishOnly": "npm run build && npm test",
-    "publish:beta": "npm version prerelease --preid=beta -m \"chore(release): %s\" && git push origin --follow-tags && npm publish --tag beta",
-    "publish:rc": "npm version prerelease --preid=rc -m \"chore(release): %s\" && git push origin --follow-tags && npm publish --tag rc",
-    "publish:patch": "npm version patch -m \"chore(release): %s\" && git push origin --follow-tags && npm publish",
-    "publish:minor": "npm version minor -m \"chore(release): %s\" && git push origin --follow-tags && npm publish",
-    "publish:major": "npm version major -m \"chore(release): %s\" && git push origin --follow-tags && npm publish"
+    "prepare": "node .husky/install.mjs",
+    "test:types:node": "tsc -p test/types/node-only/tsconfig.json"
   },
   "keywords": [
     "fetch",
     "http",
     "request",
     "api",
-    "xhr",
-    "ajax",
     "typescript",
     "chainable",
     "fluent",
     "retry",
     "timeout",
+    "abort",
+    "interceptors",
     "graphql",
-    "csrf"
+    "standard-schema",
+    "zod"
   ],
   "author": "Daniel Amenou <amenou.daniel@gmail.com>",
   "license": "MIT",
   "engines": {
-    "node": ">=18.3.0"
+    "node": ">=20.3.0"
   },
   "repository": {
     "type": "git",
@@ -83,34 +81,28 @@
     "url": "https://github.com/sponsors/DanielAmenou"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.1.0",
-    "@commitlint/config-conventional": "^20.0.0",
-    "@rollup/plugin-commonjs": "^29.0.0",
-    "@rollup/plugin-node-resolve": "^16.0.3",
-    "@rollup/plugin-terser": "^0.4.4",
-    "@rollup/plugin-typescript": "^12.3.0",
-    "@size-limit/preset-small-lib": "^12.0.0",
-    "@types/node": "^24.10.1",
-    "@typescript-eslint/eslint-plugin": "^8.48.0",
-    "@typescript-eslint/parser": "^8.48.0",
-    "c8": "^10.1.3",
-    "concurrently": "^9.2.1",
-    "cross-env": "^10.1.0",
-    "eslint": "^9.39.1",
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@eslint/js": "^10.0.1",
+    "@size-limit/preset-small-lib": "^14.1.0",
+    "@types/node": "^24.19.0",
+    "c8": "^12.0.0",
+    "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-import-resolver-typescript": "^4.4.4",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-jsonc": "^2.21.0",
-    "eslint-plugin-prettier": "^5.5.4",
+    "expect-type": "^1.4.0",
+    "globals": "^17.12.0",
     "husky": "^9.1.7",
-    "prettier": "^3.7.3",
-    "rollup": "^4.53.3",
-    "rollup-plugin-cleaner": "^1.0.0",
-    "rollup-plugin-visualizer": "^6.0.5",
-    "size-limit": "^12.0.0",
-    "tslib": "^2.8.1",
-    "tsx": "^4.20.6",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.9",
+    "publint": "^0.3.24",
+    "size-limit": "^14.1.0",
+    "tsdown": "^0.23.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "undici": "^7.16.0"
+    "typescript-eslint": "^8.71.0",
+    "undici": "^8.11.2",
+    "valibot": "^1.5.0",
+    "zod": "^4.6.5"
   }
 }
