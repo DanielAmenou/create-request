@@ -1,6 +1,6 @@
 {
   "name": "create-request",
-  "version": "2.0.0-next.0",
+  "version": "2.0.0",
   "description": "A tiny, chainable, fully typed wrapper around fetch: retries, timeouts, cancellation, interceptors, api instances, schema validation and one error type",
   "type": "module",
   "sideEffects": false,
