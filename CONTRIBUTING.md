@@ -4,10 +4,12 @@ Thank you for considering contributing to create-request! This document provides
 
 ## Development Setup
 
-1. Clone the repository
+1. Clone the repository (Node.js 24 is recommended for development; see `.nvmrc`)
 2. Run `npm install`
-3. Run `npm run build` to build the library
-4. Run `npm test` to run the tests
+3. Run `npm test` for the unit, e2e and regression suites, `npm run test:types` for the type tests
+   (which also compile every code block of the README), `npm run test:coverage` to enforce 100% coverage
+4. Run `npm run build` to build the library into `dist/`
+5. Run `npm run check` before opening a pull request — it runs everything CI runs (plus `pack:check`)
 
 ## How to Contribute
 
@@ -30,7 +32,7 @@ Thank you for considering contributing to create-request! This document provides
 3. Make your changes with clear, descriptive commits (see Commit Message Format below)
 4. Add or update tests as necessary
 5. Update documentation to reflect your changes
-6. Run `npm test` to make sure all tests pass
+6. Run `npm run check` to make sure lint, types, tests (100% coverage), build and size gate pass
 7. Check package size impact (see Package Size Considerations below)
 8. Submit a pull request
 
@@ -42,7 +44,7 @@ This project maintains strict size limits to ensure optimal bundle sizes for con
 
 Before submitting a pull request, check the size impact of your changes:
 
-- Run the size check: `npm run check:size`
+- Run the size check: `npm run build && npm run size`
 
 This will compare your changes against the current size limits defined in `.size-limit.json`.
 
@@ -120,7 +122,20 @@ docs(api): update method documentation
 - Follow the established project patterns
 - Use Prettier for code formatting (`npm run format`)
 - Use ESLint for linting (`npm run lint`)
-- Maintain test coverage for your code
-- Document public APIs
+- Keep coverage at 100% (`npm run test:coverage` fails otherwise); test through the public API,
+  never through private fields — inject `fetch` with `withFetch()` instead of mocking globals
+- Document public APIs with JSDoc; keep every `@example` valid TypeScript against the current API (the README's code blocks are compiled by `npm run test:types`; JSDoc examples are reviewed by hand)
+
+## Releasing (maintainers)
+
+Releases are made by pushing a tag; nothing is published from a laptop.
+
+1. Make sure `main` is green and `CHANGELOG.md` has the entry for the version.
+2. `npm version <version> -m "chore(release): %s"` — for example `npm version 2.0.0` or
+   `npm version 2.0.0-next.1` — updates `package.json`, commits and creates the `v<version>` tag.
+3. `git push --follow-tags`. The `Release` workflow checks that the tag matches `package.json`, runs
+   the tests, publishes to npm through trusted publishing (a prerelease suffix such as `-next.1`
+   goes to the `next` dist-tag, anything else to `latest`) with provenance, and creates the GitHub
+   release with generated notes.
 
 Thank you for your contributions!

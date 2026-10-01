@@ -4,11 +4,16 @@
 
 We actively support and provide security updates for the following versions:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.5.x   | :white_check_mark: |
-| 1.4.x   | :white_check_mark: |
-| < 1.4   | :x:                |
+| Version | Supported                                                              |
+| ------- | ---------------------------------------------------------------------- |
+| 2.x     | :white_check_mark:                                                     |
+| 1.x     | :x: (once 2.0.0 is released; until then 1.6.1 is the `latest` release) |
+
+## Security Advisories
+
+| Affected | Fixed in | Issue                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ≤ 1.6.1  | 2.0.0    | In browsers, the automatic CSRF headers (`X-Requested-With`, the global CSRF token and the token read from the `XSRF-TOKEN` cookie) were sent to **every** origin, disclosing the tokens to third-party hosts. Since 2.0.0 nothing is sent automatically, and `withCsrf()` attaches tokens to same-origin requests only (judged on the request URL before any redirect — pair it with `withRedirect("error")` on endpoints that may redirect elsewhere; outside a browser every URL counts as same-origin). Mitigation on 1.x: `create.config.setEnableAutoXsrf(false)`, avoid `setCsrfToken`, and set tokens per request with `withCsrfToken()`. |
 
 ## Reporting a Vulnerability
 
@@ -74,10 +79,11 @@ import create from "create-request";
 function createUser(userData: unknown) {
   // Validate userData before sending
   if (!isValidUserData(userData)) {
+    // isValidUserData is a type guard: userData is CreateUserInput below
     throw new Error("Invalid user data");
   }
 
-  return create.post("https://api.example.com/users").withBody(userData).getData();
+  return create.post("https://api.example.com/users").withBody(userData).getJson();
 }
 ```
 
@@ -99,7 +105,7 @@ Never commit API keys, tokens, or credentials to version control. Use environmen
 
 ```typescript
 // ✅ Good
-const apiKey = process.env.API_KEY;
+const apiKey = process.env.API_KEY!;
 create.get("https://api.example.com/data").withBearerToken(apiKey);
 
 // ❌ Bad
@@ -116,18 +122,31 @@ create.get("https://api.example.com/data").withBearerToken("hardcoded-token-1234
 - **Cookie handling**: Cookies are not sent by default in cross-origin requests unless credentials are explicitly included
 - **Same-origin policy**: Browsers enforce same-origin policy restrictions
 
+### What the library does not protect you from
+
+- **Untrusted input in URLs, headers and cookies.** An api instance's base URL is not a boundary: an
+  absolute `path` (`https://…`, `//…`) is used as-is and carries the api's headers with it. Header
+  values `fetch` would reject (CR/LF, non-Latin-1) fail with a `VALIDATION` error, but a `;` in a
+  cookie value smuggles in another cookie, because `withCookies` sends values verbatim.
+- **Redirects.** `fetch` strips `Authorization` on cross-origin redirects but forwards every other
+  header, including CSRF tokens and API keys. Use `withRedirect("error")` (or `"manual"`) when an
+  endpoint may redirect to another origin.
+- **Retrying non-idempotent requests.** Every method is retried by default; pass
+  `methods: ["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]` where a repeated `POST` could duplicate work.
+- **Large bodies you read yourself.** Error bodies are capped at 1 MB, but `getJson()`/`getText()`
+  read whatever the server sends; combine `withTimeout()` with a `Content-Length` check for
+  untrusted servers.
+
 ### Content Security Policy (CSP)
 
-If you're using Content Security Policy headers, ensure your policy allows:
-
-- Network requests to your API endpoints
-- Inline scripts if using certain features (check your specific use case)
+The library adds no inline scripts or styles; a policy only has to allow `connect-src` to your API
+endpoints.
 
 ## Security Updates
 
 Security updates will be:
 
-- Released as patch versions (e.g., `1.5.0` → `1.5.1`)
+- Released as patch versions (e.g., `2.0.0` → `2.0.1`)
 - Documented in the [CHANGELOG.md](./CHANGELOG.md)
 - Announced via GitHub releases
 - Tagged with security-related labels
