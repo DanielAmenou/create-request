@@ -19,7 +19,7 @@ const users = await create
 ```
 
 Retries, timeouts, interceptors and schema validation are built in. It has no dependencies, is
-under 5 KB min+gzip, and runs in browsers and Node.js 20.3+.
+under 5 KB min+gzip, and runs in browsers and Node.js 22+.
 
 ## Table of contents
 
@@ -51,7 +51,7 @@ npm install create-request
 
 | Runtime                  | Support                                                                                                                                                                          |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Node.js                  | 20.3 or newer                                                                                                                                                                    |
+| Node.js                  | 22 or newer                                                                                                                                                                      |
 | Browsers                 | Anything with `fetch`, `AbortSignal` and ES2022 — Chrome/Edge 93+, Firefox 91+, Safari 15+ (2021 and later)                                                                      |
 | Bun, Deno, edge runtimes | Only standard `fetch` / `AbortSignal` / `URL` APIs are used, so they are expected to work                                                                                        |
 | Module formats           | ESM (`dist/index.js`) and CommonJS (`dist/index.cjs`). From CommonJS the entry point is the `default` export: `const { default: create, createApi } = require("create-request")` |

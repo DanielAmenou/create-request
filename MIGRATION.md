@@ -5,7 +5,7 @@ fluent style and most method names are unchanged, so for most code bases the mig
 mechanical: replace the enum getters with string literals, move global configuration to an api
 instance, and drop a few options that never did anything.
 
-Node.js 20.3+ is required (Node 18 is end-of-life). The published files are `dist/index.js` (ESM),
+Node.js 22+ is required. The published files are `dist/index.js` (ESM),
 `dist/index.cjs` (CommonJS) and their declaration files; deep imports of `dist/library/*` no
 longer exist.
 

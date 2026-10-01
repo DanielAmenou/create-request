@@ -6,7 +6,7 @@ A ground-up rewrite with the same fluent API, a fifth fewer bytes on the wire, a
 
 ### Breaking
 
-- **Node.js 20.3+** is required. The package ships `dist/index.js` (ESM), `dist/index.cjs` (CommonJS) and bundled declaration files; the `production` export condition and the `dist/library/*` files are gone.
+- **Node.js 22+** is required. The package ships `dist/index.js` (ESM), `dist/index.cjs` (CommonJS) and bundled declaration files; the `production` export condition and the `dist/library/*` files are gone.
 - **No global configuration.** `create.config` and the `Config` singleton are removed; defaults live on immutable api instances (`createApi()` / `create.api()`), which now have every request method except body and signal ones, derived from the request type.
 - **String literals instead of enums.** The `.withCache.NO_CACHE()`-style getters and the runtime enums (`CacheMode`, `CredentialsPolicy`, `RequestMode`, `RedirectMode`, `ReferrerPolicy`, `RequestPriority`, `SameSitePolicy`, `HttpMethod`) are removed; the setters take the DOM string unions.
 - **CSRF is explicit.** Nothing is sent automatically: `withCsrf()` enables the XSRF-cookie → header copy (same-origin only), `withCsrf({ token })` sends a token you hold; `withoutCsrfProtection()`, `withAntiCsrfHeaders()` and `X-Requested-With` by default are gone.
@@ -52,7 +52,7 @@ A ground-up rewrite with the same fluent API, a fifth fewer bytes on the wire, a
 
 ### Internal
 
-- Build with `tsdown`; ESLint (typescript-eslint strict), Prettier, lint-staged and commitlint; CI on Node 20/22/24 with lint, type-check, type tests (including every README code block), 100% test coverage, package linting (`attw`, `publint`) and a `size-limit` gate; npm publishing with provenance.
+- Build with `tsdown`; ESLint (typescript-eslint strict), Prettier, lint-staged and commitlint; CI on Node 22/24 with lint, type-check, type tests (including every README code block), 100% test coverage, package linting (`attw`, `publint`) and a `size-limit` gate; npm publishing with provenance.
 
 ## 1.6.1 and earlier
 
