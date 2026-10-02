@@ -1,7 +1,7 @@
 # create-request
 
 [![npm version](https://img.shields.io/npm/v/create-request.svg)](https://www.npmjs.com/package/create-request)
-[![Bundle size](https://img.shields.io/bundlephobia/minzip/create-request)](https://bundlephobia.com/package/create-request)
+[![Bundle size](https://deno.bundlejs.com/badge?q=create-request)](https://bundlejs.com/?q=create-request)
 [![codecov](https://codecov.io/github/danielamenou/create-request/graph/badge.svg?token=OUBR6RNXZO)](https://codecov.io/github/danielamenou/create-request)
 [![npm downloads](https://img.shields.io/npm/dt/create-request.svg)](https://www.npmjs.com/package/create-request)
 [![License](https://img.shields.io/npm/l/create-request.svg)](https://github.com/DanielAmenou/create-request/blob/main/LICENSE)
