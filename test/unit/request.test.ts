@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { Headers as UndiciHeaders } from "undici";
 import create, { HttpRequest, RequestError, createDelete, createGet, createHead, createOptions, createPatch, createPost, createPut } from "../../src/index.js";
 import { asError, hanging, json, status, stub, unexpected } from "../utils/helpers.js";
 
@@ -35,6 +36,22 @@ describe("headers", () => {
     const { fetch, calls } = stub();
     await create.get("/x").withHeaders({ "Content-Type": "a", "content-type": "b", "X-Num": 5 }).withHeader("Accept", "json").withFetch(fetch).getResponse();
     assert.deepEqual(calls[0]!.init.headers, { "content-type": "b", "x-num": "5", accept: "json" });
+  });
+
+  it("takes a Headers object or [name, value] pairs, including a Headers object from another realm", async () => {
+    const { fetch, calls } = stub();
+    await create
+      .get("/x")
+      .withHeader("Accept", "json")
+      .withHeaders(new Headers({ "X-A": "1", Accept: "text" }))
+      .withHeaders([
+        ["X-B", "2"],
+        ["x-b", "3"],
+      ])
+      .withHeaders(new UndiciHeaders({ "X-C": "4" }) as unknown as Headers)
+      .withFetch(fetch)
+      .getResponse();
+    assert.deepEqual(calls[0]!.init.headers, { accept: "text", "x-a": "1", "x-b": "3", "x-c": "4" });
   });
 
   it("null and undefined unset a header", async () => {

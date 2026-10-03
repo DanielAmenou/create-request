@@ -36,7 +36,7 @@ type ApiChainables = {
  */
 export interface ApiBuilder extends ApiChainables {
   // Generic members are redeclared so that interface-typed arguments are accepted here too (docs are inherited).
-  withHeaders<H extends { [K in keyof H]: string | number | null | undefined }>(headers: H): ApiBuilder;
+  withHeaders<H extends { [K in keyof H]: string | number | null | undefined }>(headers: H | Headers | readonly (readonly [string, string])[]): ApiBuilder;
   withCookies<C extends { [K in keyof C]: string }>(cookies: C): ApiBuilder;
   withQueryParams<P extends { [K in keyof P]: QueryValue }>(params: P | URLSearchParams): ApiBuilder;
   /**

@@ -119,7 +119,8 @@ Named factories exist as well: `createGet`, `createPost`, `createPut`, `createPa
 ```typescript
 create
   .post("https://api.example.com/items")
-  // headers & auth: names are case-insensitive, null removes a header
+  // headers & auth: an object, a Headers object or [name, value] pairs; names are
+  // case-insensitive, and null (in an object) removes a header
   .withHeaders({ Accept: "application/json", "X-Trace": id })
   .withHeader("X-Feature", "beta")
   .withContentType("application/json") // rarely needed: JSON and text bodies set it themselves
@@ -526,8 +527,8 @@ Measured with `size-limit` on the published build of this version (`npm run size
 
 | Import                         | min + gzip | min + brotli |
 | ------------------------------ | ---------: | -----------: |
-| everything (`import * as …`)   |    4.86 KB |      4.40 KB |
-| `import { createGet }` only    |    4.25 KB |              |
+| everything (`import * as …`)   |    4.88 KB |      4.42 KB |
+| `import { createGet }` only    |    4.27 KB |              |
 | `import { RequestError }` only |    0.18 KB |              |
 
 The package is one module with no side effects, so bundlers drop whatever you do not import. The

@@ -110,17 +110,20 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
   /* ------------------------------------------------------------------ headers & auth */
 
   /**
-   * Sets several headers at once. Names are case-insensitive (stored lower-case); a `null` or `undefined`
-   * value removes the header, which is how a request drops a default set on its api.
+   * Sets several headers at once, from an object, a `Headers` object or `[name, value]` pairs — the forms `fetch`
+   * accepts. Names are case-insensitive (stored lower-case) and a later value replaces an earlier one. In an object,
+   * a `null` or `undefined` value removes the header, which is how a request drops a default set on its api.
    *
    * @example
    * ```typescript
    * request.withHeaders({ Accept: "application/json", "X-Request-Id": id });
+   * request.withHeaders(new Headers({ "X-Request-Id": id }));
    * api.get("/public").withHeaders({ Authorization: null });   // send this one unauthenticated
    * ```
    */
-  withHeaders<H extends { [K in keyof H]: string | number | null | undefined }>(headers: H): this {
-    for (const [name, value] of Object.entries(headers as HeadersRecord)) {
+  withHeaders<H extends { [K in keyof H]: string | number | null | undefined }>(headers: H | Headers | readonly (readonly [string, string])[]): this {
+    // Iterated rather than checked with `instanceof`, so a Headers object from another realm (undici's own copy) works too.
+    for (const [name, value] of Symbol.iterator in headers ? (headers as Iterable<readonly [string, string]>) : Object.entries(headers as HeadersRecord)) {
       const key = name.toLowerCase();
       if (value == null) delete this._o.headers[key];
       else this._o.headers[key] = String(value);

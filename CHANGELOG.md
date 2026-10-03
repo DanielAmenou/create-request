@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `withHeaders()` also accepts a `Headers` object or `[name, value]` pairs, the other forms `fetch` accepts, on requests and api instances. Before, a `Headers` object was a type error and sent no header at all, and pairs sent a header named `0`.
+
 ## 2.0.0 — 2026-10-01
 
 A ground-up rewrite with the same fluent API, a fifth fewer bytes on the wire, a 70 % smaller package and none of the known bugs. See [MIGRATION.md](MIGRATION.md) for the v1 → v2 map.

@@ -49,6 +49,25 @@ describe("createApi", () => {
     );
   });
 
+  it("takes a Headers object as a default and sends it with every request", async () => {
+    const { fetch, calls } = stub();
+    const api = createApi()
+      .withHeaders(new Headers({ "X-Api": "1" }))
+      .withFetch(fetch);
+    await api.get("/a").getResponse();
+    await api
+      .get("/b")
+      .withHeaders([["X-Request", "2"]])
+      .getResponse();
+    assert.deepEqual(
+      calls.map(call => [call.headers.get("x-api"), call.headers.get("x-request")]),
+      [
+        ["1", null],
+        ["1", "2"],
+      ]
+    );
+  });
+
   it("applies every default to the requests it creates, in order, and requests can override them", async () => {
     const { fetch, calls } = stub();
     const api = createApi()

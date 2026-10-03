@@ -125,6 +125,12 @@ create
   .withQueryParams({ page: 1, ok: true, at: new Date(), none: null, tags: ["a"] })
   .withQueryParams(new URLSearchParams());
 create.get("/x").withHeaders({ a: "1", b: undefined, c: null, d: 2 }).withHeader("e", null);
+create
+  .get("/x")
+  .withHeaders(new Headers({ a: "1" }))
+  .withHeaders([["b", "2"]]);
+// @ts-expect-error a header pair is [name, value]
+create.get("/x").withHeaders([["a"]]);
 create.get("/x").withCache("no-cache").withCredentials("omit").withMode("no-cors").withRedirect("manual").withReferrerPolicy("no-referrer").withPriority("low");
 // @ts-expect-error cache modes are a union, not any string (C7)
 create.get("/x").withCache("typo");
@@ -260,6 +266,7 @@ declare const myHeaders: MyHeaders;
 declare const vars: Vars;
 create.get("/x").withQueryParams(filters).withHeaders(myHeaders).withCookies({ a: "1" });
 configured.withQueryParams(filters).withHeaders(myHeaders).withCookies({ a: "1" });
+configured.withHeaders(new Headers({ a: "1" })).withHeaders([["b", "2"]]);
 create.post("/graphql").withGraphQL("q", vars);
 // @ts-expect-error nested objects are not query values
 create.get("/x").withQueryParams({ page: { nested: true } });
