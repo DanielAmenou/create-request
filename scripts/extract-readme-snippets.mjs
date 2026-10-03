@@ -30,14 +30,14 @@ declare const undiciFetch: typeof import("undici").fetch;
 declare function refreshToken(): Promise<string>;
 declare function render(value: unknown): void;
 declare function showError(message: string): void;
-declare function process(chunk: string): void;
+declare function handleChunk(chunk: string): void;
 declare function onProgress(fraction: number): void;
 declare const useQuery: (options: { queryKey: unknown[]; queryFn: (context: { signal: AbortSignal }) => Promise<unknown> }) => unknown;
 interface User { id: number; name: string; email?: string }
 interface Post { id: number; title: string }
 type Page<T> = { items: T[]; next: string | null };
 declare const api: ApiBuilder;
-void [create, HttpRequest, RequestError, ResponseWrapper, createApi, createGet, createPost, isRequestError, z, token, id, url, signal, form, agent, undiciFetch, refreshToken, render, showError, process, onProgress, useQuery, api];
+void [create, HttpRequest, RequestError, ResponseWrapper, createApi, createGet, createPost, isRequestError, z, token, id, url, signal, form, agent, undiciFetch, refreshToken, render, showError, handleChunk, onProgress, useQuery, api];
 export {};
 async function __readme(): Promise<void> {
 `;

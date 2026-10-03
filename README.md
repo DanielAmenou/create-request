@@ -26,7 +26,7 @@ under 5 KB min+gzip, and runs in browsers and Node.js 22+.
 - [Installation](#installation)
 - [60-second start](#60-second-start)
 - [The mental model](#the-mental-model)
-- [Requests](#requests) — [creating](#creating), [configuring](#configuring),
+- [Requests](#requests): [creating](#creating), [configuring](#configuring),
   [executing](#executing), [reusing](#reusing)
 - [Errors](#errors)
 - [Api instances](#api-instances)
@@ -42,6 +42,8 @@ under 5 KB min+gzip, and runs in browsers and Node.js 22+.
 - [Design principles](#design-principles)
 - [Size](#size)
 - [Migrating from v1](#migrating-from-v1)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Installation
 
@@ -52,7 +54,7 @@ npm install create-request
 | Runtime                  | Support                                                                                                                                                                          |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Node.js                  | 22 or newer                                                                                                                                                                      |
-| Browsers                 | Anything with `fetch`, `AbortSignal` and ES2022 — Chrome/Edge 93+, Firefox 91+, Safari 15+ (2021 and later)                                                                      |
+| Browsers                 | Anything with `fetch`, `AbortSignal` and ES2022: Chrome/Edge 93+, Firefox 91+, Safari 15+ (2021 and later)                                                                       |
 | Bun, Deno, edge runtimes | Only standard `fetch` / `AbortSignal` / `URL` APIs are used, so they are expected to work                                                                                        |
 | Module formats           | ESM (`dist/index.js`) and CommonJS (`dist/index.cjs`). From CommonJS the entry point is the `default` export: `const { default: create, createApi } = require("create-request")` |
 | TypeScript               | 5.0 or newer; the declarations resolve with the DOM lib **or** with `@types/node` alone                                                                                          |
@@ -74,14 +76,14 @@ const created = await create
   .withRetries(2)
   .getJson<User>();
 
-// 3. Shared defaults live on an api instance — create one, export it, use it everywhere
+// 3. Shared defaults live on an api instance: create one, export it, use it everywhere
 const api = createApi().withBaseURL("https://api.example.com").withBearerToken(token);
 
 try {
   await api.delete(`/users/${id}`).getResponse();
 } catch (error) {
-  if (isRequestError(error) && error.status === 404) return; // one error type, with a code and status
-  throw error;
+  // one error type, with a code and a status; a 404 here means it was already deleted
+  if (!(isRequestError(error) && error.status === 404)) throw error;
 }
 ```
 
@@ -90,9 +92,9 @@ try {
 1. `create.get(url)` / `create.post(url)` / … (or `api.get(path)`) return a **request**.
 2. `with*()` methods configure it and return the same request, so calls chain. Nothing is sent
    yet.
-3. A `get*()` method sends it and gives you the body in the format you ask for — or the
+3. A `get*()` method sends it and gives you the body in the format you ask for, or the
    `ResponseWrapper` with `getResponse()`, or `{ data, error }` with `getResult()`.
-4. Every failure — HTTP status, network, timeout, abort, parsing, validation, interceptor —
+4. Every failure (HTTP status, network, timeout, abort, parsing, validation, interceptor)
    rejects with a **`RequestError`** whose `code` says which.
 5. An **api instance** holds defaults (base URL, auth, timeout, retries, interceptors, …) for the
    requests it creates. It is immutable: `api.withHeader(…)` returns a new instance.
@@ -109,7 +111,7 @@ api.get<User>("/me"); // declare the JSON type once; getJson() / getData() / get
 ```
 
 Named factories exist as well: `createGet`, `createPost`, `createPut`, `createPatch`,
-`createDelete`, `createHead`, `createOptions` — the same functions as `create.get`, … — and
+`createDelete`, `createHead`, `createOptions` (the same functions as `create.get`, …), and
 `createApi()` is also available as `create.api()`.
 
 ### Configuring
@@ -117,12 +119,12 @@ Named factories exist as well: `createGet`, `createPost`, `createPut`, `createPa
 ```typescript
 create
   .post("https://api.example.com/items")
-  // headers & auth — names are case-insensitive, null removes a header
+  // headers & auth: names are case-insensitive, null removes a header
   .withHeaders({ Accept: "application/json", "X-Trace": id })
   .withHeader("X-Feature", "beta")
   .withContentType("application/json") // rarely needed: JSON and text bodies set it themselves
   .withBearerToken(token) // or withBasicAuth(user, pass) / withAuthorization("Custom …")
-  // query string — arrays repeat the key, Dates become ISO strings, null removes the key,
+  // query string: arrays repeat the key, Dates become ISO strings, null removes the key,
   // and a key set twice keeps the last value (a request can override an api default)
   .withQueryParams({ page: 2, tags: ["a", "b"], since: new Date() })
   .withQueryParam("q", "search term")
@@ -145,12 +147,13 @@ create
   .withIntegrity("sha256-…");
 ```
 
-Sending a `FormData`? Do not set a `Content-Type` — `fetch` adds the multipart boundary itself
+Sending a `FormData`? Do not set a `Content-Type`: `fetch` adds the multipart boundary itself
 (the library removes one if an api default put it there). The remaining methods have sections of
-their own: `withCookie(s)` and `withCsrf` ([Cookies and CSRF](#cookies-and-csrf)),
-`withRequestInterceptor` / `withResponseInterceptor` / `withErrorInterceptor`
-([Interceptors](#interceptors)), `withGraphQL` ([GraphQL](#graphql)), `withFetch`
-([Testing and custom fetch](#testing-and-custom-fetch)).
+their own: `withCookie(s)`, `withCsrf` and `withCsrfToken`
+([Cookies and CSRF](#cookies-and-csrf)), `onRetry` ([Retries](#retries)), `withAbortController`
+([Timeouts and cancellation](#timeouts-and-cancellation)), `withRequestInterceptor` /
+`withResponseInterceptor` / `withErrorInterceptor` ([Interceptors](#interceptors)), `withGraphQL`
+([GraphQL](#graphql)) and `withFetch` ([Testing and custom fetch](#testing-and-custom-fetch)).
 
 ### Executing
 
@@ -161,20 +164,20 @@ their own: `withCookie(s)` and `withCsrf` ([Cookies and CSRF](#cookies-and-csrf)
 | `getBlob()`         | The body as a `Blob` typed with the response `Content-Type`                                                                                                         |
 | `getArrayBuffer()`  | The body as an `ArrayBuffer`                                                                                                                                        |
 | `getFormData()`     | The body parsed as `multipart/form-data` or `application/x-www-form-urlencoded`                                                                                     |
-| `getBody()`         | The raw `ReadableStream` (not buffered — for streaming), or `null` when there is no body (`HEAD`, `204`)                                                            |
+| `getBody()`         | The raw `ReadableStream` (not buffered, for streaming), or `null` when there is no body (`HEAD`, `204`)                                                             |
 | `getData(selector)` | `getJson()` followed by a selector, e.g. `getData(page => page.items)`                                                                                              |
 | `getResult<T>()`    | `{ data, error }` instead of throwing                                                                                                                               |
 | `getResponse()`     | A `ResponseWrapper`: `status`, `statusText`, `ok`, `headers`, `url`, `method`, the underlying `raw` `Response`, and every body reader above (`getJson` … `getData`) |
 
 The body is buffered once, so on a `ResponseWrapper` you can call several readers, in any order,
-even concurrently. `getBody()` is the exception: it hands you the live stream, so nothing else
-can read the body afterwards.
+even concurrently. `getBody()` is the exception: it hands you the live stream, so it must be the
+only reader of that response.
 
 ```typescript
 const response = await api.get<User>("/me").getResponse();
 console.log(response.status, response.headers.get("etag"));
 const user = await response.getJson(); // User
-const raw = await response.getText(); // still works — same buffer
+const raw = await response.getText(); // still works: same buffer
 ```
 
 ### Reusing
@@ -195,26 +198,27 @@ const [page1, page2] = await Promise.all([
 Every rejection is a `RequestError`. Check it with `isRequestError(error)` (or `instanceof`) and
 switch on `code`:
 
-| `code`          | When                                                                                                                                                | Also set                                                                                          |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `"HTTP"`        | The server answered with a non-2xx status (a 3xx under `withRedirect("manual")` and an opaque response under `withMode("no-cors")` resolve instead) | `status`, `response`, `body`, `data`                                                              |
-| `"NETWORK"`     | `fetch` itself failed: DNS, connection refused, CORS, offline                                                                                       | `cause` (the error `fetch` threw)                                                                 |
-| `"TIMEOUT"`     | `withTimeout()` fired, or a signal from `AbortSignal.timeout()` aborted                                                                             | `cause`; plus `status`, `response` when it fired while the body was being read                    |
-| `"ABORTED"`     | A signal passed with `withSignal()` / `withAbortController()` aborted                                                                               | `cause` (the abort reason); plus `status`, `response` when it fired while the body was being read |
-| `"PARSE"`       | The body could not be read or parsed, or a `getData` selector threw                                                                                 | `status`, `response`, `cause`, `body` (for invalid JSON)                                          |
-| `"VALIDATION"`  | The response failed the schema, or the request could not be built (empty or unparsable absolute URL, invalid header value, non-serialisable body)   | `issues` and `body` for schema failures; `cause` otherwise                                        |
-| `"INTERCEPTOR"` | A request/response interceptor or a callback (retry, CSRF token) threw                                                                              | `cause`; plus `status`, `response` (and `body`) when a response existed                           |
-| `"GRAPHQL"`     | The GraphQL response had `errors` and `throwOnError` was on                                                                                         | `status`, `response`, `body`, `data`                                                              |
+| `code`          | When                                                                                                                                                      | Also set                                                                                          |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `"HTTP"`        | The server answered with a non-2xx status (a 3xx under `withRedirect("manual")` and an opaque response under `withMode("no-cors")` resolve instead)       | `status`, `response`, `body`, `data`                                                              |
+| `"NETWORK"`     | `fetch` itself failed: DNS, connection refused, CORS, offline                                                                                             | `cause` (the error `fetch` threw)                                                                 |
+| `"TIMEOUT"`     | `withTimeout()` fired, or a signal from `AbortSignal.timeout()` aborted                                                                                   | `cause`; plus `status`, `response` when it fired while the body was being read                    |
+| `"ABORTED"`     | A signal passed with `withSignal()` / `withAbortController()` aborted                                                                                     | `cause` (the abort reason); plus `status`, `response` when it fired while the body was being read |
+| `"PARSE"`       | The body could not be read or parsed, or a `getData` selector threw                                                                                       | `status`, `response`, `cause`, `body` (for invalid JSON)                                          |
+| `"VALIDATION"`  | The response failed the schema, or the request could not be built (empty or unparsable absolute URL, invalid header name or value, non-serialisable body) | `issues`, `body`, `status`, `response` for schema failures; `cause` for a rejected header or body |
+| `"INTERCEPTOR"` | An interceptor or a callback (retry, CSRF token) threw; a `RequestError` thrown by an error interceptor is kept as-is                                     | `cause`; plus `status`, `response` (and `body`) when a response existed                           |
+| `"GRAPHQL"`     | The GraphQL response had `errors` and `throwOnError` was on                                                                                               | `status`, `response`, `body`, `data`                                                              |
 
-`url` and `method` are always set. `data` is `body` parsed as JSON — the shape most APIs use for
-error details — and never throws. `body` holds at most 1 MB: a response that announces more is
-left unread on `error.response`; a longer chunked or compressed one is cut off and `body` is
-`undefined`. `isTimeout` / `isAborted` are shorthands for the two codes. In Node.js a relative
-URL is a `"NETWORK"` failure, because `fetch` there has no page to resolve it against.
+`url` and `method` are always set. `data` is `body` parsed as JSON (the shape most APIs use for
+error details) and never throws. On `"HTTP"` errors, `body` holds at most 1 MB: a response that
+announces more is left unread on `error.response`; a longer chunked or compressed one is cut off
+and `body` is `undefined`. `isTimeout` / `isAborted` are shorthands for the two codes. In Node.js
+a relative URL is a `"NETWORK"` failure, because `fetch` there has no page to resolve it against.
 
-Three mistakes are reported earlier, synchronously, by the `with*` call itself rather than by the
-execution: an invalid timeout (`withTimeout(-1)`), an invalid retry count (`withRetries(-1)`) and
-a body that cannot be JSON-serialised. They are `RequestError`s with code `"VALIDATION"` too.
+A few bad arguments are caught before the request runs: `withTimeout(-1)`, `withRetries(-1)` and
+a `withBody()` value that cannot be serialised to JSON (a circular object, a `BigInt`) throw a
+`RequestError` with code `"VALIDATION"` from the `with*` call itself. Because they are thrown
+immediately, `getResult()` and `.catch()` never see them.
 
 ```typescript
 try {
@@ -269,24 +273,25 @@ const post = await api.post<Post>("/posts").withBody({ title: "Hello" }).getJson
 const admin = api.withHeader("X-Role", "admin"); // a NEW instance; `api` is unchanged
 ```
 
-Requests inherit the defaults and can override any of them: `api.get("/slow").withTimeout(30_000)`,
+Requests inherit the defaults and can override them: `api.get("/slow").withTimeout(30_000)`,
 `api.get("/public").withHeaders({ Authorization: null })`, `api.get("/live").withTimeout(0)` (no
-timeout at all).
+timeout at all). Interceptors and cookies are the exception: a request adds its own to the api's
+instead of replacing them.
 
 Paths are **joined** to the base URL, not resolved: `/v1` + `/users` → `/v1/users`; `users` and
 `./users` work the same; `api.get()` without a path requests the base URL; absolute URLs
-(`https://…`, `//…`) are used as-is — and carry the api's headers with them, so never build a
+(`https://…`, `//…`) are used as-is. They carry the api's headers with them, so never build a
 path from untrusted input.
 
 ## Retries
 
 ```typescript
-api.get("/status").withRetries(3); // default policy
+api.get("/status").withRetries(3); // 3 retries (up to 4 requests), default policy
 api.get("/status").withRetries({
   attempts: 3,
   delay: ({ attempt }) => attempt * 500, // ms, or a number; default: exponential backoff
   statuses: [503], // default: 408, 425, 429, 500, 502, 503, 504
-  methods: ["GET", "HEAD", "PUT", "DELETE"], // default: every method — including POST and PATCH
+  methods: ["GET", "HEAD", "OPTIONS", "PUT", "DELETE"], // default: all, POST and PATCH included
   maxDelay: 10_000, // caps the backoff (default 30 s); a longer Retry-After gives up instead
   shouldRetry: ({ error }) => error.code === "NETWORK", // full override of the decision
   onRetry: ({ attempt, error, delay }) =>
@@ -294,17 +299,22 @@ api.get("/status").withRetries({
 });
 ```
 
-Defaults that keep you out of trouble: network errors, timeouts and the statuses above are retried
-with exponential backoff (300 ms, 600 ms, 1.2 s, … plus up to 100 ms of jitter, capped at
-`maxDelay`); a `Retry-After` header is honoured unless you set `delay`, and one longer than
-`maxDelay` cancels the retry so you can react yourself; validation errors are not retried by the
-default policy; aborted requests and requests with a stream body are never retried, whatever the
-policy — that includes a timeout coming from your own `AbortSignal.timeout()` signal, which stays
-aborted (only `withTimeout()` timeouts are retried); the timeout applies to each attempt; error
-interceptors run once, after the last attempt.
-Every method is retried by default — pass `methods: ["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]`
-if a repeated `POST` could duplicate work. `onRetry(callback)` also exists as a method; it does
-not enable retries by itself.
+How retries behave:
+
+- By default, network errors, timeouts and the statuses above are retried with exponential
+  backoff (300 ms, 600 ms, 1.2 s, … plus up to 100 ms of jitter, capped at `maxDelay`);
+  validation errors and other failures are not.
+- Every method is retried by default, `POST` and `PATCH` included. Pass
+  `methods: ["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]` if a repeated request could duplicate
+  work.
+- A `Retry-After` header is honoured unless you set `delay`; one longer than `maxDelay` cancels
+  the retry so you can react yourself.
+- Aborted requests and requests with a stream body are never retried, whatever the policy. That
+  includes a timeout from your own `AbortSignal.timeout()` signal, which stays aborted (only
+  `withTimeout()` timeouts are retried).
+- The timeout applies to each attempt; error interceptors run once, after the last attempt.
+
+`onRetry(callback)` also exists as a method; it does not enable retries by itself.
 
 ## Timeouts and cancellation
 
@@ -316,22 +326,22 @@ const controller = new AbortController();
 const download = api.get("/big").withAbortController(controller).getBlob();
 controller.abort(); // `download` rejects with code "ABORTED"
 
-// Data-fetching libraries hand you a signal — pass it straight through
+// Data-fetching libraries hand you a signal: pass it straight through
 useQuery({
   queryKey: ["user", id],
   queryFn: ({ signal }) => api.get<User>(`/users/${id}`).withSignal(signal).getJson(),
 });
 ```
 
-The timeout covers the whole exchange — waiting for the response _and_ reading its body — and
+The timeout covers the whole exchange (waiting for the response _and_ reading its body) and
 starts after request interceptors ran. Taking the stream with `getBody()` ends it. A signal
 created with `AbortSignal.timeout()` is reported as `"TIMEOUT"` too (but, unlike `withTimeout()`,
-is not retried — the signal stays aborted); any other abort is `"ABORTED"`. A request whose
-signal is already aborted fails before anything is sent.
+is not retried, because the signal stays aborted); any other abort is `"ABORTED"`. A request
+whose signal is already aborted fails before anything is sent.
 
 ## Interceptors
 
-Interceptors run in registration order — api-level ones first, then request-level ones.
+Interceptors run in registration order: api-level ones first, then request-level ones.
 Returning nothing keeps your in-place changes.
 
 ```typescript
@@ -351,24 +361,25 @@ const authed = api
     if (error.status !== 401 || replayed.has(request)) return;
     accessToken = await refreshToken(); // the request interceptor above picks it up
     const retry = request.clone(); // same method, body, headers and query
-    replayed.add(retry); // the clone runs this interceptor too — never loop on a persistent 401
+    replayed.add(retry); // the clone runs this interceptor too; never loop on a persistent 401
     return retry.getResponse();
   });
 ```
 
 The `config` a request interceptor receives is the `RequestInit`-shaped object about to be sent:
 `url`, `method`, lower-case `headers`, the serialised `body` (JSON bodies are already strings) and
-the combined `signal` — before the CSRF header (`withCsrf()`) and the timeout are added. A
-`Response` returned by a request interceptor skips the network — and the remaining request
-interceptors, URL/header validation and the CSRF header — but its status is checked and response
-interceptors run like for a fetched one; `withTimeout()` does not apply to it. A request or
-response interceptor that throws fails the request with code `"INTERCEPTOR"`; an error
-interceptor that throws replaces the error (a thrown `RequestError` is kept as-is).
+the combined `signal`. The CSRF header (`withCsrf()`) and the timeout are added after request
+interceptors ran. A `Response` returned by a request interceptor skips the network (and the
+remaining request interceptors, URL/header validation and the CSRF header), but its status is
+checked and response interceptors run like for a fetched one; `withTimeout()` does not apply to
+it. A request or response interceptor that throws fails the request with code `"INTERCEPTOR"`;
+an error interceptor that throws replaces the error with an `"INTERCEPTOR"` one (a thrown
+`RequestError` is kept as-is).
 
 ## Schema validation
 
-Pass any [Standard Schema](https://standardschema.dev) — zod 3.24+, valibot 1+, arktype 2+,
-effect (via `Schema.standardSchemaV1`) and more — to `getJson`, `getData` or `getResult`. The
+Pass any [Standard Schema](https://standardschema.dev) (zod 3.24+, valibot 1+, arktype 2+,
+effect via `Schema.standardSchemaV1`, and more) to `getJson`, `getData` or `getResult`. The
 body is validated at runtime and the result is typed from the schema; this library adds no
 dependency for it.
 
@@ -396,7 +407,8 @@ const result = await api
 ```
 
 `withGraphQL` sends `{ query, variables }` as JSON. With `throwOnError`, a response whose `errors`
-array is non-empty rejects with `code: "GRAPHQL"` (GraphQL servers answer `200` for those).
+array is non-empty is reported as a `"GRAPHQL"` error by `getJson()`, `getData()` and `getResult()`
+(GraphQL servers answer `200` for those); `getResponse()` and the other readers do not check it.
 
 ## Streaming and downloads
 
@@ -413,20 +425,20 @@ for (;;) {
   if (done) break;
   loaded += value.length;
   if (total) onProgress(loaded / total);
-  process(decoder.decode(value, { stream: true }));
+  handleChunk(decoder.decode(value, { stream: true }));
 }
 ```
 
-Request bodies can be streams too (`withBody(readableStream)`), sent with `duplex: "half"` —
-Node.js and Chromium support that, Firefox and Safari do not. Stream bodies are never retried.
+Request bodies can be streams too (`withBody(readableStream)`), sent with `duplex: "half"`.
+Node.js and Chromium support that; Firefox and Safari do not. Stream bodies are never retried.
 Upload _progress_ is not something `fetch` exposes in browsers, so there is no API for it.
 
 ## Testing and custom fetch
 
-`withFetch()` replaces the global `fetch` for a request or an api: inject a stub in tests, an
-undici `Agent` for proxies and keep-alive tuning in Node.js, or a framework's patched fetch. The
-function receives the final URL and `RequestInit`; it must honour `init.signal` for timeouts and
-cancellation to keep working.
+`withFetch()` makes a request or an api call your function instead of the global `fetch`: a stub
+in tests, undici with a dispatcher in Node.js (an `Agent` for keep-alive tuning and mTLS, a
+`ProxyAgent` for proxies), or a framework's patched fetch. The function receives the final URL
+and `RequestInit`; it must honour `init.signal` for timeouts and cancellation to keep working.
 
 ```typescript
 // Tests: no global mocks
@@ -434,7 +446,7 @@ const stubbed = api.withFetch(
   async () => new Response('{"id":1}', { headers: { "content-type": "application/json" } })
 );
 
-// Node.js: an undici Agent (proxy, mTLS, keep-alive)
+// Node.js: undici with a dispatcher (an Agent here; a ProxyAgent for proxies)
 const viaAgent = api.withFetch(
   (url, init) =>
     undiciFetch(url, {
@@ -451,21 +463,21 @@ const cached = api.withFetch((url, init) =>
 
 ## Cookies and CSRF
 
-- `withCookie(name, value)` / `withCookies({ … })` add a `Cookie` header — **server-side only**.
+- `withCookie(name, value)` / `withCookies({ … })` add a `Cookie` header (**server-side only**).
   Browsers ignore a `Cookie` header on `fetch` and send their own cookies; use
   `withCredentials("include")` there. Names and values are sent verbatim, so never pass untrusted
   input (a `;` in a value would smuggle in another cookie).
 - `withCsrf()` copies the `XSRF-TOKEN` cookie (URL-decoded) into an `X-XSRF-TOKEN` header unless
   the request already has one (the Angular, Laravel and Spring convention), **only for
-  same-origin URLs** — judged on the final request URL, after
-  interceptors and before any redirect (`fetch` forwards custom headers across redirects, so use
+  same-origin URLs**. The origin is judged on the final request URL, after interceptors and
+  before any redirect (`fetch` forwards custom headers across redirects, so use
   `withRedirect("error")` for endpoints that may redirect elsewhere). Outside a browser there is
   no page origin and every URL counts as same-origin. Configure other setups with
   `withCsrf({ cookie: "csrftoken", header: "X-CSRFToken" })` (Django),
   `withCsrf({ token: () => readMetaTag() })` (Rails; the token is then sent as `X-CSRF-Token`) or
   `withCsrf({ crossOrigin: true })`.
-- `withCsrfToken(token)` sends a token you already hold, wherever you send the request — it is a
-  plain header; prefer `withCsrf({ token })` to keep the same-origin check.
+- `withCsrfToken(token)` sends a token you already hold as a plain header, wherever you send the
+  request; prefer `withCsrf({ token })` to keep the same-origin check.
 - Nothing is sent unless you ask for it: there is no automatic `X-Requested-With` header. Add
   `withHeader("X-Requested-With", "XMLHttpRequest")` if a framework still checks it.
 
@@ -477,9 +489,9 @@ browser behaviour, not something the library adds on its own.
 - `api.get<User>("/me")` (or `create.get<User>(url)`) declares the response type once; every
   reader uses it: `getJson()`, `getData(user => user.name)`, `getResult()`, `getResponse()`.
 - Per-call overrides still work: `getJson<Other>()`. An endpoint that can answer `204` is typed as
-  `getJson<User | null>()` — an empty body yields `null` at runtime.
+  `getJson<User | null>()`, since an empty body yields `null` at runtime.
 - `withBody` / `withGraphQL` are a compile error on `GET`, `HEAD` and `OPTIONS` requests (and on
-  a `BaseRequest`, whose method is unknown — narrow it with `as BodyRequest`).
+  a `BaseRequest`, whose method is unknown; narrow it with `as BodyRequest`).
 - Method-typed aliases are exported for annotations: `GetRequest<T>`, `PostRequest<T>`, …,
   `BaseRequest<T>` (any method), `BodyRequest<T>`; the class itself is `HttpRequest<Method, T>`.
 - `ApiBuilder` (the api instance type) is derived from `HttpRequest`, so the two can never drift,
@@ -502,8 +514,8 @@ browser behaviour, not something the library adds on its own.
 - **Correct by default.** Only retriable failures are retried (with backoff and `Retry-After`),
   aborted requests are never retried, CSRF tokens only go to same-origin URLs, and a body can be
   read in any format, in any order.
-- **Types you can trust.** `getJson<User>()` is a `Promise<User>`, `withBody` does not exist on
-  a `GET`, api instances share the request's configuration methods (derived, not copied), and
+- **Types you can trust.** `getJson<User>()` is a `Promise<User>`, `withBody` on a `GET` does not
+  compile, api instances share the request's configuration methods (derived, not copied), and
   `error.code` narrows.
 - **Nothing global.** Defaults live on immutable api instances that you create and export
   yourself.
@@ -512,11 +524,11 @@ browser behaviour, not something the library adds on its own.
 
 Measured with `size-limit` on the published build of this version (`npm run size`):
 
-| Import                              | min + gzip | min + brotli |
-| ----------------------------------- | ---------: | -----------: |
-| everything (`import create from …`) |    4.86 KB |      4.40 KB |
-| `import { createGet }` only         |    4.25 KB |              |
-| `import { RequestError }` only      |    0.18 KB |              |
+| Import                         | min + gzip | min + brotli |
+| ------------------------------ | ---------: | -----------: |
+| everything (`import * as …`)   |    4.86 KB |      4.40 KB |
+| `import { createGet }` only    |    4.25 KB |              |
+| `import { RequestError }` only |    0.18 KB |              |
 
 The package is one module with no side effects, so bundlers drop whatever you do not import. The
 JavaScript ships without JSDoc comments; the documentation lives in the declaration files, where
@@ -530,9 +542,9 @@ for the complete v1 → v2 map and the list of behaviour changes.
 
 ## Contributing
 
-`npm run check` runs lint, format, type-check, the type tests (including every code block of
-this README), the test suite at 100% coverage, the build, package linting and the size gate.
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+`npm run check` runs lint, format, type-check, the type tests (including every TypeScript code
+block of this README), the test suite at 100% coverage, the build, package linting and the size
+gate. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
