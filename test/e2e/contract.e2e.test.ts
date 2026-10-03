@@ -849,7 +849,7 @@ describe("e2e: the public contract over real HTTP", { timeout: 30_000 }, () => {
     });
   });
 
-  describe("review findings over the wire (plans/10-v2-code-review.md)", () => {
+  describe("v2 code review findings over the wire", () => {
     const activeTimers = (): number => process.getActiveResourcesInfo().filter(resource => resource === "Timeout").length;
 
     it("R2 — AbortSignal.timeout() with retries is TIMEOUT, sent once", async () => {

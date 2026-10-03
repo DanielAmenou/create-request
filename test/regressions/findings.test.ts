@@ -1,7 +1,6 @@
 /**
- * One test per runtime finding of the v1 audit (plans/00-OVERVIEW.md). Each `it` is named after its
- * finding id so the audit table can be checked against the suite. Type-level findings (C1–C17) live in
- * test/types/api.test-d.ts.
+ * Regression tests for the runtime bugs found when v1 was audited: one test per bug, named after its id
+ * (A = security, B = behaviour). The type-level bugs (the C ids) are tested in test/types/api.test-d.ts.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";

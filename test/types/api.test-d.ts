@@ -1,7 +1,7 @@
 /**
  * Type-level tests, compiled by `npm run test:types`. Every `@ts-expect-error` must be consumed
  * (a line that stops erroring fails the build), and expectTypeOf assertions fail at compile time.
- * The C-ids refer to the type findings of the v1 audit (plans/00-OVERVIEW.md).
+ * The C ids name the type-level bugs found when v1 was audited.
  */
 import { expectTypeOf } from "expect-type";
 import * as v from "valibot";

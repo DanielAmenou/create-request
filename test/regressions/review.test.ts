@@ -1,7 +1,6 @@
 /**
- * One test per finding of the v2 code review (plans/10-v2-code-review.md), named after its id (R1–R16)
- * so the review table can be checked against the suite. The real-network variants live in
- * test/e2e/contract.e2e.test.ts.
+ * Regression tests for the bugs found in the v2 code review: one test per bug, named after its id (R1–R16).
+ * The variants that need a real network are in test/e2e/contract.e2e.test.ts.
  */
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, mock } from "node:test";
