@@ -21,6 +21,17 @@ export interface RequestErrorOptions {
   cause?: unknown;
 }
 
+/** What `JSON.stringify(error)` gives for a {@link RequestError} — see {@link RequestError.toJSON}. */
+export interface RequestErrorJSON {
+  name: "RequestError";
+  code: RequestErrorCode;
+  message: string;
+  method: Method;
+  /** The requested URL without its query string and fragment. */
+  url: string;
+  status?: number | undefined;
+}
+
 /**
  * The single error type thrown by this library. Every rejection from `getResponse()`, `getJson()`, …
  * is a `RequestError`, so one `instanceof` (or {@link isRequestError}) check is enough, and `code`
@@ -84,6 +95,21 @@ export class RequestError<TData = unknown> extends Error {
       }
     }
     return this._data as TData | undefined;
+  }
+
+  /**
+   * What `JSON.stringify(error)` gives, for logs and API responses: name, code, message, method, URL and status. The URL
+   * loses its query string, which may hold API keys or tokens; the response, body, issues and cause are left out — read
+   * them from the error itself.
+   *
+   * @example
+   * ```typescript
+   * console.error(JSON.stringify(error));
+   * // {"name":"RequestError","code":"HTTP","message":"HTTP 404 Not Found","method":"GET","url":"https://api.example.com/users/42","status":404}
+   * ```
+   */
+  toJSON(): RequestErrorJSON {
+    return { name: this.name, code: this.code, message: this.message, method: this.method, url: this.url.split(/[?#]/)[0]!, status: this.status };
   }
 
   /** Shorthand for `code === "TIMEOUT"`. */

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { RequestError, isRequestError } from "../../src/index.js";
+import { RequestError, type RequestErrorJSON, isRequestError } from "../../src/index.js";
 
 describe("RequestError", () => {
   it("is an Error with a stable name, code, url, method and optional context", () => {
@@ -32,6 +32,23 @@ describe("RequestError", () => {
     assert.equal(new RequestError("x", { code: "HTTP", url: "/", method: "GET", body: "" }).data, undefined);
     assert.equal(new RequestError("x", { code: "NETWORK", url: "/", method: "GET" }).data, undefined);
     assert.equal(new RequestError<{ a: number }>("x", { code: "HTTP", url: "/", method: "GET", body: "null" }).data, null);
+  });
+
+  it("toJSON keeps the message and drops the response, the body and the URL's query string", () => {
+    const response = new Response("{}", { status: 404 });
+    const error = new RequestError("HTTP 404 Not Found", {
+      code: "HTTP",
+      url: "https://api.example/users/42?api_key=secret#top",
+      method: "GET",
+      status: 404,
+      response,
+      body: '{"error":"x"}',
+    });
+    const json: RequestErrorJSON = error.toJSON();
+    assert.deepEqual(json, { name: "RequestError", code: "HTTP", message: "HTTP 404 Not Found", method: "GET", url: "https://api.example/users/42", status: 404 });
+    assert.equal(JSON.stringify(error), JSON.stringify(json));
+    const network = new RequestError("fetch failed", { code: "NETWORK", url: "/users#me", method: "POST", cause: new Error("ECONNREFUSED") });
+    assert.deepEqual(JSON.parse(JSON.stringify(network)), { name: "RequestError", code: "NETWORK", message: "fetch failed", method: "POST", url: "/users" });
   });
 
   it("isTimeout and isAborted derive from the code", () => {

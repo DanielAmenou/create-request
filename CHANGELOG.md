@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 2.1.0 — 2026-10-03
 
 ### Added
 
 - `withHeaders()` also accepts a `Headers` object or `[name, value]` pairs, the other forms `fetch` accepts, on requests and api instances. Before, a `Headers` object was a type error and sent no header at all, and pairs sent a header named `0`.
+- `RequestError#toJSON()` and the `RequestErrorJSON` type: `JSON.stringify(error)` now gives `{ name, code, message, method, url, status }`. Before, it had no message, an empty `response` object, the whole body (up to 1 MB) and the full URL; now the URL loses its query string, which may hold API keys or tokens.
 
 ## 2.0.0 — 2026-10-01
 

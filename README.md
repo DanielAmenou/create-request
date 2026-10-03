@@ -216,6 +216,10 @@ announces more is left unread on `error.response`; a longer chunked or compresse
 and `body` is `undefined`. `isTimeout` / `isAborted` are shorthands for the two codes. In Node.js
 a relative URL is a `"NETWORK"` failure, because `fetch` there has no page to resolve it against.
 
+`JSON.stringify(error)`, which loggers and `res.json()` use, gives `name`, `code`, `message`,
+`method`, `url` and `status`. The URL loses its query string, which may hold API keys or tokens,
+and the response, body and cause are left out; read those from the error itself.
+
 A few bad arguments are caught before the request runs: `withTimeout(-1)`, `withRetries(-1)` and
 a `withBody()` value that cannot be serialised to JSON (a circular object, a `BigInt`) throw a
 `RequestError` with code `"VALIDATION"` from the `with*` call itself. Because they are thrown
@@ -527,9 +531,9 @@ Measured with `size-limit` on the published build of this version (`npm run size
 
 | Import                         | min + gzip | min + brotli |
 | ------------------------------ | ---------: | -----------: |
-| everything (`import * as …`)   |    4.88 KB |      4.42 KB |
-| `import { createGet }` only    |    4.27 KB |              |
-| `import { RequestError }` only |    0.18 KB |              |
+| everything (`import * as …`)   |    4.92 KB |      4.46 KB |
+| `import { createGet }` only    |    4.32 KB |              |
+| `import { RequestError }` only |    0.25 KB |              |
 
 The package is one module with no side effects, so bundlers drop whatever you do not import. The
 JavaScript ships without JSDoc comments; the documentation lives in the declaration files, where

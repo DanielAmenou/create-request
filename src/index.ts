@@ -4,7 +4,7 @@ import type { BodyMethod, Method } from "./types.js";
 
 export { HttpRequest } from "./request.js";
 export { ResponseWrapper } from "./response.js";
-export { RequestError, isRequestError, type RequestErrorOptions } from "./error.js";
+export { RequestError, isRequestError, type RequestErrorJSON, type RequestErrorOptions } from "./error.js";
 export { createApi, type ApiBuilder } from "./api.js";
 export type { StandardSchemaV1 } from "./schema.js";
 export type {
