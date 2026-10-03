@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import create, { RequestError, ResponseWrapper } from "../../src/index.js";
+import create, { RequestError, ResponseWrapper, type StandardSchemaV1 } from "../../src/index.js";
 import { asError, json, readAll, schema, stub, text, unexpected } from "../utils/helpers.js";
 
 const wrap = (response: Response) => new ResponseWrapper(response, "/x", "GET");
@@ -49,6 +49,23 @@ describe("ResponseWrapper", () => {
     assert.equal(reads, 1);
   });
 
+  it("decodes text like Response.text(): always UTF-8, BOM stripped (so BOM-prefixed JSON parses), invalid bytes replaced", async () => {
+    const utf8 = (value: string) => [...new TextEncoder().encode(value)];
+    const bom = [0xef, 0xbb, 0xbf];
+    const cases: [number[], string, string][] = [
+      [[...bom, ...utf8('{"a":"ü"}')], "application/json", '{"a":"ü"}'],
+      [[0x61, 0xff, 0x62], "text/plain", "a�b"],
+      [[0xe9], "text/plain; charset=iso-8859-1", "�"],
+    ];
+    for (const [bytes, type, expected] of cases) {
+      const make = () => new Response(new Uint8Array(bytes), { headers: { "content-type": type } });
+      assert.equal(await wrap(make()).getText(), expected);
+      assert.equal(await make().text(), expected, "the same as fetch's own decoding");
+    }
+    assert.deepEqual(await wrap(new Response(new Uint8Array(cases[0]![0]))).getJson(), { a: "ü" });
+    assert.equal(await wrap(new Response(new Uint8Array(bom))).getJson(), null, "a lone BOM is an empty body");
+  });
+
   it("types blobs with the response Content-Type", async () => {
     assert.equal((await wrap(text("t")).getBlob()).type, "text/plain");
     assert.equal((await wrap(new Response("t")).getBlob()).type, "text/plain;charset=utf-8");
@@ -67,6 +84,21 @@ describe("ResponseWrapper", () => {
       wrap(json({})).getFormData(),
       (error: unknown) => error instanceof RequestError && error.code === "PARSE" && error.message.startsWith("Failed to parse form data: ")
     );
+  });
+
+  it("getFormData can follow another reader, run concurrently and be called again", async () => {
+    const response = wrap(new Response(new URLSearchParams({ a: "1", b: "two" })));
+    assert.equal(await response.getText(), "a=1&b=two");
+    const [first, second] = await Promise.all([response.getFormData(), response.getFormData()]);
+    assert.equal(first.get("b"), "two");
+    assert.deepEqual(
+      [...second],
+      [
+        ["a", "1"],
+        ["b", "two"],
+      ]
+    );
+    assert.equal((await response.getFormData()).get("a"), "1");
   });
 
   it("getBody returns the live stream and excludes the other readers", async () => {
@@ -143,6 +175,31 @@ describe("ResponseWrapper", () => {
         .getJson(schema(() => "nope"))
         .then(unexpected, asError);
       assert.equal(noPath.message, "Response validation failed: nope");
+    });
+
+    it("a failed validation leaves the body readable, and several schemas can check the same response", async () => {
+      const response = wrap(json({ id: 1, name: "Ada" }));
+      await assert.rejects(response.getJson(schema(() => "rejected")), { code: "VALIDATION" });
+      assert.deepEqual(await response.getJson(), { id: 1, name: "Ada" });
+      const id = schema<number>(
+        value => (typeof value === "object" ? undefined : "not an object"),
+        value => (value as { id: number }).id
+      );
+      const name = schema<string>(
+        () => undefined,
+        value => (value as { name: string }).name
+      );
+      assert.deepEqual(await Promise.all([response.getJson(id), response.getJson(name), response.getData(name, n => n.length)]), [1, "Ada", 3]);
+    });
+
+    it("a schema whose validate() rejects asynchronously is a VALIDATION error carrying the cause", async () => {
+      const cause = new Error("lookup failed");
+      const failing: StandardSchemaV1 = { "~standard": { version: 1, vendor: "test", validate: async () => Promise.reject(cause) } };
+      const error = await wrap(json({})).getJson(failing).then(unexpected, asError);
+      assert.equal(error.code, "VALIDATION");
+      assert.equal(error.message, "Schema validation threw: lookup failed");
+      assert.equal(error.cause, cause);
+      assert.equal(error.status, 200);
     });
   });
 

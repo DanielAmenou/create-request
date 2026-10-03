@@ -35,6 +35,20 @@ describe("createApi", () => {
     }
   });
 
+  it("an absolute path bypasses the base URL but keeps every default — auth and query included, as the README warns", async () => {
+    const { fetch, calls } = stub();
+    const api = createApi().withBaseURL("https://api.example").withBearerToken("secret").withQueryParam("key", "k").withFetch(fetch);
+    await api.get("https://elsewhere.example/x").getResponse();
+    await api.get("//cdn.example/y").getResponse();
+    assert.deepEqual(
+      calls.map(call => [call.url, call.headers.get("authorization")]),
+      [
+        ["https://elsewhere.example/x?key=k", "Bearer secret"],
+        ["//cdn.example/y?key=k", "Bearer secret"],
+      ]
+    );
+  });
+
   it("applies every default to the requests it creates, in order, and requests can override them", async () => {
     const { fetch, calls } = stub();
     const api = createApi()

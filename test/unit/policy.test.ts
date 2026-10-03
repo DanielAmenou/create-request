@@ -135,6 +135,97 @@ describe("retry policy details", () => {
     assert.equal(error.code, "TIMEOUT");
     assert.equal(calls.length, 3);
   });
+
+  it("each attempt gets the full timeout, not what earlier attempts left of it", async () => {
+    const answerIn60ms = (init: RequestInit, response: Response): Promise<Response> =>
+      new Promise((resolve, reject) => {
+        const timer = setTimeout(() => resolve(response), 60);
+        init.signal?.addEventListener("abort", () => (clearTimeout(timer), reject(init.signal!.reason)), { once: true });
+      });
+    const { fetch, calls } = stub((call, i) => answerIn60ms(call.init, i === 0 ? status(503) : json({ ok: true })));
+    const promise = create.get("/x").withTimeout(100).withRetries({ attempts: 1, delay: 1 }).withFetch(fetch).getJson();
+    await flush();
+    mock.timers.tick(60); // the first attempt answers 503
+    await flush();
+    mock.timers.tick(1); // the retry delay
+    await flush();
+    assert.equal(calls.length, 2);
+    mock.timers.tick(60); // 121 ms after the start: past a shared 100 ms budget, well within the second attempt's own
+    assert.deepEqual(await promise, { ok: true });
+  });
+
+  it("an explicit delay replaces Retry-After entirely: a long one does not cancel the retry, and maxDelay does not cap the delay", async () => {
+    const delays: number[] = [];
+    const { fetch, calls } = stub((_call, i) => (i === 0 ? status(429, {}, { "retry-after": "3600" }) : json({})));
+    await settle(
+      create
+        .get("/x")
+        .withRetries({ attempts: 1, delay: 5000, maxDelay: 1000, onRetry: ({ delay }) => void delays.push(delay) })
+        .withFetch(fetch)
+        .getResponse()
+    );
+    assert.equal(calls.length, 2);
+    assert.deepEqual(delays, [5000]);
+  });
+
+  it("shouldRetry overrides `methods` too, and sees failures the default policy never retries", async () => {
+    const { fetch, calls } = stub((_call, i) => (i === 0 ? status(503) : json({})));
+    await settle(
+      create
+        .post("/x")
+        .withRetries({ attempts: 1, delay: 1, methods: ["GET"], shouldRetry: () => true })
+        .withFetch(fetch)
+        .getResponse()
+    );
+    assert.equal(calls.length, 2, "POST is retried although `methods` only lists GET");
+
+    // Polling: a response interceptor rejects a job that is not ready yet, and shouldRetry asks again.
+    const codes: string[] = [];
+    const { fetch: poll, calls: polls } = stub((_call, i) => json({ ready: i > 0 }));
+    const job = await settle(
+      create
+        .get("/job")
+        .withResponseInterceptor(async response => {
+          if (!(await response.getJson<{ ready: boolean }>()).ready) throw new Error("not ready");
+        })
+        .withRetries({ attempts: 3, delay: 1, shouldRetry: ({ error }) => (codes.push(error.code), error.code === "INTERCEPTOR") })
+        .withFetch(poll)
+        .getJson()
+    );
+    assert.deepEqual(job, { ready: true });
+    assert.equal(polls.length, 2);
+    assert.deepEqual(codes, ["INTERCEPTOR"]);
+  });
+
+  it("shouldRetry is only asked while attempts remain", async () => {
+    let asked = 0;
+    const { fetch, calls } = stub(status(503));
+    await assert.rejects(
+      settle(
+        create
+          .get("/x")
+          .withRetries({ attempts: 2, delay: 1, shouldRetry: () => (asked++, true) })
+          .withFetch(fetch)
+          .getResponse()
+      ),
+      { status: 503 }
+    );
+    assert.equal(calls.length, 3);
+    assert.equal(asked, 2);
+  });
+
+  it("retry settings merge field by field in any order: onRetry first, api then request, and an explicit undefined restores a default", async () => {
+    const delays: number[] = [];
+    const record = ({ delay }: { delay: number }) => void delays.push(delay);
+    const { fetch, calls } = stub(status(503));
+    await assert.rejects(settle(create.get("/x").onRetry(record).withRetries({ attempts: 1, delay: 7 }).withFetch(fetch).getResponse()));
+    const api = createApi().withRetries({ attempts: 1, delay: 9 }).onRetry(record).withFetch(fetch);
+    await assert.rejects(settle(api.get("/x").withRetries(2).getResponse()));
+    await assert.rejects(settle(api.get("/x").withRetries({ attempts: 1, delay: undefined }).getResponse()));
+    assert.equal(calls.length, 2 + 3 + 2);
+    assert.deepEqual(delays.slice(0, 3), [7, 9, 9]);
+    assert.ok(delays[3]! >= 300 && delays[3]! < 400, `the default backoff is back: ${delays[3]}`);
+  });
 });
 
 describe("CSRF policy details", () => {

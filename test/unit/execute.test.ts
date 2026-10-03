@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import create, { RequestError, ResponseWrapper, type RequestConfig } from "../../src/index.js";
-import { asError, fetchFailed, inBrowser, json, status, stub, text, unexpected } from "../utils/helpers.js";
+import { asError, fetchFailed, inBrowser, inWorker, json, status, stub, text, unexpected } from "../utils/helpers.js";
 
 describe("successful responses", () => {
   it("getResponse resolves with a ResponseWrapper for 2xx responses", async () => {
@@ -42,6 +42,16 @@ describe("successful responses", () => {
       assert.equal(response.raw, raw);
       assert.equal(response.status, 0);
     }
+  });
+
+  it("getResult reports an empty 2xx body as data, not as a failure", async () => {
+    assert.deepEqual(
+      await create
+        .get("/x")
+        .withFetch(stub(status(204)).fetch)
+        .getResult(),
+      { data: null, error: null }
+    );
   });
 });
 
@@ -93,6 +103,16 @@ describe("HTTP errors", () => {
     const error2 = await create.get("/x").withFetch(stub(used).fetch).getResponse().then(unexpected, asError);
     assert.equal(error2.code, "HTTP");
     assert.equal(error2.body, undefined);
+  });
+
+  it("still captures an error body announced at exactly 1 MB", async () => {
+    const body = "x".repeat(1e6);
+    const error = await create
+      .get("/x")
+      .withFetch(stub(new Response(body, { status: 500, headers: { "content-length": String(1e6) } })).fetch)
+      .getResponse()
+      .then(unexpected, asError);
+    assert.equal(error.body?.length, 1e6);
   });
 
   it("getResult resolves with the error instead of throwing", async () => {
@@ -259,6 +279,19 @@ describe("request interceptors", () => {
         .getResponse(),
       { code: "HTTP", status: 500 }
     );
+  });
+
+  it("a short-circuit Response skips URL and header validation and the CSRF token, whose callback is not even called", async () => {
+    let tokenCalls = 0;
+    const data = await create
+      .get("")
+      .withHeader("x-bad", "a\r\nb")
+      .withCsrf({ token: () => String(++tokenCalls) })
+      .withRequestInterceptor(() => json({ cached: true }))
+      .withFetch(stub().fetch)
+      .getJson();
+    assert.deepEqual(data, { cached: true });
+    assert.equal(tokenCalls, 0);
   });
 
   it("an interceptor that throws produces an INTERCEPTOR error with the cause", async () => {
@@ -474,6 +507,53 @@ describe("withCsrf", () => {
       .then(unexpected, asError);
     assert.equal(error.code, "INTERCEPTOR");
     assert.equal(error.message, "CSRF token callback failed: no token");
+  });
+
+  it("adds the header after request interceptors ran: they never see it, fetch does", async () => {
+    const seen: (string | undefined)[] = [];
+    const { fetch, calls } = stub();
+    await create
+      .get("/x")
+      .withCsrf({ token: "t" })
+      .withRequestInterceptor(config => void seen.push(config.headers["x-csrf-token"]))
+      .withFetch(fetch)
+      .getResponse();
+    assert.deepEqual(seen, [undefined]);
+    assert.equal(calls[0]!.headers.get("x-csrf-token"), "t");
+  });
+
+  it("never sends an empty token, whether static, computed or read from an empty cookie", async () => {
+    await inBrowser(
+      page,
+      async () => {
+        const { fetch, calls } = stub();
+        await create.get("/x").withCsrf({ token: "" }).withFetch(fetch).getResponse();
+        await create
+          .get("/x")
+          .withCsrf({ token: () => "" })
+          .withFetch(fetch)
+          .getResponse();
+        await create.get("/x").withCsrf().withFetch(fetch).getResponse();
+        assert.deepEqual(
+          calls.map(call => [...call.headers.keys()]),
+          [[], [], []]
+        );
+      },
+      "XSRF-TOKEN="
+    );
+  });
+
+  it("in a worker — a location but no document — judges the origin against location.href and reads no cookie", async () => {
+    await inWorker({ href: "https://app.example/worker.js", origin: "https://app.example" }, async () => {
+      assert.equal(typeof document, "undefined");
+      const { fetch, calls } = stub();
+      await create.get("/x").withCsrf({ token: "t" }).withFetch(fetch).getResponse();
+      await create.get("https://third.party/x").withCsrf({ token: "t" }).withFetch(fetch).getResponse();
+      await create.get("/x").withCsrf().withFetch(fetch).getResponse();
+      assert.equal(calls[0]!.headers.get("x-csrf-token"), "t");
+      assert.equal(calls[1]!.headers.has("x-csrf-token"), false);
+      assert.equal(calls[2]!.headers.has("x-xsrf-token"), false);
+    });
   });
 
   it("is evaluated against the final URL, after interceptors", async () => {

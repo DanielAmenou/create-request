@@ -6,7 +6,7 @@ import * as v from "valibot";
 import { z } from "zod";
 import create, { type FetchFunction, type HttpRequest, RequestError, ResponseWrapper, createApi, isRequestError } from "../../src/index.js";
 import { asError, inBrowser, readAll, schema, unexpected } from "../utils/helpers.js";
-import { TestServer } from "../utils/server.js";
+import { TestServer, deterministicBytes } from "../utils/server.js";
 
 interface Echo {
   method: string;
@@ -118,6 +118,14 @@ describe("e2e: the public contract over real HTTP", { timeout: 30_000 }, () => {
       assert.ok(missing.cause instanceof TypeError);
       assert.equal(server.requests.length, 1);
     });
+
+    it("a relative URL is a NETWORK error in Node.js, which has no page to resolve it against", async () => {
+      const error = await create.get("/json").getJson().then(unexpected, asError);
+      assert.equal(error.code, "NETWORK");
+      assert.equal(error.url, "/json");
+      assert.ok(error.cause instanceof TypeError);
+      assert.equal(server.requests.length, 0);
+    });
   });
 
   describe("fetch options", () => {
@@ -215,6 +223,21 @@ describe("e2e: the public contract over real HTTP", { timeout: 30_000 }, () => {
       await createApi().withContentType("application/json").withBaseURL(server.origin).post("/echo").withBody(form).getJson();
       assert.ok(String(server.lastRequest.headers["content-type"]).startsWith("multipart/form-data; boundary="));
       assert.ok(server.lastRequest.text.includes('name="field"'));
+    });
+
+    it("query values with reserved, percent and non-ASCII characters arrive exactly as sent", async () => {
+      const values = ["a+b", "100%", "x&y=z", "#hash", "slash/and?question", "ü 😀", "  padded  ", ""];
+      await create.get(server.url("/echo")).withQueryParam("v", values).getJson();
+      assert.deepEqual(server.lastRequest.query.getAll("v"), values);
+    });
+
+    it("Set-Cookie is exposed on the response but never stored: the next request carries no cookie unless asked", async () => {
+      const api = createApi().withBaseURL(server.origin);
+      const response = await api.get("/set-cookie").getResponse();
+      assert.deepEqual(response.headers.getSetCookie(), ["sessionId=abc123; HttpOnly; Path=/", "theme=dark; Path=/"]);
+      assert.deepEqual(await response.getJson(), { ok: true });
+      assert.equal((await api.get("/echo").getJson<Echo>()).headers.cookie, undefined);
+      assert.equal((await api.get("/echo").withCookie("sessionId", "abc123").getJson<Echo>()).headers.cookie, "sessionId=abc123");
     });
   });
 
@@ -400,6 +423,38 @@ describe("e2e: the public contract over real HTTP", { timeout: 30_000 }, () => {
         .getJson()
         .then(unexpected, asError);
       assert.equal(decided.message, "Retry callback failed: cannot decide");
+    });
+
+    it("a connection reset before any response is a NETWORK error, retried like any other", async () => {
+      const recovered = await create.get(server.url("/reset/once?fails=1")).withRetries({ attempts: 1, delay: 1 }).getJson<{ hits: number }>();
+      assert.equal(recovered.hits, 2);
+      const error = await create.get(server.url("/reset/always?fails=9")).withRetries({ attempts: 2, delay: 1 }).getJson().then(unexpected, asError);
+      assert.equal(error.code, "NETWORK");
+      assert.ok(error.message.startsWith("Network error: fetch failed"), error.message);
+      assert.equal(error.status, undefined);
+      assert.ok(error.cause instanceof TypeError);
+      assert.equal(server.requests.length, 2 + 3);
+    });
+
+    it("a stream body is sent once: running the request — or a clone — again is a NETWORK error, never retried", async () => {
+      const request = create
+        .post(server.url("/echo"))
+        .withBody(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(new TextEncoder().encode("once"));
+              controller.close();
+            },
+          })
+        )
+        .withRetries({ attempts: 2, delay: 1 });
+      assert.equal((await request.getJson<Echo>()).body, "once");
+      for (const again of [request, request.clone()]) {
+        const error = await again.getJson().then(unexpected, asError);
+        assert.equal(error.code, "NETWORK");
+        assert.ok(error.cause instanceof TypeError);
+      }
+      assert.equal(server.requests.length, 1);
     });
 
     it("Retry-After: a past date retries at once, garbage falls back to the capped backoff, decimals are honoured", async () => {
@@ -598,6 +653,24 @@ describe("e2e: the public contract over real HTTP", { timeout: 30_000 }, () => {
       const outside = await create.post(other.url("/echo")).withCsrf({ token: "explicit" }).getJson<Echo>();
       assert.equal(outside.headers["x-csrf-token"], "explicit", "no page origin: every URL is same-origin");
     });
+
+    it("the documented redirect caveat: a same-origin URL that redirects elsewhere takes the token along, unless withRedirect('error')", async () => {
+      await inBrowser(
+        { href: `${server.origin}/app`, origin: server.origin },
+        async () => {
+          const leaving = server.url(`/redirect-to?url=${encodeURIComponent(other.url("/echo"))}`);
+          const echo = await create.get(leaving).withCsrf().withBearerToken("secret").getJson<Echo>();
+          assert.equal(echo.path, "/echo");
+          assert.equal(echo.headers["x-xsrf-token"], "tok", "fetch forwards custom headers across a cross-origin redirect");
+          assert.equal(echo.headers.authorization, undefined, "but strips Authorization, as the Fetch standard requires");
+          const blocked = await create.get(leaving).withCsrf().withRedirect("error").getJson().then(unexpected, asError);
+          assert.equal(blocked.code, "NETWORK");
+        },
+        "XSRF-TOKEN=tok"
+      );
+      assert.equal(server.requests.length, 2);
+      assert.equal(other.requests.length, 1, "withRedirect('error') never reaches the other origin");
+    });
   });
 
   describe("reading responses", () => {
@@ -682,6 +755,21 @@ describe("e2e: the public contract over real HTTP", { timeout: 30_000 }, () => {
       assert.equal(dropped.code, "HTTP");
       assert.equal(dropped.status, 500);
       assert.equal(dropped.body, undefined);
+    });
+
+    it("a body that fails to decompress is a PARSE error carrying the cause", async () => {
+      const error = await create.get(server.url("/bad-gzip")).getJson().then(unexpected, asError);
+      assert.equal(error.code, "PARSE");
+      assert.ok(error.message.startsWith("Failed to read response body: "), error.message);
+      assert.equal(error.status, 200);
+      assert.ok(error.cause instanceof Error);
+    });
+
+    it("the 1 MB cap is for error bodies only: a large successful body is read in full", async () => {
+      const size = 2_000_000;
+      const body = Buffer.from(await create.get(server.url(`/binary?size=${size}`)).getArrayBuffer());
+      assert.equal(body.length, size);
+      assert.ok(body.equals(deterministicBytes(size)));
     });
 
     it("untyped blobs, non-form bodies, invalid JSON and failing selectors", async () => {

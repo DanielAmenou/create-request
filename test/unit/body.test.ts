@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import create, { RequestError } from "../../src/index.js";
-import { json, stub } from "../utils/helpers.js";
+import { asError, json, schema, stub, unexpected } from "../utils/helpers.js";
 
 describe("withBody", () => {
   it("JSON-encodes objects and arrays and sets Content-Type unless present", async () => {
@@ -130,6 +130,24 @@ describe("withGraphQL", () => {
         error.body === JSON.stringify(body) &&
         error.data !== undefined
     );
+  });
+
+  it("with throwOnError the GRAPHQL error comes before any schema runs, keeps partial data on error.data, and spares non-JSON readers", async () => {
+    const body = { data: { user: { id: 1 }, posts: null }, errors: [{ message: "posts unavailable", path: ["posts"] }] };
+    const request = () =>
+      create
+        .post("/graphql")
+        .withGraphQL("q", {}, { throwOnError: true })
+        .withFetch(stub(json(body)).fetch);
+    let validated = 0;
+    const error = await request()
+      .getJson(schema(() => (validated++, "never reached")))
+      .then(unexpected, asError);
+    assert.equal(error.code, "GRAPHQL");
+    assert.equal(validated, 0);
+    assert.deepEqual((error as RequestError<typeof body>).data?.data.user, { id: 1 }, "partial results are not lost");
+    assert.equal((await request().getResult()).error?.code, "GRAPHQL");
+    assert.equal(await request().getText(), JSON.stringify(body), "only the JSON readers look at errors");
   });
 
   it("does not throw for an empty errors array, a non-array errors field or a non-object body", async () => {

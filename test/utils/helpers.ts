@@ -107,6 +107,19 @@ export async function inBrowser<T>(location: { href: string; origin: string }, f
   }
 }
 
+/** Runs `fn` with `globalThis.location` defined but no `document` — what a web worker sees — restoring it afterwards. */
+export async function inWorker<T>(location: { href: string; origin: string }, fn: () => Promise<T>): Promise<T> {
+  const g = globalThis as { location?: unknown };
+  const previous = g.location;
+  g.location = location;
+  try {
+    return await fn();
+  } finally {
+    if (previous === undefined) delete g.location;
+    else g.location = previous;
+  }
+}
+
 /** A minimal Standard Schema for tests: `check` returns an issue message (failure) or nothing (success). */
 export const schema = <T>(
   check: (value: unknown) => string | undefined,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import create, { RequestError, createApi } from "../../src/index.js";
-import { asError, hanging, json, readAll, stalled, stub, unexpected } from "../utils/helpers.js";
+import { asError, fetchFailed, hanging, json, readAll, stalled, status, stub, text, unexpected } from "../utils/helpers.js";
 
 describe("the timeout covers the whole exchange", () => {
   it("fails with TIMEOUT when the body stalls after the headers arrived", async () => {
@@ -43,6 +43,22 @@ describe("the timeout covers the whole exchange", () => {
     } finally {
       clearTimeout(keepAlive);
     }
+  });
+
+  it("an abort while the body is being read keeps the response on the error, as a timeout does", async () => {
+    const controller = new AbortController();
+    const response = await create
+      .get("/x")
+      .withAbortController(controller)
+      .withFetch(stalled({ status: 201 }))
+      .getResponse();
+    const reason = new Error("user left");
+    controller.abort(reason);
+    const error = await response.getText().then(unexpected, asError);
+    assert.equal(error.code, "ABORTED");
+    assert.equal(error.status, 201);
+    assert.equal(error.response, response.raw);
+    assert.equal(error.cause, reason);
   });
 
   it("getBody() takes over the deadline: a slow stream is not aborted by the timeout", async () => {
@@ -198,5 +214,68 @@ describe("review follow-ups", () => {
     const { fetch: always401, calls: calls401 } = stub(new Response(null, { status: 401 }));
     await assert.rejects(api.withFetch(always401).get("/x").getResponse(), { status: 401 });
     assert.equal(calls401.length, 2);
+  });
+});
+
+describe("timer hygiene", () => {
+  const activeTimers = (): number => process.getActiveResourcesInfo().filter(resource => resource === "Timeout").length;
+
+  it("no timer is left behind by a failed request, whatever the failure", async () => {
+    const abortSoon = (): AbortController => {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 5);
+      return controller;
+    };
+    const failures: [string, () => Promise<unknown>][] = [
+      [
+        "HTTP error after retries",
+        () =>
+          create
+            .get("/x")
+            .withTimeout(5_000)
+            .withRetries({ attempts: 2, delay: 1 })
+            .withFetch(stub(status(503)).fetch)
+            .getResponse(),
+      ],
+      ["network error after retries", () => create.get("/x").withTimeout(5_000).withRetries({ attempts: 1, delay: 1 }).withFetch(stub(fetchFailed()).fetch).getResponse()],
+      [
+        "response interceptor",
+        () =>
+          create
+            .get("/x")
+            .withTimeout(5_000)
+            .withResponseInterceptor(() => {
+              throw new Error("rejected");
+            })
+            .withFetch(stub(json({})).fetch)
+            .getResponse(),
+      ],
+      [
+        "invalid JSON",
+        () =>
+          create
+            .get("/x")
+            .withTimeout(5_000)
+            .withFetch(stub(text("{nope")).fetch)
+            .getJson(),
+      ],
+      ["abort in flight", () => create.get("/x").withTimeout(5_000).withAbortController(abortSoon()).withFetch(hanging).getResponse()],
+      [
+        "abort during the retry delay",
+        () =>
+          create
+            .get("/x")
+            .withTimeout(5_000)
+            .withRetries({ attempts: 1, delay: 5_000 })
+            .withAbortController(abortSoon())
+            .withFetch(stub(status(503)).fetch)
+            .getResponse(),
+      ],
+    ];
+    for (const [label, fail] of failures) {
+      const before = activeTimers();
+      await assert.rejects(fail());
+      assert.equal(activeTimers(), before, label);
+    }
   });
 });

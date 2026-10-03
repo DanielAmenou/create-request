@@ -37,13 +37,16 @@ export interface RecordedRequest {
  * - GET  /broken?bytes=N           → announces a 4096-byte body, sends N bytes, then drops the connection (`&status=500` picks the status)
  * - GET  /flaky/{key}?fails=N      → 500 for the first N requests per key, then 200
  *                                    (`status=503` picks the failure status, `retryAfter=1` adds a Retry-After header)
+ * - GET  /reset/{key}?fails=N      → destroys the socket without answering for the first N requests per key, then 200
  * - GET  /form                     → application/x-www-form-urlencoded body
  * - GET  /big-error?size=N         → 500 with an N-byte body and a Content-Length header (`&gzip=1` sends it gzip-encoded,
  *                                    with the small compressed Content-Length; `&chunked=1` sends it chunked, without one)
  * - GET  /slow?ms=N                → responds after N milliseconds
  * - GET  /stream?chunks=N&delay=ms → chunked body, one chunk every `delay` ms
  * - GET  /gzip                     → gzip-encoded JSON (Content-Encoding: gzip)
+ * - GET  /bad-gzip                 → announces Content-Encoding: gzip but sends a body that is not gzip
  * - GET  /redirect?n=N             → 302 chain of N hops ending at /json
+ * - GET  /redirect-to?url=U        → 302 to the absolute URL U (another server, for cross-origin redirects)
  * - GET  /set-cookie               → sets two cookies via Set-Cookie
  * - GET  /never                    → never responds (for abort tests)
  * - ANY  other                     → 404 JSON body
@@ -213,6 +216,17 @@ export class TestServer {
       return sendJson(res, 200, { ok: true, hits });
     }
 
+    if (route.startsWith("/reset/")) {
+      const key = `reset:${route.slice("/reset/".length)}`;
+      const hits = (this.flakyHits.get(key) ?? 0) + 1;
+      this.flakyHits.set(key, hits);
+      if (hits <= Number(requestUrl.searchParams.get("fails") ?? 1)) {
+        req.socket.destroy();
+        return;
+      }
+      return sendJson(res, 200, { ok: true, hits });
+    }
+
     if (route === "/form") {
       res.writeHead(200, { "content-type": "application/x-www-form-urlencoded" });
       res.end("a=1&b=two");
@@ -270,10 +284,22 @@ export class TestServer {
       return;
     }
 
+    if (route === "/bad-gzip") {
+      res.writeHead(200, { "content-type": "application/json", "content-encoding": "gzip" });
+      res.end("this is not gzip");
+      return;
+    }
+
     if (route === "/redirect") {
       const remaining = Number(requestUrl.searchParams.get("n") ?? 1);
       const target = remaining > 1 ? `/redirect?n=${remaining - 1}` : "/json";
       res.writeHead(302, { location: this.url(target) });
+      res.end();
+      return;
+    }
+
+    if (route === "/redirect-to") {
+      res.writeHead(302, { location: requestUrl.searchParams.get("url") ?? "/json" });
       res.end();
       return;
     }

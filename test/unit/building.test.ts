@@ -16,6 +16,11 @@ describe("URLs", () => {
     assert.equal(request.url, "https://api.example/x?a=1&b+c=d%26e%3Df&%C3%BC=%C3%BC#top");
   });
 
+  it("a '?' that only appears in the fragment (a hash route) is not taken for the start of the query string", () => {
+    assert.equal(create.get("/x#section?tab=1").withQueryParam("a", 1).url, "/x?a=1#section?tab=1");
+    assert.equal(create.get("https://e.com/app?q=1#/route?tab=2").withQueryParam("a", 1).url, "https://e.com/app?q=1&a=1#/route?tab=2");
+  });
+
   it("an empty query leaves the URL exactly as given", () => {
     assert.equal(create.get("/x?").withQueryParams({}).url, "/x?");
     assert.equal(create.get("/x#").withQueryParams({ a: null }).url, "/x#");
@@ -81,6 +86,54 @@ describe("headers", () => {
     await create.get("/x").withHeaders({ "x-zero": 0, "x-empty": "" }).withFetch(fetch).getResponse();
     assert.deepEqual(calls[0]!.init.headers, { "x-zero": "0", "x-empty": "" });
   });
+
+  it("CR/LF smuggled in through any header helper fails with VALIDATION before fetch, and is not retried", async () => {
+    const injected = "x\r\nX-Injected: 1";
+    const { fetch, calls } = stub();
+    const requests = [
+      create.get("/x").withBearerToken(injected),
+      create.get("/x").withAuthorization(injected),
+      create.get("/x").withCookie("session", injected),
+      create.get("/x").withCsrfToken(injected),
+      create.get("/x").withCsrf({ token: () => injected }),
+      create.post("/x").withContentType(injected).withBody("text"),
+    ];
+    for (const request of requests) {
+      const error = await request.withRetries({ attempts: 2, delay: 1 }).withFetch(fetch).getResponse().then(unexpected, asError);
+      assert.equal(error.code, "VALIDATION");
+      assert.ok(error.message.startsWith("Invalid header: "), error.message);
+    }
+    assert.equal(calls.length, 0);
+  });
+
+  it("objects parsed from untrusted JSON cannot pollute Object.prototype through headers, query parameters or cookies", async () => {
+    const { fetch, calls } = stub();
+    const prototype = Object.prototype as Record<string, unknown>;
+    try {
+      await create
+        .get("/x")
+        .withHeaders(JSON.parse('{"__proto__": {"x-polluted": "1"}, "x-ok": "1"}'))
+        .withQueryParams(JSON.parse('{"__proto__": {"polluted": true}, "q": "1"}'))
+        .withCookies(JSON.parse('{"__proto__": "c"}'))
+        .withFetch(fetch)
+        .getResponse();
+      assert.equal(prototype["x-polluted"], undefined);
+      assert.equal(prototype.polluted, undefined);
+    } finally {
+      delete prototype["x-polluted"]; // keeps a regression from leaking into every later test
+      delete prototype.polluted;
+    }
+    assert.deepEqual(calls[0]!.init.headers, { "x-ok": "1", cookie: "__proto__=c" });
+    assert.equal(calls[0]!.url, "/x?__proto__=%5Bobject+Object%5D&q=1");
+  });
+
+  it("withCookie extends a Cookie header set with withHeader whatever its casing, and dropping the header lets a request replace inherited cookies", async () => {
+    const { fetch, calls } = stub();
+    await create.get("/x").withHeader("COOKIE", "a=1").withCookie("b", "2").withFetch(fetch).getResponse();
+    await createApi().withCookie("session", "api").withFetch(fetch).get("/x").withHeader("Cookie", null).withCookie("session", "request").getResponse();
+    assert.equal(calls[0]!.headers.get("cookie"), "a=1; b=2");
+    assert.equal(calls[1]!.headers.get("cookie"), "session=request");
+  });
 });
 
 describe("bodies", () => {
@@ -122,6 +175,17 @@ describe("bodies", () => {
     assert.equal(calls[0]!.headers.has("content-type"), false);
     assert.equal((calls[0]!.init.body as Blob).type, "application/xml");
     assert.equal(calls[1]!.headers.get("content-type"), "application/merge-patch+json");
+  });
+
+  it("an explicit Content-Type is kept for binary, form-urlencoded and stream bodies — only FormData drops it", async () => {
+    const { fetch, calls } = stub();
+    for (const body of [new Uint8Array([1]), new ArrayBuffer(1), new Blob(["b"], { type: "text/plain" }), new URLSearchParams("a=1"), new ReadableStream()]) {
+      await create.post("/x").withContentType("application/x-custom").withBody(body).withFetch(fetch).getResponse();
+    }
+    assert.deepEqual(
+      calls.map(call => call.headers.get("content-type")),
+      Array(5).fill("application/x-custom")
+    );
   });
 
   it("withGraphQL accepts interface-typed variables and drops undefined ones", async () => {

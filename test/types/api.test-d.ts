@@ -277,3 +277,30 @@ create.get("/x").withErrorInterceptor((error, request) => {
   expectTypeOf(request.clone()).toEqualTypeOf<HttpRequest>();
   return error;
 });
+
+// ---------------------------------------------------------------- clone, BaseRequest and callable schemas
+expectTypeOf(create.post<User>("/x").clone()).toEqualTypeOf<HttpRequest<"POST", User>>();
+create.post("/x").clone().withBody({ ok: true });
+// @ts-expect-error the clone of a GET has no body either
+create.get("/x").clone().withBody({});
+declare const anyRequest: BaseRequest;
+// @ts-expect-error the method of a BaseRequest is unknown, so it cannot take a body (README §TypeScript)
+anyRequest.withBody({});
+(anyRequest as BodyRequest).withBody({});
+
+// arktype-style schemas are callable: the schema overloads of getData must win over the selector ones
+declare const CallableUser: StandardSchemaV1<unknown, User> & ((value: unknown) => unknown);
+declare const wrapper: ResponseWrapper;
+expectTypeOf(create.get("/x").getData(CallableUser)).toEqualTypeOf<Promise<User>>();
+expectTypeOf(create.get("/x").getData(CallableUser, u => u.name)).toEqualTypeOf<Promise<string>>();
+expectTypeOf(wrapper.getData(CallableUser, u => u.id)).toEqualTypeOf<Promise<number>>();
+expectTypeOf(create.get("/x").getJson(CallableUser)).toEqualTypeOf<Promise<User>>();
+expectTypeOf(create.get("/x").getResult(CallableUser)).toEqualTypeOf<Promise<RequestResult<User>>>();
+
+// readonly (`as const`) arrays are query values; retry methods are the Method union
+create
+  .get("/x")
+  .withQueryParams({ tags: ["a", "b"] as const })
+  .withQueryParam("ids", [1, 2] as const);
+// @ts-expect-error not an HTTP method
+create.get("/x").withRetries({ attempts: 1, methods: ["FETCH"] });

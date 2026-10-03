@@ -97,6 +97,11 @@ describe("e2e: deadlines, cancellation and policies over real HTTP", { timeout: 
     assert.equal(await create.head(server.url("/json")).getText(), "");
   });
 
+  it("HEAD and 204 responses have no stream: getBody() resolves with null", async () => {
+    assert.equal(await create.head(server.url("/json")).getBody(), null);
+    assert.equal(await create.get(server.url("/empty")).getBody(), null);
+  });
+
   it("concurrent requests through one api with retries do not interfere", async () => {
     const api = createApi().withBaseURL(server.origin).withRetries({ attempts: 2, delay: 5 });
     const results = await Promise.all(Array.from({ length: 6 }, (_, i) => api.get(`/flaky/c${i}?fails=1`).getJson<{ ok: boolean; hits: number }>()));

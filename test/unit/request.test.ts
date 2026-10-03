@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import create, { HttpRequest, RequestError, createDelete, createGet, createHead, createOptions, createPatch, createPost, createPut } from "../../src/index.js";
-import { json, stub } from "../utils/helpers.js";
+import { asError, hanging, json, status, stub, unexpected } from "../utils/helpers.js";
 
 describe("request factories", () => {
   it("create.* and create* build a request with the right method and URL", () => {
@@ -88,6 +88,17 @@ describe("query parameters and url", () => {
     assert.equal(request.url, "/x?tags=c");
   });
 
+  it("sends 0, false and '' instead of dropping them, while an empty array removes the key", () => {
+    assert.equal(create.get("/x").withQueryParams({ zero: 0, no: false, empty: "" }).url, "/x?zero=0&no=false&empty=");
+    assert.equal(
+      create
+        .get("/x")
+        .withQueryParams({ tags: ["a", "b"], page: 1 })
+        .withQueryParam("tags", []).url,
+      "/x?page=1"
+    );
+  });
+
   it("accepts URLSearchParams, keeping repeated keys of the input", () => {
     const request = create.get("/x").withQueryParam("a", "old").withQueryParams(new URLSearchParams("a=1&a=2&b=3"));
     assert.equal(request.url, "/x?a=1&a=2&b=3");
@@ -164,7 +175,7 @@ describe("fetch options", () => {
 
 describe("validation of arguments", () => {
   it("withTimeout rejects negative and NaN values with a VALIDATION error; 0 and Infinity disable the timeout", async () => {
-    for (const value of [-1, NaN]) {
+    for (const value of [-1, -Infinity, NaN]) {
       assert.throws(
         () => create.get("/x").withTimeout(value),
         (error: unknown) =>
@@ -179,7 +190,7 @@ describe("validation of arguments", () => {
   });
 
   it("withRetries rejects negative and non-integer attempts", () => {
-    for (const value of [-1, 1.5, NaN]) {
+    for (const value of [-1, 1.5, NaN, Infinity]) {
       assert.throws(
         () => create.get("/x").withRetries(value),
         (error: unknown) => error instanceof RequestError && error.code === "VALIDATION" && error.message === `Invalid retry attempts: ${value}`
@@ -228,5 +239,44 @@ describe("clone", () => {
     assert.equal(calls[1]!.init.body, '{"n":1}');
     assert.ok(calls[0]!.init.signal);
     assert.ok(calls[1]!.init.signal);
+  });
+
+  it("timeout, retries, onRetry, CSRF, fetch and body changed on a clone leave the original as it was", async () => {
+    const original = stub((_call, i) => (i === 0 ? status(503) : json({})));
+    const copied = stub(status(503));
+    let copyRetries = 0;
+    const base = create.post("/x").withTimeout(10_000).withRetries({ attempts: 1, delay: 1 }).withCsrf({ token: "base" }).withBody({ v: 1 }).withFetch(original.fetch);
+    const copy = base
+      .clone()
+      .withTimeout(0)
+      .withRetries(0)
+      .onRetry(() => void copyRetries++)
+      .withCsrf({ token: "copy" })
+      .withBody({ v: 2 })
+      .withFetch(copied.fetch);
+    await base.getJson();
+    await assert.rejects(copy.getJson(), { code: "HTTP", status: 503 });
+    assert.equal(original.calls.length, 2, "the original still retries");
+    assert.equal(copyRetries, 0, "and does not call the clone's onRetry");
+    assert.ok(original.calls.every(call => call.init.signal instanceof AbortSignal && call.headers.get("x-csrf-token") === "base" && call.init.body === '{"v":1}'));
+    assert.equal(copied.calls.length, 1, "the clone does not retry");
+    assert.equal(copied.calls[0]!.init.signal, undefined, "nor has a timeout");
+    assert.equal(copied.calls[0]!.headers.get("x-csrf-token"), "copy");
+    assert.equal(copied.calls[0]!.init.body, '{"v":2}');
+  });
+
+  it("signals are shared with clones, so one abort cancels every copy in flight", async () => {
+    const controller = new AbortController();
+    const template = create.get("/x").withAbortController(controller).withTimeout(2000).withFetch(hanging); // the timeout only bounds a regression
+    const pending = [template.clone().withQueryParam("page", 1).getResponse(), template.clone().withQueryParam("page", 2).getResponse()];
+    controller.abort();
+    const errors = await Promise.all(pending.map(promise => promise.then(unexpected, asError)));
+    assert.deepEqual(
+      errors.map(error => [error.code, error.url]),
+      [
+        ["ABORTED", "/x?page=1"],
+        ["ABORTED", "/x?page=2"],
+      ]
+    );
   });
 });
