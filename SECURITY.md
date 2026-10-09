@@ -132,7 +132,8 @@ create.get("https://api.example.com/data").withBearerToken("hardcoded-token-1234
   header, including CSRF tokens and API keys. Use `withRedirect("error")` (or `"manual"`) when an
   endpoint may redirect to another origin.
 - **Retrying non-idempotent requests.** Every method is retried by default; pass
-  `methods: ["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]` where a repeated `POST` could duplicate work.
+  `methods: ["GET", "HEAD", "OPTIONS", "QUERY", "PUT", "DELETE"]` where a repeated `POST` could
+  duplicate work.
 - **Large bodies you read yourself.** Error bodies are capped at 1 MB, but `getJson()`/`getText()`
   read whatever the server sends; combine `withTimeout()` with a `Content-Length` check for
   untrusted servers.

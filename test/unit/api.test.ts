@@ -7,7 +7,7 @@ describe("createApi", () => {
   it("create.api() and createApi() build an empty api whose requests carry the method", () => {
     assert.equal(create.api, createApi);
     const api = createApi();
-    const methods = ["get", "head", "options", "post", "put", "patch", "delete", "del"] as const;
+    const methods = ["get", "head", "options", "post", "put", "patch", "delete", "del", "query"] as const;
     for (const method of methods) {
       const request = api[method]("/p");
       assert.ok(request instanceof HttpRequest);

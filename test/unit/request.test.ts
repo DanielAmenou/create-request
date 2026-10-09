@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Headers as UndiciHeaders } from "undici";
-import create, { HttpRequest, RequestError, createDelete, createGet, createHead, createOptions, createPatch, createPost, createPut } from "../../src/index.js";
+import create, { HttpRequest, RequestError, createDelete, createGet, createHead, createOptions, createPatch, createPost, createPut, createQuery } from "../../src/index.js";
 import { asError, hanging, json, status, stub, unexpected } from "../utils/helpers.js";
 
 describe("request factories", () => {
@@ -15,6 +15,7 @@ describe("request factories", () => {
       [create.patch, createPatch, "PATCH"],
       [create.delete, createDelete, "DELETE"],
       [create.del, createDelete, "DELETE"],
+      [create.query, createQuery, "QUERY"],
     ] as const;
     for (const [viaDefault, named, method] of pairs) {
       assert.equal(viaDefault, named);
@@ -23,6 +24,14 @@ describe("request factories", () => {
       assert.equal(request.method, method);
       assert.equal(request.url, "/x");
     }
+  });
+
+  it("QUERY requests (RFC 10008) send their query as the body, like POST", async () => {
+    const { fetch, calls } = stub();
+    await create.query("/search").withBody({ name: "Ada" }).withFetch(fetch).getResponse();
+    assert.equal(calls[0]!.init.method, "QUERY");
+    assert.equal(calls[0]!.init.body, '{"name":"Ada"}');
+    assert.equal(calls[0]!.headers.get("content-type"), "application/json");
   });
 
   it("every with* method returns the same request so calls chain", () => {

@@ -60,6 +60,8 @@ export interface ApiBuilder extends ApiChainables {
   delete<T = unknown>(path?: string): HttpRequest<"DELETE", T>;
   /** Alias of `delete`. */
   del<T = unknown>(path?: string): HttpRequest<"DELETE", T>;
+  /** Creates a QUERY request (RFC 10008): a safe, idempotent read whose query is sent with `withBody()`. */
+  query<T = unknown>(path?: string): HttpRequest<"QUERY", T>;
 }
 
 const ABSOLUTE = /^([a-z][a-z0-9+.-]*:)?\/\//i;
@@ -90,7 +92,7 @@ class Api {
   }
 }
 
-const METHODS: readonly Method[] = ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"];
+const METHODS: readonly Method[] = ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE", "QUERY"];
 let installed = false;
 
 /**

@@ -2,11 +2,14 @@ import type { RequestError } from "./error.js";
 import type { HttpRequest } from "./request.js";
 import type { ResponseWrapper } from "./response.js";
 
-/** The HTTP methods a request can be created with. */
-export type Method = "GET" | "HEAD" | "OPTIONS" | "DELETE" | "POST" | "PUT" | "PATCH";
+/**
+ * The HTTP methods a request can be created with. `QUERY` ([RFC 10008](https://www.rfc-editor.org/rfc/rfc10008)) is a
+ * safe, idempotent read like `GET` whose query is sent in the body.
+ */
+export type Method = "GET" | "HEAD" | "OPTIONS" | "DELETE" | "POST" | "PUT" | "PATCH" | "QUERY";
 
 /** The HTTP methods that may carry a request body (`withBody` / `withGraphQL` are only available on these). */
-export type BodyMethod = "POST" | "PUT" | "PATCH" | "DELETE";
+export type BodyMethod = "POST" | "PUT" | "PATCH" | "DELETE" | "QUERY";
 
 /*
  * The fetch option types below are spelled through `RequestInit` (present in both lib.dom and
@@ -117,7 +120,7 @@ export interface RetryConfig {
   delay?: number | ((context: RetryContext) => number) | undefined;
   /** Statuses that are retried. Default: `[408, 425, 429, 500, 502, 503, 504]`. Network errors and timeouts are retried by default. */
   statuses?: readonly number[] | undefined;
-  /** Methods that are retried. Default: all. Use `["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]` to retry idempotent requests only. */
+  /** Methods that are retried. Default: all. Use `["GET", "HEAD", "OPTIONS", "QUERY", "PUT", "DELETE"]` to retry idempotent requests only. */
   methods?: readonly Method[] | undefined;
   /**
    * Upper bound, in milliseconds, for the default backoff. A `Retry-After` header longer than this

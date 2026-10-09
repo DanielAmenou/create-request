@@ -104,15 +104,26 @@ try {
 ### Creating
 
 ```typescript
-create.get(url); // also head, options, post, put, patch, delete (alias: del)
+create.get(url); // also head, options, post, put, patch, delete (alias: del), query
 api.get("/users"); // joined to the api's base URL
 api.get(); // no path → the base URL itself
 api.get<User>("/me"); // declare the JSON type once; getJson() / getData() / getResult() use it
 ```
 
 Named factories exist as well: `createGet`, `createPost`, `createPut`, `createPatch`,
-`createDelete`, `createHead`, `createOptions` (the same functions as `create.get`, …), and
-`createApi()` is also available as `create.api()`.
+`createDelete`, `createHead`, `createOptions`, `createQuery` (the same functions as
+`create.get`, …), and `createApi()` is also available as `create.api()`.
+
+`QUERY` works like `GET`, but the query goes in the body:
+
+```typescript
+const results = await api
+  .query<Page<Post>>("/posts/search")
+  .withBody({ text: "fetch", tags: ["http"], sort: "recent" })
+  .getJson();
+```
+
+The server must support `QUERY`. In browsers, a cross-origin `QUERY` request is preflighted.
 
 ### Configuring
 
@@ -129,7 +140,7 @@ create
   // and a key set twice keeps the last value (a request can override an api default)
   .withQueryParams({ page: 2, tags: ["a", "b"], since: new Date() })
   .withQueryParam("q", "search term")
-  // body (POST, PUT, PATCH, DELETE only): objects → JSON, strings → text/plain,
+  // body (POST, PUT, PATCH, DELETE, QUERY only): objects → JSON, strings → text/plain,
   // FormData / Blob / URLSearchParams / ArrayBuffer / typed arrays / ReadableStream → sent as-is
   .withBody({ name: "Ada" })
   // resilience
@@ -296,7 +307,7 @@ api.get("/status").withRetries({
   attempts: 3,
   delay: ({ attempt }) => attempt * 500, // ms, or a number; default: exponential backoff
   statuses: [503], // default: 408, 425, 429, 500, 502, 503, 504
-  methods: ["GET", "HEAD", "OPTIONS", "PUT", "DELETE"], // default: all, POST and PATCH included
+  methods: ["GET", "HEAD", "OPTIONS", "QUERY", "PUT", "DELETE"], // default: all, POST and PATCH included
   maxDelay: 10_000, // caps the backoff (default 30 s); a longer Retry-After gives up instead
   shouldRetry: ({ error }) => error.code === "NETWORK", // full override of the decision
   onRetry: ({ attempt, error, delay }) =>
@@ -310,8 +321,8 @@ How retries behave:
   backoff (300 ms, 600 ms, 1.2 s, … plus up to 100 ms of jitter, capped at `maxDelay`);
   validation errors and other failures are not.
 - Every method is retried by default, `POST` and `PATCH` included. Pass
-  `methods: ["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]` if a repeated request could duplicate
-  work.
+  `methods: ["GET", "HEAD", "OPTIONS", "QUERY", "PUT", "DELETE"]` if a repeated request could
+  duplicate work.
 - A `Retry-After` header is honoured unless you set `delay`; one longer than `maxDelay` cancels
   the retry so you can react yourself.
 - Aborted requests and requests with a stream body are never retried, whatever the policy. That
@@ -531,7 +542,7 @@ Measured with `size-limit` on the published build of this version (`npm run size
 
 | Import                         | min + gzip | min + brotli |
 | ------------------------------ | ---------: | -----------: |
-| everything (`import * as …`)   |    4.92 KB |      4.46 KB |
+| everything (`import * as …`)   |    4.95 KB |      4.48 KB |
 | `import { createGet }` only    |    4.32 KB |              |
 | `import { RequestError }` only |    0.25 KB |              |
 

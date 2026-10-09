@@ -45,7 +45,7 @@ export interface RecordedRequest {
  * - GET  /stream?chunks=N&delay=ms → chunked body, one chunk every `delay` ms
  * - GET  /gzip                     → gzip-encoded JSON (Content-Encoding: gzip)
  * - GET  /bad-gzip                 → announces Content-Encoding: gzip but sends a body that is not gzip
- * - GET  /redirect?n=N             → 302 chain of N hops ending at /json
+ * - GET  /redirect?n=N             → 302 chain of N hops ending at /json (`&status=S` makes the first hop an S redirect)
  * - GET  /redirect-to?url=U        → 302 to the absolute URL U (another server, for cross-origin redirects)
  * - GET  /set-cookie               → sets two cookies via Set-Cookie
  * - GET  /never                    → never responds (for abort tests)
@@ -293,7 +293,7 @@ export class TestServer {
     if (route === "/redirect") {
       const remaining = Number(requestUrl.searchParams.get("n") ?? 1);
       const target = remaining > 1 ? `/redirect?n=${remaining - 1}` : "/json";
-      res.writeHead(302, { location: this.url(target) });
+      res.writeHead(Number(requestUrl.searchParams.get("status") ?? 302), { location: this.url(target) });
       res.end();
       return;
     }

@@ -24,7 +24,7 @@ describe("e2e: methods, bodies, options and interceptors over real HTTP", { time
 
   it("performs every method and parses JSON", async () => {
     assert.deepEqual(await create.get(server.url("/json")).getJson(), { message: "hello", source: "e2e" });
-    for (const method of ["post", "put", "patch", "delete", "del"] as const) {
+    for (const method of ["post", "put", "patch", "delete", "del", "query"] as const) {
       const echo = await create[method](server.url("/echo")).withBody({ via: method }).getJson<Echo>();
       assert.equal(echo.method, method === "del" ? "DELETE" : method.toUpperCase());
       assert.deepEqual(JSON.parse(echo.body), { via: method });
@@ -132,6 +132,38 @@ describe("e2e: methods, bodies, options and interceptors over real HTTP", { time
     const manual = await create.get(server.url("/redirect?n=1")).withRedirect("manual").getResponse();
     assert.equal(manual.status, 302);
     assert.equal(manual.headers.get("location"), server.url("/json"));
+  });
+
+  it("sends QUERY (RFC 10008) with its body, retries it, and repeats it on redirects except 303", async () => {
+    const api = createApi().withBaseURL(server.origin);
+    const echo = await api.query<Echo>("/echo").withContentType("application/sql").withBody("SELECT name FROM users").getJson();
+    assert.equal(echo.method, "QUERY");
+    assert.equal(echo.headers["content-type"], "application/sql");
+    assert.equal(echo.body, "SELECT name FROM users");
+
+    // Safe and idempotent: it belongs in an idempotent-only retry policy, and every attempt resends the body.
+    const retried = await api
+      .query<{ hits: number }>("/flaky/query?fails=1")
+      .withBody({ name: "Ada" })
+      .withRetries({ attempts: 1, delay: 1, methods: ["GET", "HEAD", "OPTIONS", "QUERY", "PUT", "DELETE"] })
+      .getJson();
+    assert.equal(retried.hits, 2);
+    assert.deepEqual(
+      server.requests.filter(r => r.path === "/flaky/query").map(r => [r.method, r.text]),
+      [
+        ["QUERY", '{"name":"Ada"}'],
+        ["QUERY", '{"name":"Ada"}'],
+      ]
+    );
+
+    // fetch repeats the QUERY and its body after a 301, 302, 307 or 308, and follows a 303 with a GET without one.
+    for (const status of [301, 302, 303, 307, 308]) {
+      server.reset();
+      assert.deepEqual(await api.query(`/redirect?status=${status}`).withBody({ status }).getJson(), { message: "hello", source: "e2e" });
+      const followed = server.requests[1]!;
+      assert.equal(followed.path, "/json");
+      assert.deepEqual([followed.method, followed.text], status === 303 ? ["GET", ""] : ["QUERY", JSON.stringify({ status })], `after a ${status}`);
+    }
   });
 
   it("throws a RequestError with status, body and data for a real 404, and getResult returns it", async () => {

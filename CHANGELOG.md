@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0 — 2026-10-09
+
+### Added
+
+- `create.query()`, `createQuery()`, `api.query()` and the `QueryRequest` type for the HTTP `QUERY` method ([RFC 10008](https://www.rfc-editor.org/rfc/rfc10008)): a safe, idempotent read whose query is sent in the body, for searches too large or too structured for a URL. `"QUERY"` joins the `Method` and `BodyMethod` unions, so `withBody()` and `withGraphQL()` accept it and `withRetries({ methods })` can list it; a `switch` that handles every `Method` needs a `"QUERY"` case.
+
 ## 2.1.0 — 2026-10-03
 
 ### Added

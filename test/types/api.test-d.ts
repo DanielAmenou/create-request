@@ -14,15 +14,18 @@ import create, {
   createDelete,
   createGet,
   createPost,
+  createQuery,
   isRequestError,
   type ApiBuilder,
   type BaseRequest,
+  type BodyMethod,
   type BodyRequest,
   type DeleteRequest,
   type ErrorInterceptor,
   type GetRequest,
   type Method,
   type PostRequest,
+  type QueryRequest,
   type RequestConfig,
   type RequestErrorCode,
   type RequestInterceptor,
@@ -47,6 +50,10 @@ expectTypeOf(create.del).toEqualTypeOf(create.delete);
 expectTypeOf(createGet<User>("/x")).toEqualTypeOf<GetRequest<User>>();
 expectTypeOf(createPost("/x")).toEqualTypeOf<PostRequest>();
 expectTypeOf(createDelete("/x")).toEqualTypeOf<DeleteRequest>();
+expectTypeOf(create.query("/x")).toEqualTypeOf<HttpRequest<"QUERY">>();
+expectTypeOf(createQuery<User[]>("/x")).toEqualTypeOf<QueryRequest<User[]>>();
+expectTypeOf<QueryRequest>().toExtend<BodyRequest>();
+expectTypeOf<"QUERY">().toExtend<Method & BodyMethod>();
 expectTypeOf<GetRequest>().toExtend<BaseRequest>();
 expectTypeOf<PostRequest>().toExtend<BodyRequest>();
 expectTypeOf(create.get("/x").method).toEqualTypeOf<"GET">();
@@ -56,6 +63,12 @@ expectTypeOf(create.post("/x").withCredentials("include").withCache("no-cache").
 expectTypeOf(create.post<User>("/x").withBody(user).withHeader("a", "b")).toEqualTypeOf<HttpRequest<"POST", User>>();
 expectTypeOf(create.delete("/x").withBody({ reason: "gone" })).toEqualTypeOf<HttpRequest<"DELETE">>();
 expectTypeOf(create.put("/x").withGraphQL("query { me }", { id: 1 }, { throwOnError: true })).toEqualTypeOf<HttpRequest<"PUT">>();
+
+// QUERY (RFC 10008) carries its query in the body and keeps the declared response type
+expectTypeOf(create.query<User[]>("/x").withBody({ name: "Ada" }).withRetries(2)).toEqualTypeOf<HttpRequest<"QUERY", User[]>>();
+expectTypeOf(create.query("/x").withGraphQL("query { me }")).toEqualTypeOf<HttpRequest<"QUERY">>();
+expectTypeOf(create.query<User[]>("/x").withBody(user).getJson()).toEqualTypeOf<Promise<User[]>>();
+create.get("/x").withRetries({ attempts: 2, methods: ["GET", "HEAD", "OPTIONS", "QUERY", "PUT", "DELETE"] });
 
 // Bodies are a compile error on methods that cannot carry one
 // @ts-expect-error GET requests have no body
@@ -220,6 +233,7 @@ expectTypeOf(create.api).toEqualTypeOf<typeof createApi>();
 expectTypeOf(configured.get<User>("/me")).toEqualTypeOf<HttpRequest<"GET", User>>();
 expectTypeOf(configured.delete("/x")).toEqualTypeOf<HttpRequest<"DELETE">>();
 expectTypeOf(configured.del("/x")).toEqualTypeOf<HttpRequest<"DELETE">>();
+expectTypeOf(configured.query<User[]>("/search")).toEqualTypeOf<HttpRequest<"QUERY", User[]>>();
 expectTypeOf<Parameters<ApiBuilder["withRetries"]>>().toEqualTypeOf<Parameters<HttpRequest["withRetries"]>>();
 expectTypeOf<Parameters<ApiBuilder["withHeaders"]>>().toEqualTypeOf<Parameters<HttpRequest["withHeaders"]>>();
 expectTypeOf<ReturnType<ApiBuilder["withTimeout"]>>().toEqualTypeOf<ApiBuilder>();

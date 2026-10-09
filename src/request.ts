@@ -381,7 +381,7 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
   /* --------------------------------------------------------------------- body */
 
   /**
-   * Sets the request body (POST, PUT, PATCH and DELETE only — a compile error elsewhere). Objects and
+   * Sets the request body (POST, PUT, PATCH, DELETE and QUERY only — a compile error elsewhere). Objects and
    * arrays are JSON-encoded; strings, `Blob`, `FormData`, `URLSearchParams`, `ArrayBuffer`, typed arrays
    * and `ReadableStream` are sent as-is. `Content-Type` is set to `application/json` / `text/plain`
    * unless already present, and removed for `FormData` (fetch must add the multipart boundary itself).

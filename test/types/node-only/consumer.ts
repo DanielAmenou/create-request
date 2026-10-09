@@ -41,3 +41,5 @@ export async function main(): Promise<User | null> {
   }
   return data;
 }
+
+export const search = (name: string): Promise<User[]> => api.query<User[]>("/users/search").withBody({ name }).getJson();

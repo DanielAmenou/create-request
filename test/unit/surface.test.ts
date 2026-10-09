@@ -17,13 +17,14 @@ describe("public surface", () => {
       "createPatch",
       "createPost",
       "createPut",
+      "createQuery",
       "default",
       "isRequestError",
     ]);
   });
 
   it("the default export has one factory per method, the del alias and api", () => {
-    assert.deepEqual(Object.keys(create).sort(), ["api", "del", "delete", "get", "head", "options", "patch", "post", "put"]);
+    assert.deepEqual(Object.keys(create).sort(), ["api", "del", "delete", "get", "head", "options", "patch", "post", "put", "query"]);
     assert.equal(create.api, createApi);
     assert.equal(create.del, create.delete);
     assert.equal(create.get, library.createGet);
@@ -33,6 +34,7 @@ describe("public surface", () => {
     assert.equal(create.put, library.createPut);
     assert.equal(create.patch, library.createPatch);
     assert.equal(create.delete, library.createDelete);
+    assert.equal(create.query, library.createQuery);
   });
 
   it("requests expose only their public chainable and execution methods", () => {
@@ -93,7 +95,7 @@ describe("public surface", () => {
     const api = createApi() as unknown as Record<string, unknown>;
     const requestChainables = Object.getOwnPropertyNames(HttpRequest.prototype).filter(name => /^(with|onRetry)/.test(name));
     const shared = requestChainables.filter(name => !["withBody", "withGraphQL", "withSignal", "withAbortController"].includes(name));
-    for (const name of [...shared, "withBaseURL", "get", "head", "options", "post", "put", "patch", "delete", "del"]) {
+    for (const name of [...shared, "withBaseURL", "get", "head", "options", "post", "put", "patch", "delete", "del", "query"]) {
       assert.equal(typeof api[name], "function", name);
     }
     assert.ok(
