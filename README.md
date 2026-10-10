@@ -453,6 +453,17 @@ for (;;) {
 }
 ```
 
+For text streams (server-sent events, NDJSON, LLM output), pipe the body through a
+`TextDecoderStream`:
+
+```typescript
+const stream = await api.post("/chat").withBody({ prompt: "Hello" }).getBody();
+const reader = stream!.pipeThrough(new TextDecoderStream()).getReader();
+for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
+  render(chunk.value);
+}
+```
+
 Request bodies can be streams too (`withBody(readableStream)`), sent with `duplex: "half"`.
 Node.js and Chromium support that; Firefox and Safari do not. In Node.js a Node stream or any
 async iterable works the same way, so `withBody(fs.createReadStream(path))` uploads a file (set

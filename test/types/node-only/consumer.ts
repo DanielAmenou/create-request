@@ -43,3 +43,9 @@ export async function main(): Promise<User | null> {
 }
 
 export const search = (name: string): Promise<User[]> => api.query<User[]>("/users/search").withBody({ name }).getJson();
+
+export async function firstChunk(path: string): Promise<string> {
+  const reader = (await api.get(path).getBody())!.pipeThrough(new TextDecoderStream()).getReader();
+  const { value } = await reader.read();
+  return value ?? "";
+}

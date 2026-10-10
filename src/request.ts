@@ -672,7 +672,7 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
   }
 
   /** Sends the request and returns the raw body stream — see {@link ResponseWrapper.getBody}. */
-  getBody(): Promise<ReadableStream<Uint8Array> | null> {
+  getBody(): Promise<Response["body"]> {
     return this._run(response => response.getBody());
   }
 

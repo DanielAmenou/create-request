@@ -135,6 +135,8 @@ export class ResponseWrapper<T = unknown> {
    * The raw body stream, for streaming consumption (downloads with progress, SSE/NDJSON, LLM output…).
    * Unlike the other readers it is not buffered: the body can be read once, and only if no other reader ran.
    * Taking the stream also ends the request's `withTimeout()` deadline — from here on the stream is yours.
+   * It has the type `fetch` gives `response.body` in your environment (DOM lib or `@types/node`), so it pipes
+   * through `TextDecoderStream` and other web streams like that one does.
    *
    * @example
    * ```typescript
@@ -142,7 +144,7 @@ export class ResponseWrapper<T = unknown> {
    * for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) process(chunk.value);
    * ```
    */
-  getBody(): ReadableStream<Uint8Array> | null {
+  getBody(): Response["body"] {
     if (this.raw.bodyUsed) throw this._unreadable("Response body already consumed");
     clearTimeout(this._timeout?.timer);
     return this.raw.body;

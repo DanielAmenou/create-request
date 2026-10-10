@@ -97,7 +97,10 @@ expectTypeOf(create.get("/x").getText()).toEqualTypeOf<Promise<string>>();
 expectTypeOf(create.get("/x").getBlob()).toEqualTypeOf<Promise<Blob>>();
 expectTypeOf(create.get("/x").getArrayBuffer()).toEqualTypeOf<Promise<ArrayBuffer>>();
 expectTypeOf(create.get("/x").getFormData()).toEqualTypeOf<Promise<FormData>>();
-expectTypeOf(create.get("/x").getBody()).toEqualTypeOf<Promise<ReadableStream<Uint8Array> | null>>();
+expectTypeOf(create.get("/x").getBody()).toEqualTypeOf<Promise<Response["body"]>>();
+// getBody() has the type fetch gives `response.body`, so the streaming idiom compiles with the TS 5.9+ DOM lib too
+(await create.get("/x").getBody())?.pipeThrough(new TextDecoderStream());
+(await create.get("/x").getResponse()).getBody()?.pipeThrough(new TextDecoderStream());
 expectTypeOf(create.get<User>("/x").getResponse()).toEqualTypeOf<Promise<ResponseWrapper<User>>>();
 
 // getData: no selector → T, selector → R, with the selector receiving T (not T | null)
