@@ -12,6 +12,8 @@
 ### Internal
 
 - The full import is 16 B smaller (min+gzip) than in 2.2.0 despite both fixes: class fields are declared instead of being emitted as parameter properties, and the schema check is shorter.
+- CI fails on packaging problems found by attw or publint (`npm run pack:check`); the build only warned about them.
+- The release workflow runs the full check and packs the tarball in a job without credentials. A separate job in the `npm` environment publishes that tarball with trusted publishing and provenance; it checks out nothing and runs no scripts, so no dependency runs while an npm token can be minted. A third job creates the GitHub release. Actions are pinned to commit SHAs and kept current by Dependabot.
 
 ## 2.2.0 — 2026-10-09
 

@@ -3,38 +3,46 @@ name: Release
 # Pushing a tag `vX.Y.Z` publishes that version to npm and creates the GitHub release. Create tags with the
 # release scripts (`npm run release:patch | release:minor | release:major | release:next`), not by hand.
 # Stable versions must be tagged on `main` and go to the `latest` dist-tag; prereleases (`v2.0.0-next.0`) must be
-# tagged on another branch and go to the `next` dist-tag. The job refuses a tag on the wrong branch.
+# tagged on another branch and go to the `next` dist-tag. The workflow refuses a tag on the wrong branch.
 #
-# Authentication is npm "trusted publishing" (OIDC): no npm token is stored in the repository.
-# One-time setup on npmjs.com → package "create-request" → Settings → Trusted publisher → GitHub Actions:
-#   organization/user: DanielAmenou · repository: create-request · workflow filename: release.yml · environment: (empty)
-#   and tick "Allow npm publish" (setups created after 3 Sep 2026 allow only `npm stage publish` by default).
-# Trusted publishing needs npm ≥ 11.5.1. Current Node 24 releases bundle a new enough npm, but the
-# `npm install -g npm@latest` step keeps the job independent of the exact 24.x the runner provides.
-# Provenance attestations are generated automatically for a public repository.
+# Three jobs, so that the code that builds the package never holds a credential:
+# - build    (contents: read)   runs the full check and packs the tarball. Dependencies, their install scripts
+#                               and the build tools run here, where no token can publish or push.
+# - publish  (id-token: write)  publishes that tarball with npm trusted publishing (OIDC) and provenance. It checks
+#                               out nothing and runs no scripts, so no repository code or dependency runs while
+#                               an npm token can be minted. It runs in the `npm` environment.
+# - release  (contents: write)  creates the GitHub release with generated notes.
+#
+# One-time setup:
+# - npmjs.com → package "create-request" → Settings → Trusted publisher → GitHub Actions:
+#     organization/user: DanielAmenou · repository: create-request · workflow filename: release.yml
+#     environment name: npm · and "Allow npm publish" ticked. With the environment name set, only the publish job
+#     can publish, not another job of this workflow.
+# - GitHub → Settings → Environments → npm → Required reviewers: add yourself, so a pushed tag waits for your
+#   approval before anything is published. Optional; without it the publish job starts as soon as build passes.
+# Trusted publishing needs npm ≥ 11.5.1, so the publish job installs npm 11.
+# Actions are pinned to commit SHAs (the tag is in the comment); Dependabot proposes updates.
 
 on:
   push:
     tags: ["v*"]
 
-permissions:
-  contents: write
-  id-token: write
+permissions: {}
 
 jobs:
-  publish:
+  build:
+    name: Check and pack
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
-          cache: npm
-      - run: npm install -g npm@latest
-      - run: npm ci
       - name: The tag must match package.json (the dist-tag is derived from the tag, the version from package.json)
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
       - name: Stable versions are released from main, prereleases from any other branch
@@ -45,11 +53,43 @@ jobs:
             *-*) [ "$on_main" = no ] || { echo "::error::$GITHUB_REF_NAME is a prerelease: release it from a branch other than main"; exit 1; } ;;
             *) [ "$on_main" = yes ] || { echo "::error::$GITHUB_REF_NAME is a stable version: release it from main"; exit 1; } ;;
           esac
-      - run: npm run typecheck && npm run test:types && npm test && npm run build && npm run test:types:node
-      - name: Publish to npm (trusted publishing, with provenance)
-        run: npm publish --provenance --access public ${{ contains(github.ref_name, '-') && '--tag next' || '' }}
-      - name: Create the GitHub release
-        uses: actions/github-script@v7
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - run: npm pack
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: package
+          path: create-request-*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish to npm
+    needs: build
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@11
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: package
+      - name: Publish the tarball (trusted publishing, with provenance)
+        run: npm publish ./create-request-*.tgz --provenance --access public --ignore-scripts ${{ contains(github.ref_name, '-') && '--tag next' || '' }}
+
+  release:
+    name: Create the GitHub release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const tag = context.ref.replace("refs/tags/", "");

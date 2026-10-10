@@ -9,7 +9,7 @@ Thank you for considering contributing to create-request! This document provides
 3. Run `npm test` for the unit, e2e and regression suites, `npm run test:types` for the type tests
    (which also compile every code block of the README), `npm run test:coverage` to enforce 100% coverage
 4. Run `npm run build` to build the library into `dist/`
-5. Run `npm run check` before opening a pull request — it runs everything CI runs (plus `pack:check`)
+5. Run `npm run check` before opening a pull request — it runs everything CI runs
 
 ## How to Contribute
 
@@ -129,8 +129,10 @@ docs(api): update method documentation
 ## Releasing (maintainers)
 
 Never tag or publish by hand. A release script bumps the version, commits, tags and pushes; the
-`Release` workflow then publishes the tag to npm (trusted publishing, with provenance) and creates
-the GitHub release.
+`Release` workflow then runs `npm run check` and packs the tarball in a job without credentials,
+publishes that tarball to npm from a separate job in the `npm` environment (trusted publishing,
+with provenance) and creates the GitHub release. If the `npm` environment requires a reviewer,
+approve the run on GitHub before it publishes.
 
 | Command                         | Run it on              | Example                     | npm dist-tag |
 | ------------------------------- | ---------------------- | --------------------------- | ------------ |
