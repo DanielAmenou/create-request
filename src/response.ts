@@ -141,7 +141,7 @@ export class ResponseWrapper<T = unknown> {
    * @example
    * ```typescript
    * const reader = (await request.getBody())!.pipeThrough(new TextDecoderStream()).getReader();
-   * for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) process(chunk.value);
+   * for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) handleChunk(chunk.value);
    * ```
    */
   getBody(): Response["body"] {
@@ -160,8 +160,8 @@ export class ResponseWrapper<T = unknown> {
    *
    * @example
    * ```typescript
-   * const user = await res.getJson<User>();
-   * const user = await res.getJson(UserSchema);   // typed from the schema, validated at runtime
+   * const user = await res.getJson<User>(); // typed by you, not checked
+   * const checked = await res.getJson(UserSchema); // typed from the schema, validated at runtime
    * ```
    */
   getJson<U = T>(): Promise<U>;
@@ -196,9 +196,9 @@ export class ResponseWrapper<T = unknown> {
    *
    * @example
    * ```typescript
-   * const names = await res.getData(page => page.users.map(u => u.name));      // res: ResponseWrapper<Page>
-   * const names = await res.getData<Page, string[]>(page => page.users.map(u => u.name));
-   * const names = await res.getData(PageSchema, page => page.users.map(u => u.name));
+   * const names = await res.getData(page => page.users.map(u => u.name)); // res: ResponseWrapper<Page>
+   * const sameNames = await res.getData<Page, string[]>(page => page.users.map(u => u.name));
+   * const checkedNames = await res.getData(PageSchema, page => page.users.map(u => u.name));
    * ```
    */
   getData<U = T>(): Promise<U>;

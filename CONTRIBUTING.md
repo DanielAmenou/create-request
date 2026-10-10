@@ -7,7 +7,8 @@ Thank you for considering contributing to create-request! This document provides
 1. Clone the repository (Node.js 24 is recommended for development; see `.nvmrc`)
 2. Run `npm install`
 3. Run `npm test` for the unit, e2e and regression suites, `npm run test:types` for the type tests
-   (which also compile every code block of the README), `npm run test:coverage` to enforce 100% coverage
+   (which also compile every code block of the README and every JSDoc `@example`), `npm run test:coverage`
+   to enforce 100% coverage
 4. Run `npm run build` to build the library into `dist/`
 5. Run `npm run check` before opening a pull request — it runs everything CI runs
 
@@ -124,7 +125,7 @@ docs(api): update method documentation
 - Use ESLint for linting (`npm run lint`)
 - Keep coverage at 100% (`npm run test:coverage` fails otherwise); test through the public API,
   never through private fields — inject `fetch` with `withFetch()` instead of mocking globals
-- Document public APIs with JSDoc; keep every `@example` valid TypeScript against the current API (the README's code blocks are compiled by `npm run test:types`; JSDoc examples are reviewed by hand)
+- Document public APIs with JSDoc; keep every `@example` valid TypeScript against the current API: `npm run test:types` compiles them, like the README's code blocks (`scripts/extract-snippets.mjs` declares the names the examples use without defining them)
 
 ## Releasing (maintainers)
 

@@ -4,10 +4,11 @@ node_modules/
 # Build output
 dist/
 
-# Test coverage and generated test inputs
+# Test coverage and generated test inputs (README and JSDoc code blocks)
 coverage/
-test/types/readme.generated.ts
-.nyc_output/  # Used by c8 (coverage tool)
+test/types/*.generated.ts
+# Used by c8 (coverage tool)
+.nyc_output/
 
 # Logs
 logs/
@@ -26,11 +27,12 @@ yarn-error.log*
 .idea/
 *.swp
 *.swo
-*~  # Backup files (Emacs, Vim, etc.)
+# Backup files (Emacs, Vim, etc.)
+*~
 
-# OS
-.DS_Store  # macOS
-Thumbs.db  # Windows
+# OS (macOS, Windows)
+.DS_Store
+Thumbs.db
 
 # Package files
 *.tgz

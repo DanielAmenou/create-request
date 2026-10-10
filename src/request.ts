@@ -298,9 +298,10 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
    *
    * @example
    * ```typescript
-   * request.withFetch(async () => new Response('{"ok":true}'));                       // test stub
-   * request.withFetch((url, init) => undiciFetch(url, { ...init, dispatcher: agent })); // undici agent
-   * request.withFetch((url, init) => fetch(url, { ...init, next: { revalidate: 60 } })); // Next.js
+   * request.withFetch(async () => new Response('{"ok":true}')); // test stub
+   * // undici agent: undici's own fetch types differ from the global ones, hence the casts
+   * request.withFetch((url, init) => undiciFetch(url, { ...(init as object), dispatcher: agent }) as unknown as Promise<Response>);
+   * request.withFetch((url, init) => fetch(url, { ...init, next: { revalidate: 60 } } as RequestInit)); // Next.js
    * ```
    */
   withFetch(fetchFn: FetchFunction): this {

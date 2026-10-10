@@ -81,8 +81,12 @@ export class RequestError<TData = unknown> extends Error {
    *
    * @example
    * ```typescript
-   * catch (error) {
-   *   if (isRequestError(error)) console.log(error.data?.message ?? error.message);
+   * try {
+   *   await api.post("/users").withBody(user).getJson();
+   * } catch (error) {
+   *   if (!isRequestError(error)) throw error;
+   *   const details = error.data as { message?: string } | undefined; // the error shape your API uses
+   *   console.log(details?.message ?? error.message);
    * }
    * ```
    */

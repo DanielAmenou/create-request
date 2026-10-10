@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- JSDoc examples that did not compile (the ones editors show on hover): `error.data`, `withFetch()` with undici or Next.js, and the `getBody()`, `getJson()` and `getData()` examples of `ResponseWrapper`. `npm run test:types` now compiles every JSDoc example, like the README code blocks.
+
 ## 2.2.1 — 2026-10-10
 
 ### Fixed

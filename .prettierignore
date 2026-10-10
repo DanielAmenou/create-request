@@ -3,5 +3,5 @@ coverage
 dist
 plans
 package-lock.json
-test/types/readme.generated.ts
+test/types/*.generated.ts
 CHANGELOG.md

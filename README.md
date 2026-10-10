@@ -580,8 +580,8 @@ for the complete v1 → v2 map and the list of behaviour changes.
 ## Contributing
 
 `npm run check` runs lint, format, type-check, the type tests (including every TypeScript code
-block of this README), the test suite at 100% coverage, the build, package linting and the size
-gate. See [CONTRIBUTING.md](CONTRIBUTING.md).
+block of this README and every JSDoc example), the test suite at 100% coverage, the build, package
+linting and the size gate. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

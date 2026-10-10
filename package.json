@@ -38,7 +38,7 @@
     "test": "node --import tsx --test \"test/**/*.test.ts\"",
     "test:unit": "node --import tsx --test \"test/unit/**/*.test.ts\"",
     "test:e2e": "node --import tsx --test \"test/e2e/**/*.test.ts\"",
-    "test:types": "node scripts/extract-readme-snippets.mjs && tsc -p test/types/tsconfig.json",
+    "test:types": "node scripts/extract-snippets.mjs && tsc -p test/types/tsconfig.json",
     "test:coverage": "c8 npm test",
     "size": "size-limit",
     "pack:check": "attw --pack . --profile node16 && publint",
