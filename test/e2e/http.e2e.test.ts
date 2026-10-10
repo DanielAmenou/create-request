@@ -1,4 +1,9 @@
 import assert from "node:assert/strict";
+import { createReadStream } from "node:fs";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { Readable } from "node:stream";
 import { after, before, beforeEach, describe, it } from "node:test";
 import create, { RequestError, ResponseWrapper, createApi } from "../../src/index.js";
 import { asError, unexpected } from "../utils/helpers.js";
@@ -81,6 +86,33 @@ describe("e2e: methods, bodies, options and interceptors over real HTTP", { time
     });
     await create.post(server.url("/echo")).withBody(stream).getJson();
     assert.equal(server.lastRequest.text, "streamed-body");
+  });
+
+  it("uploads Node.js streams and async iterables as their bytes, not as JSON", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "create-request-"));
+    try {
+      const file = join(dir, "upload.txt");
+      await writeFile(file, "file contents\n");
+      await create.put(server.url("/echo")).withContentType("text/plain").withBody(createReadStream(file)).getJson();
+      assert.equal(server.lastRequest.text, "file contents\n");
+      assert.equal(server.lastRequest.headers["content-type"], "text/plain");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+
+    await create
+      .post(server.url("/echo"))
+      .withBody(Readable.from([Buffer.from("node-"), Buffer.from("readable")]))
+      .getJson();
+    assert.equal(server.lastRequest.text, "node-readable");
+    assert.equal(server.lastRequest.headers["content-type"], undefined);
+
+    const generator = (async function* () {
+      yield new TextEncoder().encode("async-");
+      yield new TextEncoder().encode("generator");
+    })();
+    await create.post(server.url("/echo")).withBody(generator).getJson();
+    assert.equal(server.lastRequest.text, "async-generator");
   });
 
   it("sends headers, query params, auth and cookies that arrive on the wire", async () => {

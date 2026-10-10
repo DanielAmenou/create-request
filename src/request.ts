@@ -78,14 +78,14 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
   /** @internal */
   _o: Options = { init: {}, headers: {}, query: new URLSearchParams(), signals: [], req: [], res: [], err: [] };
 
-  private readonly _url: string;
+  /** The HTTP method. */
+  declare readonly method: M;
+  // Declared and assigned in the constructor (not parameter properties), so no class-field definitions are emitted.
+  declare private readonly _url: string;
 
   /** Prefer `create.get(url)`, `create.post(url)`, … or an api instance to construct requests. */
-  constructor(
-    /** The HTTP method. */
-    readonly method: M,
-    url: string
-  ) {
+  constructor(method: M, url: string) {
+    this.method = method;
     this._url = url;
   }
 
@@ -385,10 +385,11 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
 
   /**
    * Sets the request body (POST, PUT, PATCH, DELETE and QUERY only — a compile error elsewhere). Objects and
-   * arrays are JSON-encoded; strings, `Blob`, `FormData`, `URLSearchParams`, `ArrayBuffer`, typed arrays
-   * and `ReadableStream` are sent as-is. `Content-Type` is set to `application/json` / `text/plain`
-   * unless already present, and removed for `FormData` (fetch must add the multipart boundary itself).
-   * Stream bodies are sent with `duplex: "half"` (Chromium and Node.js only) and are never retried.
+   * arrays are JSON-encoded; strings, `Blob`, `FormData`, `URLSearchParams`, `ArrayBuffer`, typed arrays,
+   * `ReadableStream` and, in Node.js, Node streams (`fs.createReadStream()`) and other async iterables are sent
+   * as-is. `Content-Type` is set to `application/json` / `text/plain` unless already present, and removed for
+   * `FormData` (fetch must add the multipart boundary itself). Stream bodies are sent with `duplex: "half"`
+   * (Chromium and Node.js only), can be sent only once and are never retried.
    *
    * @example
    * ```typescript
@@ -401,8 +402,9 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
     // Detected by tag rather than `instanceof`, so a Blob/FormData/… from another realm (undici's own
     // classes, jsdom, a vm context) is still sent as-is instead of being JSON-encoded as "{}".
     const tag = Object.prototype.toString.call(body).slice(8, -1);
-    const raw = ArrayBuffer.isView(body) || /^(String|Blob|File|FormData|URLSearchParams|ArrayBuffer|ReadableStream)$/.test(tag);
-    o.stream = tag === "ReadableStream";
+    // A Node.js stream or another async iterable (undici's fetch accepts them) is a stream body, like a ReadableStream.
+    o.stream = Symbol.asyncIterator in Object(body) || tag === "ReadableStream";
+    const raw = o.stream || ArrayBuffer.isView(body) || /^(String|Blob|File|FormData|URLSearchParams|ArrayBuffer)$/.test(tag);
     if (raw) o.body = body as FetchBody;
     else {
       try {
@@ -436,7 +438,7 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
 
   /**
    * An independent copy of this request, so a configured request can serve as a template.
-   * Interceptors, signals and body objects are shared by reference (a `ReadableStream` body can only be sent once).
+   * Interceptors, signals and body objects are shared by reference (a stream body can only be sent once).
    *
    * @example
    * ```typescript

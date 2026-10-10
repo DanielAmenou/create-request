@@ -73,7 +73,8 @@ export declare namespace StandardSchemaV1 {
 
 /**
  * Whether `value` looks like a Standard Schema (used to tell a schema argument from a selector).
- * Schemas may be callable — arktype's are functions — so both objects and functions qualify.
+ * Schemas may be callable — arktype's are functions — so both objects and functions qualify; `Object()` makes
+ * the `in` check safe for primitives, `null` and `undefined` (which are never schemas).
  * @internal
  */
-export const isSchema = (value: unknown): value is StandardSchemaV1 => !!value && (typeof value === "object" || typeof value === "function") && "~standard" in value;
+export const isSchema = (value: unknown): value is StandardSchemaV1 => "~standard" in Object(value);

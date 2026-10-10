@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import { Readable } from "node:stream";
 import { describe, it } from "node:test";
 import create, { RequestError } from "../../src/index.js";
-import { asError, json, schema, stub, unexpected } from "../utils/helpers.js";
+import { asError, json, schema, status, stub, unexpected } from "../utils/helpers.js";
 
 describe("withBody", () => {
   it("JSON-encodes objects and arrays and sets Content-Type unless present", async () => {
@@ -60,6 +61,33 @@ describe("withBody", () => {
     await create.post("/x").withBody(stream).withFetch(fetch).getResponse();
     assert.equal(calls[0]!.init.body, stream);
     assert.equal(calls[0]!.init.duplex, "half");
+  });
+
+  it("sends Node.js streams and other async iterables as stream bodies, not as JSON, and never retries them", async () => {
+    const { fetch, calls } = stub();
+    const generator = (async function* () {
+      yield new TextEncoder().encode("chunk");
+    })();
+    const readable = Readable.from([Buffer.from("chunk")]);
+    for (const body of [generator, readable]) await create.post("/x").withBody(body).withFetch(fetch).getResponse();
+    for (const [i, body] of [generator, readable].entries()) {
+      assert.equal(calls[i]!.init.body, body);
+      assert.equal(calls[i]!.init.duplex, "half");
+      assert.equal(calls[i]!.headers.get("content-type"), null);
+    }
+    const failing = stub(() => status(503));
+    await assert.rejects(
+      create
+        .post("/x")
+        .withBody(Readable.from([Buffer.from("once")]))
+        .withRetries({ attempts: 3, delay: 1 })
+        .withFetch(failing.fetch)
+        .getResponse(),
+      {
+        status: 503,
+      }
+    );
+    assert.equal(failing.calls.length, 1);
   });
 
   it("a later body replaces an earlier one, and a stream body no longer marks the request after replacement", async () => {

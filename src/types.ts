@@ -37,7 +37,8 @@ export type PriorityHint = "auto" | "high" | "low";
  *
  * - `string` → sent as-is (`Content-Type: text/plain` unless you set one)
  * - `Blob` / `File`, `FormData`, `URLSearchParams` → sent as-is, `fetch` sets the matching `Content-Type`
- * - `ArrayBuffer`, typed arrays, `ReadableStream` → sent as-is, no `Content-Type` unless you set one
+ * - `ArrayBuffer`, typed arrays, `ReadableStream` and, in Node.js, Node streams and other async iterables → sent as-is,
+ *   no `Content-Type` unless you set one
  * - any other JSON-serialisable object or array → `JSON.stringify`-ed (`Content-Type: application/json` unless you set one)
  *
  * @example

@@ -141,7 +141,7 @@ create
   .withQueryParams({ page: 2, tags: ["a", "b"], since: new Date() })
   .withQueryParam("q", "search term")
   // body (POST, PUT, PATCH, DELETE, QUERY only): objects → JSON, strings → text/plain,
-  // FormData / Blob / URLSearchParams / ArrayBuffer / typed arrays / ReadableStream → sent as-is
+  // FormData / Blob / URLSearchParams / ArrayBuffer / typed arrays / streams → sent as-is
   .withBody({ name: "Ada" })
   // resilience
   .withTimeout(5000) // per attempt; covers the response and the body read
@@ -454,7 +454,9 @@ for (;;) {
 ```
 
 Request bodies can be streams too (`withBody(readableStream)`), sent with `duplex: "half"`.
-Node.js and Chromium support that; Firefox and Safari do not. Stream bodies are never retried.
+Node.js and Chromium support that; Firefox and Safari do not. In Node.js a Node stream or any
+async iterable works the same way, so `withBody(fs.createReadStream(path))` uploads a file (set
+its `Content-Type` yourself). A stream body can be sent only once and is never retried.
 Upload _progress_ is not something `fetch` exposes in browsers, so there is no API for it.
 
 ## Testing and custom fetch
@@ -550,8 +552,8 @@ Measured with `size-limit` on the published build of this version (`npm run size
 
 | Import                         | min + gzip | min + brotli |
 | ------------------------------ | ---------: | -----------: |
-| everything (`import * as …`)   |    4.95 KB |      4.49 KB |
-| `import { createGet }` only    |    4.32 KB |              |
+| everything (`import * as …`)   |    4.93 KB |      4.47 KB |
+| `import { createGet }` only    |    4.30 KB |              |
 | `import { RequestError }` only |    0.25 KB |              |
 
 The package is one module with no side effects, so bundlers drop whatever you do not import. The

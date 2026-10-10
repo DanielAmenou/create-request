@@ -29,15 +29,20 @@ export class ResponseWrapper<T = unknown> {
   /** @internal */
   declare _signal?: AbortSignal | undefined;
 
+  /** The underlying `Response`. Read its body through this wrapper's methods, or take it over with `getBody()`. */
+  declare readonly raw: Response;
+  /** The URL that was requested, including the query string (after interceptors). */
+  declare readonly url: string;
+  /** The HTTP method that was used. */
+  declare readonly method: Method;
+
   /** Wraps a `Response` — useful to hand a synthetic response to an error interceptor. */
-  constructor(
-    /** The underlying `Response`. Read its body through this wrapper's methods, or take it over with `getBody()`. */
-    readonly raw: Response,
-    /** The URL that was requested, including the query string (after interceptors). */
-    readonly url = "",
-    /** The HTTP method that was used. */
-    readonly method: Method = "GET"
-  ) {}
+  constructor(raw: Response, url = "", method: Method = "GET") {
+    // Declared fields assigned here (not parameter properties), so no class-field definitions are emitted.
+    this.raw = raw;
+    this.url = url;
+    this.method = method;
+  }
 
   /** HTTP status code (`200`, `404`, …). */
   get status(): number {

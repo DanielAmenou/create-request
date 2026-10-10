@@ -67,10 +67,14 @@ export interface ApiBuilder extends ApiChainables {
 const ABSOLUTE = /^([a-z][a-z0-9+.-]*:)?\/\//i;
 
 class Api {
-  constructor(
-    private readonly _base = "",
-    private readonly _defaults: readonly Defaults[] = []
-  ) {}
+  // Declared and assigned in the constructor (not parameter properties), so no class-field definitions are emitted.
+  declare private readonly _base: string;
+  declare private readonly _defaults: readonly Defaults[];
+
+  constructor(base = "", defaults: readonly Defaults[] = []) {
+    this._base = base;
+    this._defaults = defaults;
+  }
 
   /** @internal */
   _with(fn: Defaults): ApiBuilder {

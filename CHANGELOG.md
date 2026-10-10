@@ -6,6 +6,11 @@
 
 - `getJson()`, `getText()`, `getBlob()`, `getArrayBuffer()`, `getFormData()`, `getData()` and `getResult()` now read the body as part of each attempt, so a failure while reading it goes through the retry policy and the error interceptors like a failure before the response. Before, the body was read after both had finished: a body that stalled past `withTimeout()` was not retried, and error interceptors never saw a timeout or abort during the read, a connection dropped mid-body, invalid JSON, a schema mismatch or GraphQL errors. The default policy retries only the timeout; a custom `shouldRetry` now also receives the other errors (with `status` set). A `ResponseWrapper` returned by an error interceptor is read by the same reader, and if that read fails, the next interceptor receives the error. `getResponse()` and `getBody()` are unchanged: they resolve before the body is read.
 - A `getData()` selector that returns a rejected promise is reported as a `"PARSE"` error, like a selector that throws; it used to reject with the raw error.
+- A Node.js stream (`fs.createReadStream()`, a `Readable`) or another async iterable passed to `withBody()` is sent as a stream body (`duplex: "half"`, never retried), the way undici's `fetch` expects. Before, it was JSON-encoded: `withBody(fs.createReadStream(file))` sent the stream object's fields, local file path included, as `application/json`, and an async generator sent `{}`.
+
+### Internal
+
+- The full import is 16 B smaller (min+gzip) than in 2.2.0 despite both fixes: class fields are declared instead of being emitted as parameter properties, and the schema check is shorter.
 
 ## 2.2.0 — 2026-10-09
 
