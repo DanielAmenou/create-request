@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
 import { Agent, fetch as undiciFetch } from "undici";
-import create, { createApi, type FetchFunction } from "../../src/index.js";
+import create, { createApi, type FetchFunction, type RequestError } from "../../src/index.js";
 import { asError, readAll, unexpected } from "../utils/helpers.js";
 import { TestServer, deterministicBytes } from "../utils/server.js";
 
@@ -62,6 +62,26 @@ describe("e2e: retries, timeouts, aborts, streaming and custom fetch over real H
     await assert.rejects(create.get(server.url("/slow?ms=2000")).withTimeout(60).withRetries({ attempts: 2, delay: 1 }).getJson(), { code: "TIMEOUT" });
     assert.equal(server.requests.length, 3);
     assert.deepEqual(await create.get(server.url("/slow?ms=20")).withTimeout(2000).getJson(), { slept: 20 });
+  });
+
+  it("retries a body that stalls past the timeout, and error interceptors see failures while the body is read", async () => {
+    const seen: string[] = [];
+    const record = (e: RequestError): void => void seen.push(`${e.code} ${e.status}`);
+    // The headers and the first chunk arrive at once; the whole body would take 2 s.
+    const error = await create
+      .get(server.url("/stream?chunks=40&delay=50"))
+      .withTimeout(300)
+      .withRetries({ attempts: 1, delay: 1 })
+      .withErrorInterceptor(record)
+      .getText()
+      .then(unexpected, asError);
+    assert.equal(error.code, "TIMEOUT");
+    assert.equal(server.requests.length, 2);
+    server.reset();
+    await assert.rejects(create.get(server.url("/invalid-json")).withRetries({ attempts: 2, delay: 1 }).withErrorInterceptor(record).getJson(), { code: "PARSE" });
+    assert.equal(server.requests.length, 1);
+    assert.deepEqual(seen, ["TIMEOUT 200", "PARSE 200"]);
+    assert.equal(await create.get(server.url("/stream?chunks=3&delay=5")).withTimeout(2000).withRetries(1).getText(), "chunk-1;chunk-2;chunk-3;");
   });
 
   it("aborts an in-flight request via AbortController or AbortSignal", async () => {

@@ -184,7 +184,8 @@ export class ResponseWrapper<T = unknown> {
   /**
    * `getJson()` followed by a selector, so you can pick the part you need in one call. The selector
    * receives `T` (declare it on the request: `api.get<Page>()`), or pass both type arguments explicitly.
-   * Errors thrown by the selector are reported as a `RequestError` with code `"PARSE"`. A schema can be validated first.
+   * A selector that throws (or returns a promise that rejects) is reported as a `RequestError` with code `"PARSE"`.
+   * A schema can be validated first.
    *
    * @example
    * ```typescript
@@ -205,7 +206,7 @@ export class ResponseWrapper<T = unknown> {
     const data = await this.getJson(schema!);
     if (!select) return data;
     try {
-      return select(data);
+      return await select(data);
     } catch (e) {
       throw this._err(`Selector failed: ${messageOf(e)}`, "PARSE", { cause: e });
     }

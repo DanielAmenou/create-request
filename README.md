@@ -328,7 +328,10 @@ How retries behave:
 - Aborted requests and requests with a stream body are never retried, whatever the policy. That
   includes a timeout from your own `AbortSignal.timeout()` signal, which stays aborted (only
   `withTimeout()` timeouts are retried).
-- The timeout applies to each attempt; error interceptors run once, after the last attempt.
+- The timeout applies to each attempt. With `getJson()`, `getText()`, `getData()` and the other
+  readers an attempt includes reading the body, so a body that stalls past the timeout is
+  retried too; `getResponse()` and `getBody()` hand you the body unread.
+- Error interceptors run once, after the last attempt.
 
 `onRetry(callback)` also exists as a method; it does not enable retries by itself.
 
@@ -391,6 +394,11 @@ checked and response interceptors run like for a fetched one; `withTimeout()` do
 it. A request or response interceptor that throws fails the request with code `"INTERCEPTOR"`;
 an error interceptor that throws replaces the error with an `"INTERCEPTOR"` one (a thrown
 `RequestError` is kept as-is).
+
+Error interceptors also see failures while `getJson()`, `getText()` and the other readers read
+the body: invalid JSON (`"PARSE"`), a schema mismatch (`"VALIDATION"`), GraphQL errors
+(`"GRAPHQL"`) and a timeout or abort during the read. A `ResponseWrapper` they return is read the
+same way, so `getJson()` parses the recovered response.
 
 ## Schema validation
 
@@ -542,7 +550,7 @@ Measured with `size-limit` on the published build of this version (`npm run size
 
 | Import                         | min + gzip | min + brotli |
 | ------------------------------ | ---------: | -----------: |
-| everything (`import * as …`)   |    4.95 KB |      4.48 KB |
+| everything (`import * as …`)   |    4.95 KB |      4.49 KB |
 | `import { createGet }` only    |    4.32 KB |              |
 | `import { RequestError }` only |    0.25 KB |              |
 

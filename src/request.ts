@@ -372,7 +372,10 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
     return this;
   }
 
-  /** Adds an {@link ErrorInterceptor}, run once after the request has failed for good (after retries); it also receives the request, so it can replay it. */
+  /**
+   * Adds an {@link ErrorInterceptor}, run once after the request has failed for good (after retries, and including a failure while
+   * `getJson()`, `getText()`, … read the body); it also receives the request, so it can replay it.
+   */
   withErrorInterceptor(interceptor: ErrorInterceptor): this {
     this._o.err.push(interceptor);
     return this;
@@ -464,14 +467,25 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
    * Sends the request (with retries, if configured) and resolves with the {@link ResponseWrapper} of a
    * successful (2xx or opaque) response. Any failure — non-2xx status, network error, timeout, abort,
    * interceptor error — rejects with a {@link RequestError}; use `getResult()` for a non-throwing variant.
+   * It resolves before the body is read, so reading it is up to you and happens after the retries and error
+   * interceptors; `getJson()`, `getText()` and the other readers read it as part of each attempt instead.
    */
-  async getResponse(): Promise<ResponseWrapper<T>> {
+  getResponse(): Promise<ResponseWrapper<T>> {
+    return this._run(response => response);
+  }
+
+  /**
+   * Runs the attempts, the retry policy and the error interceptors around `read`, which receives each response — so a
+   * failure while reading the body (a timeout during the read, invalid JSON, a schema or GraphQL error) is retried and
+   * intercepted like a failure before it. A response recovered by an error interceptor goes through `read` as well.
+   */
+  private async _run<R>(read: (response: ResponseWrapper<T>) => R | Promise<R>): Promise<R> {
     const o = this._o;
     const retry = o.retry;
     let error: RequestError;
     for (let attempt = 0; ; attempt++) {
       try {
-        return await this._attempt();
+        return await read(await this._attempt());
       } catch (e) {
         error = e instanceof RequestError ? e : this._fail(`Unexpected error: ${messageOf(e)}`, "NETWORK", { cause: e });
         const context: RetryContext = { attempt: attempt + 1, error };
@@ -497,7 +511,7 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
     for (const interceptor of o.err) {
       try {
         const result = await interceptor(error, this);
-        if (result instanceof ResponseWrapper) return result as ResponseWrapper<T>;
+        if (result instanceof ResponseWrapper) return await read(result as ResponseWrapper<T>);
         if (result) error = result;
       } catch (e) {
         // eslint-disable-next-line @typescript-eslint/no-misused-spread -- copies the error's context fields on purpose
@@ -632,32 +646,32 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
   getJson<U = T>(): Promise<U>;
   getJson<S extends StandardSchemaV1>(schema: S): Promise<StandardSchemaV1.InferOutput<S>>;
   getJson(schema?: StandardSchemaV1): Promise<unknown> {
-    return this.getResponse().then(response => response.getJson(schema!));
+    return this._run(response => response.getJson(schema!));
   }
 
   /** Sends the request and returns the body as text. */
   getText(): Promise<string> {
-    return this.getResponse().then(response => response.getText());
+    return this._run(response => response.getText());
   }
 
   /** Sends the request and returns the body as a `Blob` (downloads, images). */
   getBlob(): Promise<Blob> {
-    return this.getResponse().then(response => response.getBlob());
+    return this._run(response => response.getBlob());
   }
 
   /** Sends the request and returns the body as an `ArrayBuffer`. */
   getArrayBuffer(): Promise<ArrayBuffer> {
-    return this.getResponse().then(response => response.getArrayBuffer());
+    return this._run(response => response.getArrayBuffer());
   }
 
   /** Sends the request and parses the body as `FormData`. */
   getFormData(): Promise<FormData> {
-    return this.getResponse().then(response => response.getFormData());
+    return this._run(response => response.getFormData());
   }
 
   /** Sends the request and returns the raw body stream — see {@link ResponseWrapper.getBody}. */
   getBody(): Promise<ReadableStream<Uint8Array> | null> {
-    return this.getResponse().then(response => response.getBody());
+    return this._run(response => response.getBody());
   }
 
   /**
@@ -675,7 +689,7 @@ export class HttpRequest<M extends Method = Method, T = unknown> {
   getData<R>(selector: (data: T) => R): Promise<R>;
   getData<U, R>(selector: (data: U) => R): Promise<R>;
   getData(schemaOrSelector?: unknown, selector?: unknown): Promise<unknown> {
-    return this.getResponse().then(response => response.getData(schemaOrSelector as never, selector as never));
+    return this._run(response => response.getData(schemaOrSelector as never, selector as never));
   }
 
   /**

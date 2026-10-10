@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import create, { type HttpRequest, RequestError, ResponseWrapper, createApi } from "../../src/index.js";
-import { asError, hanging, json, status, stub, unexpected } from "../utils/helpers.js";
+import { asError, hanging, json, schema, stalled, status, stub, unexpected } from "../utils/helpers.js";
 
 describe("request interceptors — chaining", () => {
   it("each interceptor sees the previous one's result, whether mutated or returned", async () => {
@@ -251,5 +251,58 @@ describe("error interceptors — chaining", () => {
     assert.equal(calls[1]!.url, "/x?q=v");
     assert.equal(calls[1]!.init.body, '{"n":1}');
     assert.equal(calls[1]!.init.method, "POST");
+  });
+
+  it("see failures raised while a reader reads the body: invalid JSON, a schema mismatch, GraphQL errors and a timeout", async () => {
+    const seen: string[] = [];
+    const record = (e: RequestError): void => void seen.push(`${e.code} ${e.status}`);
+    await assert.rejects(
+      create
+        .get("/x")
+        .withErrorInterceptor(record)
+        .withFetch(stub(new Response("{oops")).fetch)
+        .getJson()
+    );
+    await assert.rejects(
+      create
+        .get("/x")
+        .withErrorInterceptor(record)
+        .withFetch(stub(json({ id: "1" })).fetch)
+        .getJson(schema(() => "id must be a number"))
+    );
+    await assert.rejects(
+      create
+        .post("/graphql")
+        .withGraphQL("{ x }", {}, { throwOnError: true })
+        .withErrorInterceptor(record)
+        .withFetch(stub(json({ data: null, errors: [{ message: "boom" }] })).fetch)
+        .getData()
+    );
+    await assert.rejects(create.get("/x").withErrorInterceptor(record).withTimeout(20).withFetch(stalled()).getText());
+    assert.deepEqual(seen, ["PARSE 200", "VALIDATION 200", "GRAPHQL 200", "TIMEOUT 200"]);
+  });
+
+  it("read a response they recover with like the original one, and pass a failure to read it to the next interceptor", async () => {
+    const recovering = () =>
+      create
+        .get("/x")
+        .withFetch(stub(() => status(500)).fetch)
+        .withErrorInterceptor(() => new ResponseWrapper(json({ recovered: true })));
+    assert.deepEqual(await recovering().getJson(), { recovered: true });
+    assert.equal(await recovering().getData<{ recovered: boolean }, boolean>(data => data.recovered), true);
+    assert.equal(await recovering().getText(), '{"recovered":true}');
+    assert.deepEqual(await recovering().getResult(), { data: { recovered: true }, error: null });
+
+    const seen: string[] = [];
+    const error = await create
+      .get("/x")
+      .withFetch(stub(status(500)).fetch)
+      .withErrorInterceptor(() => new ResponseWrapper(new Response("{oops")))
+      .withErrorInterceptor(e => void seen.push(e.code))
+      .getJson()
+      .then(unexpected, asError);
+    assert.equal(error.code, "PARSE");
+    assert.ok(error.message.startsWith("Invalid JSON response: "), error.message);
+    assert.deepEqual(seen, ["PARSE"]);
   });
 });

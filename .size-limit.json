@@ -1,5 +1,5 @@
 [
-  { "name": "full import", "path": "dist/index.js", "import": "*", "limit": "4.95 KB", "gzip": true },
+  { "name": "full import", "path": "dist/index.js", "import": "*", "limit": "5 KB", "gzip": true },
   { "name": "full import (brotli)", "path": "dist/index.js", "import": "*", "limit": "4.5 KB", "brotli": true },
   { "name": "createGet only", "path": "dist/index.js", "import": "{ createGet }", "limit": "4.35 KB", "gzip": true },
   { "name": "RequestError only", "path": "dist/index.js", "import": "{ RequestError }", "limit": "0.3 KB", "gzip": true }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, mock } from "node:test";
 import create, { type RetryContext } from "../../src/index.js";
-import { asError, fetchFailed, flush, hanging, json, status, stub, unexpected } from "../utils/helpers.js";
+import { asError, fetchFailed, flush, hanging, json, schema, stalled, status, stub, unexpected } from "../utils/helpers.js";
 
 /** Drives a request to completion under fake timers, running every pending timer as it appears. */
 async function settle<T>(promise: Promise<T>): Promise<T> {
@@ -401,5 +401,72 @@ describe("retries", () => {
     );
     assert.equal(calls.length, 3);
     assert.deepEqual(seen, [503]);
+  });
+
+  it("retries a timeout that fires while the body is read, and reads the next attempt's body", async () => {
+    const stall = stalled();
+    const { fetch, calls } = stub((call, i) => (i === 0 ? stall(call.url, call.init) : json({ ok: true })));
+    const retried: string[] = [];
+    const data = await settle(
+      create
+        .get("/x")
+        .withTimeout(50)
+        .withRetries({ attempts: 1, delay: 10 })
+        .onRetry(({ error }) => void retried.push(`${error.code} ${error.status}`))
+        .withFetch(fetch)
+        .getJson()
+    );
+    assert.deepEqual(data, { ok: true });
+    assert.equal(calls.length, 2);
+    assert.deepEqual(retried, ["TIMEOUT 200"]);
+  });
+
+  it("does not retry parse, validation or GraphQL errors raised while reading the body, unless shouldRetry asks for it", async () => {
+    const invalid = stub(() => new Response("{oops"));
+    await assert.rejects(settle(create.get("/x").withRetries(3).withFetch(invalid.fetch).getJson()), { code: "PARSE" });
+    const mismatch = stub(() => json({ id: "1" }));
+    await assert.rejects(
+      settle(
+        create
+          .get("/x")
+          .withRetries(3)
+          .withFetch(mismatch.fetch)
+          .getJson(schema(() => "id must be a number"))
+      ),
+      { code: "VALIDATION" }
+    );
+    const selector = stub(() => json({ id: 1 }));
+    const failed = await settle(
+      create
+        .get("/x")
+        .withRetries(3)
+        .withFetch(selector.fetch)
+        .getData(async () => {
+          throw new Error("no");
+        })
+    ).then(unexpected, asError);
+    // An async selector that rejects is a PARSE error like one that throws, not an "unexpected" (retried) NETWORK error.
+    assert.equal(failed.code, "PARSE");
+    assert.equal(failed.message, "Selector failed: no");
+    const graphqlErrors = () => stub(() => json({ data: null, errors: [{ message: "boom" }] }));
+    const query = () => create.post("/graphql").withGraphQL("{ x }", {}, { throwOnError: true });
+    const graphql = graphqlErrors();
+    await assert.rejects(settle(query().withRetries(3).withFetch(graphql.fetch).getJson()), { code: "GRAPHQL" });
+    assert.deepEqual([invalid.calls.length, mismatch.calls.length, selector.calls.length, graphql.calls.length], [1, 1, 1, 1]);
+
+    const seen: string[] = [];
+    const shouldRetry = ({ error }: RetryContext): boolean => (seen.push(`${error.code} ${error.status}`), error.code === "GRAPHQL");
+    const asked = graphqlErrors();
+    await assert.rejects(settle(query().withRetries({ attempts: 2, delay: 1, shouldRetry }).withFetch(asked.fetch).getJson()), { code: "GRAPHQL" });
+    assert.equal(asked.calls.length, 3);
+    assert.deepEqual(seen, ["GRAPHQL 200", "GRAPHQL 200"]);
+  });
+
+  it("leaves the body of getResponse() to the caller: a failure while reading it afterwards is not retried", async () => {
+    const stall = stalled();
+    const { fetch, calls } = stub((call, i) => (i === 0 ? stall(call.url, call.init) : json({ ok: true })));
+    const response = await settle(create.get("/x").withTimeout(50).withRetries({ attempts: 2, delay: 1 }).withFetch(fetch).getResponse());
+    await assert.rejects(settle(response.getJson()), { code: "TIMEOUT" });
+    assert.equal(calls.length, 1);
   });
 });

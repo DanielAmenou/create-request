@@ -96,6 +96,8 @@ export interface RetryContext {
  * 408, 425, 429, 500, 502, 503 or 504, with exponential backoff (300 ms, 600 ms, 1.2 s, … plus
  * up to 100 ms of jitter, capped at `maxDelay`). A `Retry-After` header is honoured when present.
  * Aborted requests and requests with a `ReadableStream` body are never retried, whatever the policy.
+ * With `getJson()`, `getText()` and the other readers an attempt includes reading the body, so a timeout
+ * during the read is retried too (`getResponse()` and `getBody()` hand the body over unread).
  *
  * @example
  * ```typescript
@@ -127,7 +129,10 @@ export interface RetryConfig {
    * cancels the retry so you can react to it yourself. Default: `30000`.
    */
   maxDelay?: number | undefined;
-  /** Full override of the retry decision (`statuses` and `methods` are ignored). Aborts and stream bodies still never retry. */
+  /**
+   * Full override of the retry decision (`statuses` and `methods` are ignored). Aborts and stream bodies still never retry.
+   * It also receives the errors raised while a reader reads the body (`PARSE`, `VALIDATION`, `GRAPHQL`, with `status` set).
+   */
   shouldRetry?: ((context: RetryContext) => boolean | Promise<boolean>) | undefined;
   /** Called before every retry, after the delay has been computed. Awaited if it returns a promise. */
   onRetry?: ((context: RetryContext & { delay: number }) => void | Promise<void>) | undefined;
@@ -187,6 +192,10 @@ export type ResponseInterceptor = (response: ResponseWrapper, request: HttpReque
  * Runs once when the request has failed for good (after all retries), with the request that failed.
  * Return nothing to keep the error, another {@link RequestError} to replace it, or a
  * {@link ResponseWrapper} to recover — typically by replaying `request.clone()`. Throwing replaces the error as well.
+ *
+ * With `getJson()`, `getText()` and the other readers, a failure while reading the body (`PARSE`, `VALIDATION`,
+ * `GRAPHQL`, or a timeout or abort during the read) also reaches error interceptors, and a recovered
+ * `ResponseWrapper` is read the same way; if that read fails, the next interceptor receives the new error.
  *
  * @example
  * ```typescript
